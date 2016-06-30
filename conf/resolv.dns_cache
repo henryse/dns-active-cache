@@ -1,0 +1,12 @@
+# sample file, this should be your DNS Server
+
+# If you have local DNS sever maybe something like this
+#
+#nameserver 172.30.217.45
+#nameserver 172.30.217.46
+#nameserver 172.30.217.59
+
+# Maybe you just want to use Google:
+#
+nameserver 8.8.8.8
+nameserver 8.8.4.4
