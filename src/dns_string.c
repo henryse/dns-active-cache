@@ -37,9 +37,10 @@
 #include "dns_utils.h"
 
 dns_string_ptr dns_string_new(size_t size) {
-    dns_string_ptr dns_string = (dns_string_ptr ) malloc(sizeof(dns_string_t));
+    dns_string_ptr dns_string = (dns_string_ptr) malloc(sizeof(dns_string_t));
     if (dns_string) {
         memory_clear(dns_string, sizeof(dns_string_t));
+        size =  max(size, 4);
 
         dns_string->size = size;
         dns_string->c_string = (char *) malloc(size);
@@ -52,22 +53,31 @@ dns_string_ptr dns_string_new(size_t size) {
 }
 
 void dns_string_reset(dns_string_ptr dns_string) {
-    dns_string->position = 0;
-    memory_clear(dns_string->c_string, dns_string->size);
+    if (NULL != dns_string) {
+        dns_string->position = 0;
+        memory_clear(dns_string->c_string, dns_string->size);
+    }
 }
 
 void dns_string_delete(dns_string_ptr dns_string, bool free_string) {
 
-    if (free_string) {
-        memory_clear(dns_string->c_string, dns_string->size);
-        free(dns_string->c_string);
-    }
+    if (dns_string) {
+        if (free_string) {
+            memory_clear(dns_string->c_string, dns_string->size);
+            free(dns_string->c_string);
+        }
 
-    memory_clear(dns_string, sizeof(dns_string_t));
-    free(dns_string);
+        memory_clear(dns_string, sizeof(dns_string_t));
+        free(dns_string);
+    }
 }
 
 bool string_buffer_resize(dns_string_ptr dns_string, const size_t new_size) {
+
+    if (NULL == dns_string) {
+        return false;
+    }
+
     char *old_c_string = dns_string->c_string;
 
     dns_string->c_string = (char *) realloc(dns_string->c_string, new_size);
@@ -86,7 +96,11 @@ int string_buffer_double_size(dns_string_ptr dns_string) {
 }
 
 void dns_string_append_char(dns_string_ptr dns_string, const char ch) {
-    if (dns_string->position == dns_string->size) {
+    if (NULL == dns_string) {
+        return;
+    }
+
+    if (dns_string->position == dns_string->size - 1) {
         string_buffer_double_size(dns_string);
     }
 
@@ -94,6 +108,11 @@ void dns_string_append_char(dns_string_ptr dns_string, const char ch) {
 }
 
 void dns_string_append_str_length(dns_string_ptr dns_string, const char *src, size_t length) {
+
+    if (NULL == dns_string || NULL == src) {
+        return;
+    }
+
     size_t chars_remaining;
     size_t chars_required;
     size_t new_size;
@@ -118,6 +137,10 @@ void dns_string_append_str(dns_string_ptr dns_string, const char *src) {
 }
 
 void dns_string_sprintf(dns_string_ptr dns_string, const char *template, ...) {
+    if (NULL == dns_string) {
+        return;
+    }
+
     char *str;
     va_list arg_list;
 
