@@ -85,6 +85,9 @@ void *memory_clear(void *p, size_t n) {
 }
 
 void current_utc_time(struct timespec *ts) {
+
+    memory_clear(ts, sizeof(struct timespec));
+
 #ifdef __MACH__
     // OS X does not have clock_gettime, use clock_get_time
     //

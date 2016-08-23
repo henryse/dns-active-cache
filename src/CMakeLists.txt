@@ -27,7 +27,7 @@
 cmake_minimum_required(VERSION 3.3)
 project(dns_active_cache)
 
-set(ACTIVE_DNS_CACHE_VERSION "dns-active-cache-v1.0.0")
+set(ACTIVE_DNS_CACHE_VERSION "dns-active-cache-v1.0.2")
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_C_FLAGS "-std=gnu99")

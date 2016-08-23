@@ -301,7 +301,7 @@ dns_cache_entry_t lookup_dns_packet(context_t *context, dns_packet_t *dns_packet
 dns_string_ptr get_first_question_host_name(dns_packet_t *dns_packet) {
     question_t *question = dns_packet_get_question(dns_packet, 0);
 
-    dns_string_ptr host = dns_string_new(64);
+    dns_string_ptr host = dns_string_new(256);
 
     dns_question_to_host(dns_packet, question, host);
 

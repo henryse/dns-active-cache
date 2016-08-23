@@ -48,7 +48,7 @@
 //
 typedef struct dns_cache_record_struct {
     struct dns_cache_record_struct *next;   // Next record in the list.
-    long reference_count;                   // Reference count, may be able to get rid of this...
+    unsigned int reference_count;           // Reference count for the record.
     unsigned int expired_time_stamp;        // Timestamp to expire record
     unsigned int created_time_stamp;        // Timestamp record was created
 
@@ -69,11 +69,9 @@ unsigned int dns_get_timestamp_now() {
     //
     struct timespec time_now = timer_start();
 
-    // expired_time_stamp in seconds
+    // time stamp in seconds
     //
-    long seconds = time_now.tv_sec + (time_now.tv_nsec / 1000000000);
-
-    return (unsigned int) seconds;
+    return (unsigned int)(time_now.tv_sec + (time_now.tv_nsec / 1000000000));
 }
 
 void dns_cache_record_hold(context_t *context, dns_cache_record_t *dns_cache_record) {
@@ -154,11 +152,11 @@ void dns_cache_log(context_t *context) {
             while (record) {
                 question_t *question = dns_packet_get_question(&record->dns_cache_entry.dns_packet_response, 0);
 
-                dns_string_ptr host_name = dns_string_new(64);
+                dns_string_ptr host_name = dns_string_new(256);
 
                 dns_question_to_host(&record->dns_cache_entry.dns_packet_response, question, host_name);
 
-                dns_string_sprintf(log_data, "%s: %ld, %ld, %d \n",
+                dns_string_sprintf(log_data, "%s: %u, %u, %d \n",
                                    dns_string_c_string(host_name),
                                    record->expired_time_stamp - dns_get_timestamp_now(),
                                    record->reference_count,
@@ -182,8 +180,8 @@ void dns_cache_http_answers(dns_cache_record_t *record, dns_string_ptr response)
     if (record && record->dns_cache_entry.dns_packet_response_size) {
         dns_packet_t *dns_packet = &record->dns_cache_entry.dns_packet_response;
 
-        dns_string_ptr host_name = dns_string_new(64);
-        dns_string_ptr resource_information = dns_string_new(64);
+        dns_string_ptr host_name = dns_string_new(256);
+        dns_string_ptr resource_information = dns_string_new(256);
 
         unsigned short answer_count = ntohs(dns_packet->header.answer_count);
         if (answer_count) {
@@ -282,10 +280,12 @@ bool dns_cache_health_check(context_t *context) {
 void dns_cache_http_log(context_t *context, dns_string_ptr response) {
     dns_cache_record_t *record = dns_get_head(context);
 
+    unsigned int timestamp_now = dns_get_timestamp_now();
+
     dns_string_sprintf(response, "<P>Cache Sleep Time(timestamp next, now: %d, %d): <B>%d</B><P>",
                        dns_get_cache_timestamp_next(),
-                       dns_get_timestamp_now(),
-                       dns_get_cache_timestamp_next() - dns_get_timestamp_now());
+                       timestamp_now,
+                       dns_get_cache_timestamp_next() - timestamp_now);
 
     dns_string_sprintf(response,
                        "<style type=\"text/css\">table.dnsdata {background-color:transparent;border-collapse:collapse;width:100%%;}"
@@ -300,7 +300,7 @@ void dns_cache_http_log(context_t *context, dns_string_ptr response) {
 
     if (record) {
 
-        dns_string_ptr host_name = dns_string_new(64);
+        dns_string_ptr host_name = dns_string_new(256);
 
         while (record) {
 
@@ -315,10 +315,10 @@ void dns_cache_http_log(context_t *context, dns_string_ptr response) {
                 if (question) {
                     dns_question_to_host(packet, question, host_name);
                     dns_string_sprintf(response,
-                                       "<tr><td>%s</td><td>%ld</td><td>%ld</td><td>%ld</td><td>%s</td><td>",
+                                       "<tr><td>%s</td><td>%u</td><td>%u</td><td>%u</td><td>%s</td><td>",
                                        dns_string_c_string(host_name),
                                        record->expired_time_stamp,
-                                       record->expired_time_stamp - dns_get_timestamp_now(),
+                                       record->expired_time_stamp - timestamp_now,
                                        record->reference_count,
                                        dns_cache_http_entry_state(record->dns_cache_entry.entry_state));
 
@@ -364,14 +364,14 @@ bool dns_cache_compare(context_t *context, dns_packet_t *request, dns_packet_t *
             question_t *question = dns_packet_get_question(request, request_index);
 
             if (question) {
-                dns_string_ptr request_host_name = dns_string_new(64);
+                dns_string_ptr request_host_name = dns_string_new(256);
 
                 dns_question_to_host(request, question, request_host_name);
                 for (unsigned cache_index = 0;
                      cache_index < ntohs(cache_entry->header.question_count); cache_index++) {
                     question = dns_packet_get_question(cache_entry, cache_index);
                     if (question) {
-                        dns_string_ptr cache_host_name = dns_string_new(64);
+                        dns_string_ptr cache_host_name = dns_string_new(256);
 
                         dns_question_to_host(cache_entry, question, cache_host_name);
                         if (dns_string_strcmp(cache_host_name, request_host_name) == 0) {
@@ -435,10 +435,11 @@ dns_cache_entry_t dns_cache_find(context_t *context, dns_packet_t *dns_packet_to
             // line parameter for max ttl
             //
             unsigned int cache_seconds = 0;
-            if (dns_get_timestamp_now() > cache_record->created_time_stamp) {
+            unsigned int timestamp_now = dns_get_timestamp_now();
+            if (timestamp_now > cache_record->created_time_stamp) {
                 dns_packet_t *dns_packet = &dns_cache_entry_found.dns_packet_response;
 
-                cache_seconds = dns_get_timestamp_now() - cache_record->created_time_stamp;
+                cache_seconds = timestamp_now - cache_record->created_time_stamp;
                 unsigned int current_ttl = dns_packet_record_ttl_get(dns_packet, RECORD_A);
                 unsigned int new_ttl = current_ttl < cache_seconds ? 0 : current_ttl - cache_seconds;
 
@@ -617,8 +618,8 @@ void *dns_cache_refresh_thread(void __unused *arg) {
 
     while (g_dns_refresh_cache_loop) {
 
-        long timestamp_now = dns_get_timestamp_now();
-        long timestamp_next = timestamp_now + dns_get_cache_polling_interval();
+        unsigned int timestamp_now = dns_get_timestamp_now();
+        unsigned int timestamp_next = timestamp_now + dns_get_cache_polling_interval();
 
         dns_cache_log(&context);
 
@@ -684,14 +685,14 @@ void *dns_cache_refresh_thread(void __unused *arg) {
 
         // Save the "next" time so we can show it in diagnostics page:
         //
-        dns_set_cache_timestamp_next((unsigned int) timestamp_next);
+        dns_set_cache_timestamp_next(timestamp_next);
 
         // OK see if we need to sleep at all...
         //
         if (timestamp_now < timestamp_next) {
-            DEBUG_LOG(&context, "dns_cache_refresh_thread() sleeping %d ",
-                      (unsigned int) (timestamp_next - timestamp_now));
-            sleep((unsigned int) (timestamp_next - timestamp_now));
+            DEBUG_LOG(&context, "dns_cache_refresh_thread() sleeping %u ",
+                      (timestamp_next - timestamp_now));
+            sleep(timestamp_next - timestamp_now);
         }
 
         // Reset the context "after" the sleep, so we a better idea of performance

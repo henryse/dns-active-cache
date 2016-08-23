@@ -382,7 +382,7 @@ void dns_resource_log(dns_string_ptr log_output,
                       dns_packet_t *dns_packet,
                       resource_resource_t *resource_record) {
     if (resource_record) {
-        dns_string_ptr host_name = dns_string_new(64);
+        dns_string_ptr host_name = dns_string_new(256);
 
         dns_resource_to_host(dns_packet, resource_record, host_name);
         dns_resource_header_t *record_data = dns_resource_header_get(resource_record);
@@ -454,7 +454,7 @@ void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *te
                 question_t *question = dns_packet_get_question(dns_packet, question_index);
 
                 if (question) {
-                    dns_string_ptr host_name = dns_string_new(64);
+                    dns_string_ptr host_name = dns_string_new(256);
 
                     dns_question_to_host(dns_packet, question, host_name);
 
@@ -530,7 +530,7 @@ unsigned int dns_packet_record_ttl_get(dns_packet_t *dns_packet, record_type_t r
             resource_resource_t *resource_record = dns_packet_get_answer(dns_packet, answer_index);
 
             if (resource_record) {
-                dns_string_ptr host_name = dns_string_new(64);
+                dns_string_ptr host_name = dns_string_new(256);
 
                 dns_resource_to_host(dns_packet, resource_record, host_name);
 
@@ -562,7 +562,7 @@ void dns_packet_record_ttl_set(dns_packet_t *dns_packet, record_type_t record_ty
             resource_resource_t *resource_record = dns_packet_get_answer(dns_packet, answer_index);
 
             if (resource_record) {
-                dns_string_ptr host_name = dns_string_new(64);
+                dns_string_ptr host_name = dns_string_new(256);
 
                 dns_resource_to_host(dns_packet, resource_record, host_name);
 
