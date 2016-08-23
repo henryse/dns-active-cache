@@ -45,7 +45,7 @@ char *g_resolvers_file = NULL;
 char **g_resolvers = NULL;
 size_t g_resolvers_count = 0;
 unsigned int g_cache_timestamp_next = 0;
-unsigned int g_max_ttl = 3600;
+unsigned int g_max_ttl = UINT_MAX/2;
 bool g_run_as_daemon = false;
 pid_t g_daemon_process_id = 0;
 

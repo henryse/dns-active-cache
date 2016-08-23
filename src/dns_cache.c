@@ -434,16 +434,11 @@ dns_cache_entry_t dns_cache_find(context_t *context, dns_packet_t *dns_packet_to
             // We need to "tweak" the cached TTL, The TTL for the RECORD_A and cap it to the command
             // line parameter for max ttl
             //
-            unsigned int cache_seconds = 0;
-            unsigned int timestamp_now = dns_get_timestamp_now();
-            if (timestamp_now > cache_record->created_time_stamp) {
-                dns_packet_t *dns_packet = &dns_cache_entry_found.dns_packet_response;
+            dns_packet_t *dns_packet = &dns_cache_entry_found.dns_packet_response;
+            unsigned int current_ttl = dns_packet_record_ttl_get(dns_packet, RECORD_A);
 
-                cache_seconds = timestamp_now - cache_record->created_time_stamp;
-                unsigned int current_ttl = dns_packet_record_ttl_get(dns_packet, RECORD_A);
-                unsigned int new_ttl = current_ttl < cache_seconds ? 0 : current_ttl - cache_seconds;
-
-                dns_packet_record_ttl_set(dns_packet, RECORD_A, new_ttl);
+            if (current_ttl > dns_get_max_ttl()){
+                dns_packet_record_ttl_set(dns_packet, RECORD_A, dns_get_max_ttl());
             }
 
             // Release the record, we are done with it.
