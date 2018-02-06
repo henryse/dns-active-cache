@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
+
 #ifndef __MACH__
 #include <unistd.h>
 #endif
@@ -93,11 +94,13 @@ void usage(const char *program) {
             dns_get_resolvers_file());
     fprintf(stdout, "     timeout        Network time out in seconds.  Default: %ds\n",
             dns_get_socket_timeout());
-    fprintf(stdout, "     interval       How often should the service scan the cache to find timed out entries. default: %ds\n",
+    fprintf(stdout,
+            "     interval       How often should the service scan the cache to find timed out entries. default: %ds\n",
             dns_get_cache_polling_interval());
     fprintf(stdout, "     entries        Max cache entries. default: %d\n", dns_get_cache_entries());
     fprintf(stdout, "     debug          Debug output.  default: %s\n", dns_get_debug_mode() ? "true" : "false");
-    fprintf(stdout, "     log            General logging messages. default: %s\n", dns_get_log_mode() ? "true" : "false");
+    fprintf(stdout, "     log            General logging messages. default: %s\n",
+            dns_get_log_mode() ? "true" : "false");
     fprintf(stdout, "     optimize       Optimize the use of ports by reusing them. default: %s\n",
             dns_get_optimize_mode() ? "true" : "false");
     fprintf(stdout,
@@ -114,7 +117,7 @@ bool is_valid_ip_address(char *ipAddress) {
     char str[INET6_ADDRSTRLEN];
     int result = inet_pton(AF_INET, ipAddress, str);
 
-    if (result != 1){
+    if (result != 1) {
         // maybe IPV6?
         result = inet_pton(AF_INET6, ipAddress, str);
     }
@@ -242,12 +245,12 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                 break;
 
             case 'r': {
-                    char *resolvers_file = malloc_string(strlen(optarg));
-                    strncpy(resolvers_file, optarg, strlen(optarg));
-                    dns_set_resolvers_file(resolvers_file);
+                char *resolvers_file = malloc_string(strlen(optarg));
+                strncpy(resolvers_file, optarg, strlen(optarg));
+                dns_set_resolvers_file(resolvers_file);
 
-                    INFO_LOG(context, "Resolvers file %s", optarg);
-                }
+                INFO_LOG(context, "Resolvers file %s", optarg);
+            }
                 break;
 
             case 't':
@@ -311,16 +314,15 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
     return true;
 }
 
-void fork_process(context_t *context){
-    if (dns_get_run_as_daemon()){
+void fork_process(context_t *context) {
+    if (dns_get_run_as_daemon()) {
         // Create child process
         //
         pid_t process_id = fork();
 
         // Indication of fork() failure
         //
-        if (process_id < 0)
-        {
+        if (process_id < 0) {
             ERROR_LOG(context, "Forking the process failed.");
             // Return failure in exit status
             exit(1);
@@ -328,8 +330,7 @@ void fork_process(context_t *context){
 
         // PARENT PROCESS. Need to kill it.
         //
-        if (process_id > 0)
-        {
+        if (process_id > 0) {
             INFO_LOG(context, "Process ID of child process %d \n", process_id);
 
             // return success in exit status
@@ -348,8 +349,7 @@ void fork_process(context_t *context){
         //set new session
         //
         pid_t sid = setsid();
-        if(sid < 0)
-        {
+        if (sid < 0) {
             // Return failure
             exit(1);
         }
@@ -416,12 +416,10 @@ int main(int argc, char *argv[]) {
                 // Start Processing Messages
                 //
                 return_value = dns_service_start(&context);
-            }
-            else {
+            } else {
                 ERROR_LOG(&context, "Failed to start the service, unable to setup the service.");
             }
-        }
-        else {
+        } else {
             ERROR_LOG(&context, "Unable to find resolvers config file %s, please see --resolvers= options",
                       dns_get_resolvers_file());
         }

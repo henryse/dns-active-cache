@@ -24,6 +24,8 @@
 //
 **********************************************************************/
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedMacroInspection"
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -259,3 +261,4 @@ void close_logs() {
     closelog();
 }
 
+#pragma clang diagnostic pop

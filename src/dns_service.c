@@ -75,8 +75,7 @@ int startup_connection(context_t *context, short port) {
     if (socket_fd == -1) {
         ERROR_LOG(context, "Unable to create socket, this is either a network issue where the port %d"
                 " is already in use or a bug in the service.", port);
-    }
-    else {
+    } else {
         // The setsockopt() function is used to allow the local address to
         // be reused when the server is restarted before the required wait
         // time expires.
@@ -130,8 +129,7 @@ void log_incoming_request(context_t *context, struct sockaddr_storage *addr, ssi
                       &((struct sockaddr_in *) addr)->sin_addr,
                       ip_string, sizeof ip_string);
 
-        }
-        else {
+        } else {
             inet_ntop(addr->ss_family,
                       &((struct sockaddr_in6 *) addr)->sin6_addr,
                       ip_string, sizeof ip_string);
@@ -234,8 +232,7 @@ bool dns_resolve(context_t *context,
 
                 ERROR_LOG(context, "sendto() failed, this is either a networking issue or a bug in the service. "
                         "Trying to connect to: %s", dns_get_resolvers()[index]);
-            }
-            else {
+            } else {
                 dns_packet_log(context,
                                &dns_request,
                                "Packet sent to server %s: (size: %d)",
@@ -278,8 +275,7 @@ bool dns_resolve(context_t *context,
                           strerror(errno));
             }
         }
-    }
-    else {
+    } else {
         ERROR_LOG(context, "dns_resolve() failed, please check network connectivity or could be an internal error.");
     }
 
@@ -292,8 +288,7 @@ dns_cache_entry_t lookup_dns_packet(context_t *context, dns_packet_t *dns_packet
         memory_clear(&dns_cache_entry, sizeof(dns_cache_entry));
 
         return dns_cache_entry;
-    }
-    else {
+    } else {
         return dns_cache_find(context, dns_packet_to_find);
     }
 }
@@ -317,8 +312,7 @@ struct timespec log_start_request(context_t *context, dns_incoming_request_t *dn
         INFO_LOG(context, "Started processing for '%s'", dns_string_c_string(first_question_host_name));
 
         dns_string_delete(first_question_host_name, true);
-    }
-    else {
+    } else {
         ERROR_LOG(context, "Out of memory, can't allocate string!  This is either an issue with the server or a bug.");
     }
 
@@ -335,8 +329,7 @@ void log_end_request(context_t *context, struct timespec start_time, dns_incomin
                  timer_end(start_time));
 
         dns_string_delete(first_question_host_name, true);
-    }
-    else {
+    } else {
         ERROR_LOG(context, "Out of memory, can't allocate string!  This is either an issue with the server or a bug.");
     }
 }
@@ -357,8 +350,7 @@ void process_request(context_t *context, int socket_fd) {
                                &dns_incoming_request,
                                &dns_cache_entry.dns_packet_response,
                                dns_cache_entry.dns_packet_response_size);
-        }
-        else {
+        } else {
             INFO_LOG(context, "Cache miss, going to upstream resolver");
             dns_packet_t dns_response;
             memory_clear(&dns_response, sizeof(dns_response));

@@ -24,6 +24,8 @@
 //
 **********************************************************************/
 
+#include <ntsid.h>
+
 #ifndef __MACH__
 #define _POSIX_C_SOURCE 200809L
 #define __unused
@@ -65,14 +67,12 @@ size_t http_read_line(int socket, dns_string_ptr buffer) {
 
                 if ((n > 0) && (c == '\n')) {
                     recv(socket, &c, 1, 0);
-                }
-                else {
+                } else {
                     c = '\n';
                 }
             }
             dns_string_append_char(buffer, c);
-        }
-        else {
+        } else {
             c = '\n';
         }
     }
@@ -112,8 +112,7 @@ void http_output_health_check(context_t *context, dns_string_ptr response) {
 
     if (dns_cache_health_check(context)) {
         dns_string_sprintf(response_body, "{\"status\":\"UP\"}");
-    }
-    else {
+    } else {
         dns_string_sprintf(response_body, "{\"status\":\"DOWN\"}");
     }
 
@@ -121,6 +120,23 @@ void http_output_health_check(context_t *context, dns_string_ptr response) {
     dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
     dns_string_sprintf(response, "Transfer-Encoding: Identity\r\n");
     dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
+    dns_string_sprintf(response, "Connection: close\r\n");
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+
+    dns_string_delete(response_body, true);
+}
+
+void http_output_active(context_t  __unused *context, dns_string_ptr response) {
+
+    dns_string_ptr response_body = dns_string_new(1024);
+
+    dns_string_sprintf(response_body, "ACTIVE");
+
+    dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
+    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
+    dns_string_sprintf(response, "Transfer-Encoding: Identity\r\n");
+    dns_string_sprintf(response, "Content-Type: text/plain;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
     dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
     dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
@@ -172,17 +188,19 @@ void http_output_response(context_t *context, dns_string_ptr request_path, dns_s
         //
         http_output_health_check(context, response);
     }
-    else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/buildinfo", strlen("/buildinfo"))) {
+    if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/active", strlen("/active"))) {
+        // Just respond with ACTIVE
+        //
+        http_output_active(context, response);
+    } else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/buildinfo", strlen("/buildinfo"))) {
         // Output Build information
         //
         http_output_build_info(response);
-    }
-    else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/status", strlen("/status"))) {
+    } else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/status", strlen("/status"))) {
         // Just output stats.
         //
         http_output_monitor_page(context, response);
-    }
-    else {
+    } else {
         http_not_found(response);
     }
 }
@@ -218,8 +236,7 @@ int debug_startup_connection(context_t *context) {
     if (socket_fd == -1) {
         ERROR_LOG(context, "Unable to create socket, this is either a network issue where the port %"
                 " is already in use or a bug in the service.", debug_get_port());
-    }
-    else {
+    } else {
         // The setsockopt() function is used to allow the local address to
         // be reused when the server is restarted before the required wait
         // time expires.
@@ -274,26 +291,19 @@ http_method_t http_map_string_to_method(dns_string_ptr request_buffer) {
 
     if (0 == strncasecmp(method, "GET", 3)) {
         result = http_get;
-    }
-    else if (0 == strncasecmp(method, "POST", 4)) {
+    } else if (0 == strncasecmp(method, "POST", 4)) {
         result = http_post;
-    }
-    else if (0 == strncasecmp(method, "PUT", 3)) {
+    } else if (0 == strncasecmp(method, "PUT", 3)) {
         result = http_put;
-    }
-    else if (0 == strncasecmp(method, "DELETE", 6)) {
+    } else if (0 == strncasecmp(method, "DELETE", 6)) {
         result = http_delete;
-    }
-    else if (0 == strncasecmp(method, "OPTIONS", 7)) {
+    } else if (0 == strncasecmp(method, "OPTIONS", 7)) {
         result = http_options;
-    }
-    else if (0 == strncasecmp(method, "HEAD", 4)) {
+    } else if (0 == strncasecmp(method, "HEAD", 4)) {
         result = http_head;
-    }
-    else if (0 == strncasecmp(method, "TRACE", 5)) {
+    } else if (0 == strncasecmp(method, "TRACE", 5)) {
         result = http_trace;
-    }
-    else if (0 == strncasecmp(method, "CONNECT", 7)) {
+    } else if (0 == strncasecmp(method, "CONNECT", 7)) {
         result = http_connect;
     }
 
@@ -373,8 +383,7 @@ void *debug_thread(void __unused *arg) {
             }
 
             close(socket_fd);
-        }
-        else {
+        } else {
             ERROR_LOG(&context, "[ERROR] DNS Active Cache was unable to take the stage on port %d", debug_get_port());
         }
     }

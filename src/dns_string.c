@@ -40,7 +40,7 @@ dns_string_ptr dns_string_new(size_t size) {
     dns_string_ptr dns_string = (dns_string_ptr) malloc(sizeof(dns_string_t));
     if (dns_string) {
         memory_clear(dns_string, sizeof(dns_string_t));
-        size =  max(size, 4);
+        size = max(size, 4);
 
         dns_string->size = size;
         dns_string->c_string = (char *) malloc(size);
@@ -178,4 +178,5 @@ int dns_string_strcmp(dns_string_ptr string_buffer_1, dns_string_ptr string_buff
                    max(dns_string_c_string_length(string_buffer_1),
                        dns_string_c_string_length(string_buffer_2)));
 }
+
 #pragma clang diagnostic pop
