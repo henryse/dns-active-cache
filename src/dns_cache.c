@@ -1,4 +1,4 @@
-#include <ntsid.h>/**********************************************************************
+/**********************************************************************
 //    Copyright (c) 2015 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -29,6 +29,8 @@
 #include <sys/cdefs.h>
 #define _POSIX_C_SOURCE 200809L
 #define __unused
+#else
+#include <ntsid.h>
 #endif
 
 #include <stdlib.h>
