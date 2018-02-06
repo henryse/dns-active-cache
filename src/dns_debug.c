@@ -24,12 +24,13 @@
 //
 **********************************************************************/
 
-#include <ntsid.h>
 
 #ifndef __MACH__
 #define _POSIX_C_SOURCE 200809L
 #define __unused
 #include <strings.h>
+#else
+#include <ntsid.h>
 #endif
 
 #include <pthread.h>
