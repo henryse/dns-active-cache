@@ -30,7 +30,9 @@
 #define __unused
 #include <strings.h>
 #else
+
 #include <ntsid.h>
+
 #endif
 
 #include <pthread.h>
@@ -81,7 +83,7 @@ size_t http_read_line(int socket, dns_string_ptr buffer) {
     return dns_string_c_string_length(buffer);
 }
 
-void http_output_monitor_page(context_t *context, dns_string_ptr response) {
+void http_output_debug_page(context_t *context, dns_string_ptr response) {
 
     dns_string_ptr response_body = dns_string_new(1024);
 
@@ -89,7 +91,7 @@ void http_output_monitor_page(context_t *context, dns_string_ptr response) {
     dns_string_sprintf(response_body, "<BODY><CENTER><B>DNS Active Cache Stats</B></CENTER><BR>\r\n");
     dns_string_sprintf(response_body, "\r\n");
 
-    dns_cache_http_log(context, response_body);
+    dns_cache_html_log(context, response_body);
 
     dns_string_sprintf(response_body, "\r\n");
 
@@ -99,6 +101,22 @@ void http_output_monitor_page(context_t *context, dns_string_ptr response) {
     dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
     dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
     dns_string_sprintf(response, "Content-Type: text/html\r\n");
+    dns_string_sprintf(response, "Connection: close\r\n");
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+
+    dns_string_delete(response_body, true);
+}
+
+void http_output_status_page(context_t *context, dns_string_ptr response) {
+
+    dns_string_ptr response_body = dns_string_new(1024);
+
+    dns_cache_json_log(context, response_body);
+
+    dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
+    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
+    dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
     dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
     dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
@@ -200,7 +218,11 @@ void http_output_response(context_t *context, dns_string_ptr request_path, dns_s
     } else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/status", strlen("/status"))) {
         // Just output stats.
         //
-        http_output_monitor_page(context, response);
+        http_output_status_page(context, response);
+    } else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/debug", strlen("/debug"))) {
+        // Just output stats.
+        //
+        http_output_debug_page(context, response);
     } else {
         http_not_found(response);
     }
@@ -395,7 +417,7 @@ void *debug_thread(void __unused *arg) {
 pthread_t g_debug_thread_id = 0;
 
 void debug_service_start() {
-    if (debug_get_port()) {
+    if (dns_get_debug_mode()) {
         pthread_create(&g_debug_thread_id, NULL, &debug_thread, NULL);
     }
 }

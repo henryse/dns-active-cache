@@ -45,3 +45,6 @@ fabric.properties
 
 .gitignore
 .idea/
+
+src/.idea/
+src/cmake-build-debug

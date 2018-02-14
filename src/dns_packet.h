@@ -102,6 +102,33 @@ typedef struct dns_resource_header_struct {
 
 typedef void *resource_resource_t;
 
+//Constant sized fields of the resource record structure
+typedef struct dns_additional_record_struct {
+    //   +------------------+------------------------------------------------+
+    //   |  Identifier Type | Identifier                                     |
+    //   |       Code       |                                                |
+    //   +------------------+------------------------------------------------+
+    //   |      0x0000      | The 1-octet 'htype' followed by 'hlen' octets  |
+    //   |                  | of 'chaddr' from a DHCPv4 client's DHCPREQUEST |
+    //   |                  | [7].                                           |
+    //   |      0x0001      | The data octets (i.e., the Type and            |
+    //   |                  | Client-Identifier fields) from a DHCPv4        |
+    //   |                  | client's Client Identifier option [10].        |
+    //   |      0x0002      | The client's DUID (i.e., the data octets of a  |
+    //   |                  | DHCPv6 client's Client Identifier option [11]  |
+    //   |                  | or the DUID field from a DHCPv4 client's       |
+    //   |                  | Client Identifier option [6]).                 |
+    //   |  0x0003 - 0xfffe | Undefined; available to be assigned by IANA.   |
+    //   |      0xffff      | Undefined; RESERVED.                           |
+    //   +------------------+------------------------------------------------+
+    unsigned short identifier_type_code;
+    // NOTES: Need to create a union to break these up, based on the identifier_type_code
+    // unsigned htype;
+    // unsigned hlen;
+} dns_additional_record_t;
+
+typedef void *additional_records_t;
+
 #pragma pack(pop)
 
 void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *template, ...);
@@ -128,7 +155,7 @@ const char *dns_get_record_type_string(unsigned short record_type);
 
 unsigned char *dns_get_resource_data(resource_resource_t *resource_record);
 
-void dns_convert_to_host(dns_packet_t *dns_packet, unsigned char *dns_host_string, dns_string_ptr host);
+void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host_string, dns_string_ptr host);
 
 #endif //DNS_SERVICE_PROCESSING_H
 

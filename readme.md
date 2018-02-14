@@ -75,9 +75,8 @@ The following command line parameters are supported:
          timeout        Network time out in seconds, the default is 5s
          interval       How often should the service scan the cache to find timed out entries. Default: 5s     
          entries        Max cache entries, default is 64
-         debug          Debug output false
-         maxttl         Set the max ttl for all A Records.
-         dbgport        Set the port to listen on for exposing an HTTP status endpoint.
+         debug          Set the port to listen on for exposing an HTTP status endpoint, defualt is 0 == disabled.
+         maxttl         Set the max ttl for all A Records.      
          help           Get this help message
   
 ### --port
@@ -96,7 +95,7 @@ How often should the service scan the cache to find timed out entries.  Once thi
 How many DNS entries you will have, this should be large enough such that it can hold number of upstream servers + 2.  Default is 64
 
 ### --debug
-Show verbose debug output, default is false
+Port to listen on to enable HTTP diagnostic endpoint, this is an HTTP/HTML page that tells you the current status of the DNS entries in the cache.
 
 ### --help
 Display the help options as well as what the defaults are for the setting above.
@@ -104,10 +103,16 @@ Display the help options as well as what the defaults are for the setting above.
 ### --maxttl
 Allows you to specify the maximum TTL in seconds for all A records, this overrides the DNS's TTL for a given entry.
 
-### --dbgport
-Port to listen on to enable HTTP diagnostic endpoint, this is an HTTP/HTML page that tells you the current status of the DNS entries in the cache.
-
 #### status 
+
+    http://[server name]:dbgport/status
+
+Will return an JSON document showing the current cached items, their state, timeout and order of precedence.
+* You should never see duplicate names, you might get luck to catch the rare case, but when you refresh the page the
+duplicate should vanish
+* DNS Active Cache scans from the top item down when looking for matches.
+
+#### debug 
 
     http://[server name]:dbgport/status
 
@@ -158,7 +163,7 @@ You can have as many as you like, the program will scan them in order from first
 
 Running dns_active_cache you can use the following parameters when debugging:
 
-        --debug=true
+        --debug=8080
         --port=5300
         --resolvers=/Users/[your user dir]/dns_cache/conf/resolv.dns_cache
 

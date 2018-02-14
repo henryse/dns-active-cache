@@ -30,9 +30,9 @@
 #include <stdbool.h>
 
 typedef struct dns_string_struct {
-    char *c_string;
-    size_t position;
-    size_t size;
+    char *c_string;         // Data buffer
+    size_t position;        // Position of end of the string
+    size_t size;            // Buffer Size, position must be less than size
 } dns_string_t;
 
 typedef dns_string_t *dns_string_ptr;
@@ -43,7 +43,9 @@ void dns_string_delete(dns_string_ptr dns_string, bool free_string);
 
 void dns_string_reset(dns_string_ptr dns_string);
 
-void dns_string_append_char(dns_string_ptr dns_string, const char ch);
+void dns_string_trim(dns_string_ptr dns_string, size_t length);
+
+void dns_string_append_char(dns_string_ptr dns_string, char ch);
 
 void dns_string_append_str_length(dns_string_ptr dns_string, const char *src, size_t length);
 
