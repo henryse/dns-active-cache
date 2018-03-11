@@ -24,7 +24,6 @@
 //
 **********************************************************************/
 
-
 #ifndef __MACH__
 #define _POSIX_C_SOURCE 200809L
 #define __unused
@@ -80,10 +79,10 @@ size_t http_read_line(int socket, dns_string_ptr buffer) {
         }
     }
 
-    return dns_string_c_string_length(buffer);
+    return dns_string_length(buffer);
 }
 
-void http_output_debug_page(context_t *context, dns_string_ptr response) {
+void http_output_debug_page(transaction_context *context, dns_string_ptr response) {
 
     dns_string_ptr response_body = dns_string_new(1024);
 
@@ -102,13 +101,13 @@ void http_output_debug_page(context_t *context, dns_string_ptr response) {
     dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
     dns_string_sprintf(response, "Content-Type: text/html\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
-    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
-    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_str(response_body));
 
-    dns_string_delete(response_body, true);
+    dns_string_free(response_body, true);
 }
 
-void http_output_status_page(context_t *context, dns_string_ptr response) {
+void http_output_status_page(transaction_context *context, dns_string_ptr response) {
 
     dns_string_ptr response_body = dns_string_new(1024);
 
@@ -118,14 +117,14 @@ void http_output_status_page(context_t *context, dns_string_ptr response) {
     dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
     dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
-    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
-    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_str(response_body));
 
-    dns_string_delete(response_body, true);
+    dns_string_free(response_body, true);
 }
 
 
-void http_output_health_check(context_t *context, dns_string_ptr response) {
+void http_output_health_check(transaction_context *context, dns_string_ptr response) {
 
     dns_string_ptr response_body = dns_string_new(1024);
 
@@ -140,13 +139,13 @@ void http_output_health_check(context_t *context, dns_string_ptr response) {
     dns_string_sprintf(response, "Transfer-Encoding: Identity\r\n");
     dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
-    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
-    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_str(response_body));
 
-    dns_string_delete(response_body, true);
+    dns_string_free(response_body, true);
 }
 
-void http_output_active(context_t  __unused *context, dns_string_ptr response) {
+void http_output_active(transaction_context  __unused *context, dns_string_ptr response) {
 
     dns_string_ptr response_body = dns_string_new(1024);
 
@@ -157,10 +156,10 @@ void http_output_active(context_t  __unused *context, dns_string_ptr response) {
     dns_string_sprintf(response, "Transfer-Encoding: Identity\r\n");
     dns_string_sprintf(response, "Content-Type: text/plain;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
-    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
-    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_str(response_body));
 
-    dns_string_delete(response_body, true);
+    dns_string_free(response_body, true);
 }
 
 void http_output_build_info(dns_string_ptr response) {
@@ -173,10 +172,10 @@ void http_output_build_info(dns_string_ptr response) {
     dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
     dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
-    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
-    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_str(response_body));
 
-    dns_string_delete(response_body, true);
+    dns_string_free(response_body, true);
 }
 
 void http_not_found(dns_string_ptr response) {
@@ -194,32 +193,32 @@ void http_not_found(dns_string_ptr response) {
     dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
     dns_string_sprintf(response, "Content-Type: text/html\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
-    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_c_string_length(response_body));
-    dns_string_sprintf(response, "\r\n%s", dns_string_c_string(response_body));
+    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
+    dns_string_sprintf(response, "\r\n%s", dns_string_c_str(response_body));
 
-    dns_string_delete(response_body, true);
+    dns_string_free(response_body, true);
 }
 
-void http_output_response(context_t *context, dns_string_ptr request_path, dns_string_ptr response) {
+void http_output_response(transaction_context *context, dns_string_ptr request_path, dns_string_ptr response) {
 
-    if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/health", strlen("/health"))) {
+    if (request_path && 0 == strncmp(dns_string_c_str(request_path), "/health", strlen("/health"))) {
         // Do Health Checks
         //
         http_output_health_check(context, response);
     }
-    if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/active", strlen("/active"))) {
+    if (request_path && 0 == strncmp(dns_string_c_str(request_path), "/active", strlen("/active"))) {
         // Just respond with ACTIVE
         //
         http_output_active(context, response);
-    } else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/buildinfo", strlen("/buildinfo"))) {
+    } else if (request_path && 0 == strncmp(dns_string_c_str(request_path), "/buildinfo", strlen("/buildinfo"))) {
         // Output Build information
         //
         http_output_build_info(response);
-    } else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/status", strlen("/status"))) {
+    } else if (request_path && 0 == strncmp(dns_string_c_str(request_path), "/status", strlen("/status"))) {
         // Just output stats.
         //
         http_output_status_page(context, response);
-    } else if (request_path && 0 == strncmp(dns_string_c_string(request_path), "/debug", strlen("/debug"))) {
+    } else if (request_path && 0 == strncmp(dns_string_c_str(request_path), "/debug", strlen("/debug"))) {
         // Just output stats.
         //
         http_output_debug_page(context, response);
@@ -230,15 +229,15 @@ void http_output_response(context_t *context, dns_string_ptr request_path, dns_s
 
 void http_send_response(int socket, dns_string_ptr response) {
     if (NULL != response) {
-        if (dns_string_c_string_length(response) > 0) {
+        if (dns_string_length(response) > 0) {
             send(socket,
-                 dns_string_c_string(response),
-                 dns_string_c_string_length(response), 0);
+                 dns_string_c_str(response),
+                 dns_string_length(response), 0);
         }
     }
 }
 
-int debug_startup_connection(context_t *context) {
+int debug_startup_connection(transaction_context *context) {
 
     struct addrinfo hints;
     memory_clear(&hints, sizeof hints);
@@ -310,7 +309,7 @@ typedef enum {
 
 http_method_t http_map_string_to_method(dns_string_ptr request_buffer) {
     http_method_t result = http_invalid;
-    const char *method = dns_string_c_string(request_buffer);
+    const char *method = dns_string_c_str(request_buffer);
 
     if (0 == strncasecmp(method, "GET", 3)) {
         result = http_get;
@@ -334,7 +333,7 @@ http_method_t http_map_string_to_method(dns_string_ptr request_buffer) {
 }
 
 dns_string_ptr http_parse_path(dns_string_ptr request_buffer) {
-    const char *query = dns_string_c_string(request_buffer);
+    const char *query = dns_string_c_str(request_buffer);
 
     // Skip Method
     //
@@ -362,7 +361,7 @@ dns_string_ptr http_parse_path(dns_string_ptr request_buffer) {
 
 void *debug_thread(void __unused *arg) {
 
-    context_t context = create_context();
+    transaction_context context = create_context();
 
     INFO_LOG(&context, "Starting debug thread on port %hu", debug_get_port());
 
@@ -400,9 +399,9 @@ void *debug_thread(void __unused *arg) {
 
                 close(client_socket);
 
-                dns_string_delete(response_buffer, true);
-                dns_string_delete(request_buffer, true);
-                dns_string_delete(request_path, true);
+                dns_string_free(response_buffer, true);
+                dns_string_free(request_buffer, true);
+                dns_string_free(request_path, true);
             }
 
             close(socket_fd);

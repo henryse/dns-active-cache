@@ -45,14 +45,16 @@ char **malloc_string_array(size_t count);
 
 void free_string_array(char **resolvers, size_t count);
 
+void *memory_alloc(size_t n);
+
 void *memory_clear(void *p, size_t n);
 
-typedef struct context_struct {
+typedef struct context_t {
     uuid_t origination_uuid;
     long long start_time;
-} context_t;
+} transaction_context;
 
-context_t create_context();
+transaction_context create_context();
 
 #if !defined(NDEBUG)
 #define ASSERT(context, x)  {if (!(x)){log_message(LOG_ALERT, __FUNCTION__, __FILE__, __LINE__, context, "Assert Fired" );}}
@@ -64,7 +66,7 @@ context_t create_context();
 #define DEBUG_LOG(context, ...) log_message(LOG_DEBUG, __FUNCTION__, __FILE__, __LINE__, context, __VA_ARGS__ )
 #define INFO_LOG(context, ...) log_message(LOG_INFO, __FUNCTION__, __FILE__, __LINE__, context, __VA_ARGS__ )
 
-void log_message(int log_level, const char *function, const char *file, int line, context_t *context,
+void log_message(int log_level, const char *function, const char *file, int line, transaction_context *context,
                  const char *template, ...);
 
 struct timespec timer_start();

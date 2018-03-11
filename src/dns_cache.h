@@ -39,24 +39,26 @@ typedef enum {
     ENTRY_ENABLED
 } entry_state_t;
 
-typedef struct dns_cache_entry_struct {
+typedef struct dns_cache_entry_t {
     entry_state_t entry_state;
-    dns_packet_t dns_packet_response;
+    dns_packet dns_packet_response;
     size_t dns_packet_response_size;
-} dns_cache_entry_t;
+} dns_cache_entry;
 
-dns_cache_entry_t dns_cache_find(context_t *context, dns_packet_t *dns_packet_to_find);
+dns_cache_entry dns_cache_find(transaction_context *context, dns_packet *dns_packet_to_find);
 
-bool dns_cache_insert(context_t *context, dns_packet_t *dns_packet, size_t size);
+bool dns_cache_insert(transaction_context *context, dns_packet *packet, size_t size);
 
-int dns_cache_init(context_t *context);
+int dns_cache_init(transaction_context *context);
 
 void dns_cache_stop();
 
-void dns_cache_html_log(context_t *context, dns_string_ptr response);
+void dns_cache_html_log(transaction_context *context, dns_string_ptr response);
 
-void dns_cache_json_log(context_t *context, dns_string_ptr response);
+void dns_cache_json_log(transaction_context *context, dns_string_ptr response);
 
-bool dns_cache_health_check(context_t *context);
+bool dns_cache_health_check(transaction_context *context);
+
+size_t dns_packet_a_record_create(dns_cache_entry *cache_entry, dns_string_ptr host_name, dns_string_ptr ip);
 
 #endif //DNS_CACHE_DNS_CACHE_H

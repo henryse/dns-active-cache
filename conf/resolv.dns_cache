@@ -5,6 +5,9 @@
 #nameserver 172.30.217.45
 #nameserver 172.30.217.46
 #nameserver 172.30.217.59
+#
+
+# nameserver 172.19.134.2
 
 # Maybe you just want to use Google:
 #

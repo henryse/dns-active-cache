@@ -28,8 +28,8 @@
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
 
-#ifndef DNS_SERVICE_PROCESSING_H
-#define DNS_SERVICE_PROCESSING_H
+#ifndef DNS_PACKET_H
+#define DNS_PACKET_H
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -40,7 +40,7 @@
 
 //DNS header structure
 
-typedef struct dns_header_struct {
+typedef struct dns_header_t {
     unsigned short id;                          // identification number
     unsigned char recursion_desired :1;         // recursion desired
     unsigned char truncated_message :1;         // truncated message
@@ -56,23 +56,23 @@ typedef struct dns_header_struct {
     unsigned short answer_count;                // number of answer entries
     unsigned short authority_count;             // number of authority entries
     unsigned short resource_count;              // number of resource entries
-} dns_header_t;
+} dns_header;
 
 #define DNS_HEADER_SIZE 12
 #define DNS_PACKET_SIZE 1024
 
-typedef struct dns_packet_struct {
-    dns_header_t header;                              // DNS HEADER (see above)
+typedef struct dns_packet_t {
+    dns_header header;                              // DNS HEADER (see above)
     char body[DNS_PACKET_SIZE - DNS_HEADER_SIZE];   // Question and answers can be found in the body
-} dns_packet_t;
+} dns_packet;
 
 //Constant sized fields of query structure
-typedef struct question_type_struct {
+typedef struct question_t {
     unsigned short question_type;
     unsigned short question_class;
-} question_type_t;
+} dns_question;
 
-typedef void *question_t;
+typedef dns_question *question_ptr;
 
 #define RECORD_A 0x01             /* '0001 (1)	 Requests the A record for the domain name */
 #define RECORD_NS 0x02            /* '0002 (2)	 Requests the NS record(s) for the domain name */
@@ -86,10 +86,15 @@ typedef void *question_t;
 #define RECORD_A6 0x26            /* '0026 (38)	 Obsolete. AAAA is the recommended IPv6 address record. Historical status */
 #define RECORD_ANY 0xFF           /* '00FF (255) Requests ANY resource record (typically wants SOA, MX, NS and MX) */
 
+#define CLASS_IN 1                /* the Internet */
+#define CLASS_CS 2                /* the CSNET class (Obsolete - used only for examples in some obsolete RFCs) */
+#define CLASS_CH 3                /* the CHAOS class */
+#define CLASS_HS 4                /* Hesiod [Dyer 87] */
+
 typedef unsigned short record_type_t;
 
 //Constant sized fields of the resource record structure
-typedef struct dns_resource_header_struct {
+typedef struct dns_resource_header_t {
     unsigned short record_type;         // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
     unsigned short record_class;        // A 16 bit value which defines the protocol family or an
     // instance of the protocol. The normal value is IN = Internet protocol
@@ -98,12 +103,12 @@ typedef struct dns_resource_header_struct {
     // and indicates how long the RR may be cached. The value zero indicates
     // the data should not be cached.
     unsigned short record_data_len;     // The length of RR specific data in octets, for example, 27
-} dns_resource_header_t;
+} dns_resource_header;
 
-typedef void *resource_resource_t;
+typedef dns_resource_header *resource_header_ptr;
 
 //Constant sized fields of the resource record structure
-typedef struct dns_additional_record_struct {
+typedef struct dns_additional_record_t {
     //   +------------------+------------------------------------------------+
     //   |  Identifier Type | Identifier                                     |
     //   |       Code       |                                                |
@@ -125,38 +130,40 @@ typedef struct dns_additional_record_struct {
     // NOTES: Need to create a union to break these up, based on the identifier_type_code
     // unsigned htype;
     // unsigned hlen;
-} dns_additional_record_t;
+} dns_additional_record;
 
-typedef void *additional_records_t;
+typedef dns_additional_record *additional_records_ptr;
 
 #pragma pack(pop)
 
-void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *template, ...);
+void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...);
 
-question_t *dns_packet_get_question(dns_packet_t *dns_packet, unsigned index);
+question_ptr *dns_packet_get_question(dns_packet *packet, unsigned index);
 
-question_type_t *dns_question_type(question_t *question);
+dns_question *dns_question_type(question_ptr *question);
 
-void dns_question_to_host(dns_packet_t *dns_packet, question_t *question, dns_string_ptr host);
+void dns_packet_question_to_host(dns_packet *packet, question_ptr *question, dns_string_ptr host);
 
-size_t dns_packet_question_size(context_t *context, dns_packet_t *dns_packet);
+size_t dns_packet_question_size(transaction_context *context, dns_packet *packet);
 
-unsigned int dns_packet_record_ttl_get(dns_packet_t *dns_packet, record_type_t record_type);
+unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type);
 
-void dns_packet_record_ttl_set(dns_packet_t *dns_packet, record_type_t record_type, unsigned int new_ttl);
+void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, unsigned int new_ttl);
 
-resource_resource_t *dns_packet_get_answer(dns_packet_t *dns_packet, unsigned int index);
+resource_header_ptr *dns_packet_get_answer(dns_packet *packet, unsigned int index);
 
-void dns_resource_to_host(dns_packet_t *dns_packet, resource_resource_t *resource_record, dns_string_ptr host_name);
+void dns_packet_resource_to_host(dns_packet *packet,
+                                 resource_header_ptr *resource_record,
+                                 dns_string_ptr host_name);
 
-dns_resource_header_t *dns_resource_header_get(resource_resource_t *resource_record);
+dns_resource_header *dns_resource_header_get(resource_header_ptr *resource_record);
 
-const char *dns_get_record_type_string(unsigned short record_type);
+const char *dns_record_type_string(unsigned short record_type);
 
-unsigned char *dns_get_resource_data(resource_resource_t *resource_record);
+unsigned char *dns_resource_data_get(resource_header_ptr *resource_record);
 
-void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host_string, dns_string_ptr host);
+void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string_ptr host);
 
-#endif //DNS_SERVICE_PROCESSING_H
+#endif //DNS_PACKET_READ
 
 #pragma clang diagnostic pop

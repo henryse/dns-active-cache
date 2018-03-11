@@ -33,6 +33,12 @@ An entry will be expired from the local cache based on the DNS Records TTL.
 
 Create a pull request for this project.
 
+Install **cmake** to build this project:
+        
+Mac OSX:
+        
+        brew install cmake
+         
 Make sure you have the following(example for Cent OS):
 
         yum -y install iconv-devel \
@@ -44,6 +50,12 @@ or
         apt-get install \
             libghc-iconv-dev \
             uuid-dev 
+
+[YAML Parser](https://lloyd.github.io/yajl/):
+    
+    git clone git://github.com/lloyd/yajl
+    
+    ./configure && make install
 
 Use **cmake** to build the project:
 

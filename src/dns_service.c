@@ -34,17 +34,17 @@
 #include <sys/errno.h>
 
 #include "dns_service.h"
-#include "dns_cache.h"
 #include "dns_settings.h"
 #include "dns_debug.h"
+#include "dns_service_etcd.h"
 
-typedef struct dns_incoming_request_struct {
+typedef struct dns_incoming_request_t {
     int socket_fd;
-    dns_packet_t dns_packet;
+    dns_packet packet;
     ssize_t dns_packet_size;
     struct sockaddr_storage addr;
     socklen_t addr_length;
-} dns_incoming_request_t;
+} dns_incoming_request;
 
 // Global Variables:
 //
@@ -54,7 +54,7 @@ bool dns_service_running() {
     return g_dns_service_running;
 }
 
-int startup_connection(context_t *context, short port) {
+int startup_connection(transaction_context *context, short port) {
 
     struct addrinfo hints;
     memory_clear(&hints, sizeof hints);
@@ -101,7 +101,7 @@ int startup_connection(context_t *context, short port) {
 
 int g_dns_service_socket_fd = 0;
 
-int dns_service_get_socket(context_t *context) {
+int dns_service_get_socket(transaction_context *context) {
 
     if (!g_dns_service_socket_fd) {
         int dns_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -119,7 +119,7 @@ void dns_service_stop() {
     g_dns_service_running = false;
 }
 
-void log_incoming_request(context_t *context, struct sockaddr_storage *addr, ssize_t packet_size) {
+void log_incoming_request(transaction_context *context, struct sockaddr_storage *addr, ssize_t packet_size) {
     if (dns_get_log_mode()) {
         char ip_string[INET6_ADDRSTRLEN];
         memory_clear(ip_string, sizeof ip_string);
@@ -139,50 +139,50 @@ void log_incoming_request(context_t *context, struct sockaddr_storage *addr, ssi
 
         dns_string_sprintf(sb_response, "request=incoming;bytes=%d;ip_address=%s", packet_size, ip_string);
 
-        INFO_LOG(context, dns_string_c_string(sb_response));
+        INFO_LOG(context, dns_string_c_str(sb_response));
 
-        dns_string_delete(sb_response, true);
+        dns_string_free(sb_response, true);
     }
 }
 
-bool read_incoming_request(context_t *context, int socket_fd, dns_incoming_request_t *dns_incoming_request) {
+bool read_incoming_request(transaction_context *context, int socket_fd, dns_incoming_request *incoming_request) {
 
-    ASSERT(context, dns_incoming_request);
+    ASSERT(context, incoming_request);
 
-    if (dns_incoming_request == NULL || context == NULL) {
+    if (incoming_request == NULL || context == NULL) {
         ERROR_LOG(context, "read_incoming_request has invalid parameters this is a bug in the service.");
         return false;
     }
 
-    dns_incoming_request->socket_fd = socket_fd;
-    dns_incoming_request->addr_length = sizeof(dns_incoming_request->addr);
-    dns_incoming_request->dns_packet_size = recvfrom(socket_fd,
-                                                     &dns_incoming_request->dns_packet,
-                                                     sizeof(dns_incoming_request->dns_packet),
-                                                     0,
-                                                     (struct sockaddr *) &dns_incoming_request->addr,
-                                                     &dns_incoming_request->addr_length);
+    incoming_request->socket_fd = socket_fd;
+    incoming_request->addr_length = sizeof(incoming_request->addr);
+    incoming_request->dns_packet_size = recvfrom(socket_fd,
+                                                 &incoming_request->packet,
+                                                 sizeof(incoming_request->packet),
+                                                 0,
+                                                 (struct sockaddr *) &incoming_request->addr,
+                                                 &incoming_request->addr_length);
 
     // We Reset the context here because of the "wait" in recvfrom, we really don't want to measure that.
     //
     *context = create_context();
 
-    log_incoming_request(context, &dns_incoming_request->addr, dns_incoming_request->addr_length);
+    log_incoming_request(context, &incoming_request->addr, incoming_request->addr_length);
 
-    return dns_incoming_request->dns_packet_size > 0;
+    return incoming_request->dns_packet_size > 0;
 }
 
-bool send_back_response(context_t *context,
-                        dns_incoming_request_t *dns_incoming_request,
-                        dns_packet_t *dns_response,
+bool send_back_response(transaction_context *context,
+                        dns_incoming_request *incoming_request,
+                        dns_packet *dns_response,
                         ssize_t dns_response_size) {
 
-    ssize_t size = sendto(dns_incoming_request->socket_fd,
+    ssize_t size = sendto(incoming_request->socket_fd,
                           dns_response,
                           (size_t) dns_response_size,
                           0,
-                          (const struct sockaddr *) &dns_incoming_request->addr,
-                          dns_incoming_request->addr_length);
+                          (const struct sockaddr *) &incoming_request->addr,
+                          incoming_request->addr_length);
 
     if (size < 0) {
         ERROR_LOG(context, "sendto() failed, this is either a network issue or a bug in the service. size = %d", size);
@@ -191,26 +191,26 @@ bool send_back_response(context_t *context,
     return size > 0;
 }
 
-bool dns_resolve(context_t *context,
+bool dns_resolve(transaction_context *context,
                  int dns_socket,
-                 dns_packet_t *dns_packet,
-                 size_t dns_packet_size,
-                 dns_packet_t *dns_packet_response,
+                 dns_packet *packet,
+                 size_t packet_size,
+                 dns_packet *dns_packet_response,
                  size_t *dns_packet_response_size) {
 
-    ASSERT(context, dns_packet_response != NULL && dns_packet_response_size != NULL && dns_packet_size > 0);
+    ASSERT(context, dns_packet_response != NULL && dns_packet_response_size != NULL && packet_size > 0);
 
     if (dns_packet_response
         && dns_packet_response_size
         && dns_get_resolvers_count() > 0) {
 
-        memory_clear(dns_packet_response, sizeof(dns_packet_t));
+        memory_clear(dns_packet_response, sizeof(dns_packet));
         *dns_packet_response_size = 0;
 
-        dns_packet_t dns_request;
+        dns_packet dns_request;
         memory_clear(&dns_request, sizeof(dns_request));
 
-        memcpy(&dns_request, dns_packet, dns_packet_size);
+        memcpy(&dns_request, packet, packet_size);
 
         struct sockaddr_in destination_addr;
         memory_clear(&destination_addr, sizeof(destination_addr));
@@ -225,7 +225,7 @@ bool dns_resolve(context_t *context,
 
             if (sendto(dns_socket,
                        &dns_request,
-                       dns_packet_size,
+                       packet_size,
                        0,
                        (const struct sockaddr *) &destination_addr,
                        destination_size) <= 0) {
@@ -237,7 +237,7 @@ bool dns_resolve(context_t *context,
                                &dns_request,
                                "Packet sent to server %s: (size: %d)",
                                dns_get_resolvers()[index],
-                               dns_packet_size);
+                               packet_size);
 
                 struct sockaddr_in response_addr;
                 memory_clear(&response_addr, sizeof(response_addr));
@@ -249,7 +249,7 @@ bool dns_resolve(context_t *context,
                 do {
                     ssize_t response_size = recvfrom(dns_socket,
                                                      dns_packet_response,
-                                                     sizeof(dns_packet_t),
+                                                     sizeof(dns_packet),
                                                      0,
                                                      (struct sockaddr *) &response_addr,
                                                      &response_addr_size);
@@ -282,36 +282,36 @@ bool dns_resolve(context_t *context,
     return false;
 }
 
-dns_cache_entry_t lookup_dns_packet(context_t *context, dns_packet_t *dns_packet_to_find) {
+dns_cache_entry lookup_dns_packet(transaction_context *context, dns_packet *dns_packet_to_find) {
     if (dns_get_bypass_mode()) {
-        dns_cache_entry_t dns_cache_entry;
-        memory_clear(&dns_cache_entry, sizeof(dns_cache_entry));
+        dns_cache_entry cache_entry;
+        memory_clear(&cache_entry, sizeof(cache_entry));
 
-        return dns_cache_entry;
-    } else {
-        return dns_cache_find(context, dns_packet_to_find);
+        return cache_entry;
     }
+
+    return dns_cache_find(context, dns_packet_to_find);
 }
 
-dns_string_ptr get_first_question_host_name(dns_packet_t *dns_packet) {
-    question_t *question = dns_packet_get_question(dns_packet, 0);
+dns_string_ptr get_first_question_host_name(dns_packet *packet) {
+    question_ptr *question = dns_packet_get_question(packet, 0);
 
     dns_string_ptr host = dns_string_new(256);
 
-    dns_question_to_host(dns_packet, question, host);
+    dns_packet_question_to_host(packet, question, host);
 
     return host;
 }
 
-struct timespec log_start_request(context_t *context, dns_incoming_request_t *dns_incoming_request) {
+struct timespec log_start_request(transaction_context *context, dns_incoming_request *incoming_request) {
     struct timespec start_time = timer_start();
 
-    dns_string_ptr first_question_host_name = get_first_question_host_name(&dns_incoming_request->dns_packet);
+    dns_string_ptr first_question_host_name = get_first_question_host_name(&incoming_request->packet);
 
     if (first_question_host_name) {
-        INFO_LOG(context, "Started processing for '%s'", dns_string_c_string(first_question_host_name));
+        INFO_LOG(context, "Started processing for '%s'", dns_string_c_str(first_question_host_name));
 
-        dns_string_delete(first_question_host_name, true);
+        dns_string_free(first_question_host_name, true);
     } else {
         ERROR_LOG(context, "Out of memory, can't allocate string!  This is either an issue with the server or a bug.");
     }
@@ -319,72 +319,80 @@ struct timespec log_start_request(context_t *context, dns_incoming_request_t *dn
     return start_time;
 }
 
-void log_end_request(context_t *context, struct timespec start_time, dns_incoming_request_t *dns_incoming_request) {
+void log_end_request(transaction_context *context, struct timespec start_time, dns_incoming_request *incoming_request) {
 
-    dns_string_ptr first_question_host_name = get_first_question_host_name(&dns_incoming_request->dns_packet);
+    dns_string_ptr first_question_host_name = get_first_question_host_name(&incoming_request->packet);
 
     if (first_question_host_name) {
         INFO_LOG(context, "'%s';nanoseconds=%d ",
-                 dns_string_c_string(first_question_host_name),
+                 dns_string_c_str(first_question_host_name),
                  timer_end(start_time));
 
-        dns_string_delete(first_question_host_name, true);
+        dns_string_free(first_question_host_name, true);
     } else {
         ERROR_LOG(context, "Out of memory, can't allocate string!  This is either an issue with the server or a bug.");
     }
 }
 
-void process_request(context_t *context, int socket_fd) {
+void process_request(transaction_context *context, int socket_fd) {
 
-    dns_incoming_request_t dns_incoming_request;
-    memory_clear(&dns_incoming_request, sizeof(dns_incoming_request));
+    dns_incoming_request incoming_request;
+    memory_clear(&incoming_request, sizeof(incoming_request));
 
-    if (read_incoming_request(context, socket_fd, &dns_incoming_request)) {
+    if (read_incoming_request(context, socket_fd, &incoming_request)) {
 
-        struct timespec start_time = log_start_request(context, &dns_incoming_request);
+        struct timespec start_time = log_start_request(context, &incoming_request);
 
-        dns_cache_entry_t dns_cache_entry = lookup_dns_packet(context, &dns_incoming_request.dns_packet);
+        // Look in etcd first....
+        //
+        dns_cache_entry cache_entry = lookup_etcd_packet(context, &incoming_request.packet);
 
-        if (dns_cache_entry.entry_state == ENTRY_ENABLED) {
+        if (cache_entry.entry_state != ENTRY_ENABLED) {
+            // Look in DNS Cache
+            //
+            cache_entry = lookup_dns_packet(context, &incoming_request.packet);
+        }
+
+        if (cache_entry.entry_state == ENTRY_ENABLED) {
             send_back_response(context,
-                               &dns_incoming_request,
-                               &dns_cache_entry.dns_packet_response,
-                               dns_cache_entry.dns_packet_response_size);
+                               &incoming_request,
+                               &cache_entry.dns_packet_response,
+                               cache_entry.dns_packet_response_size);
         } else {
             INFO_LOG(context, "Cache miss, going to upstream resolver");
-            dns_packet_t dns_response;
+            dns_packet dns_response;
             memory_clear(&dns_response, sizeof(dns_response));
 
             size_t dns_response_size = 0;
 
             bool success = dns_resolve(context,
                                        dns_service_get_socket(context),
-                                       &dns_incoming_request.dns_packet,
-                                       (size_t) dns_incoming_request.dns_packet_size,
+                                       &incoming_request.packet,
+                                       (size_t) incoming_request.dns_packet_size,
                                        &dns_response,
                                        &dns_response_size);
 
-            send_back_response(context, &dns_incoming_request, &dns_response, dns_response_size);
+            send_back_response(context, &incoming_request, &dns_response, dns_response_size);
 
             if (success) {
                 dns_cache_insert(context, &dns_response, dns_response_size);
             }
         }
 
-        log_end_request(context, start_time, &dns_incoming_request);
+        log_end_request(context, start_time, &incoming_request);
     }
 }
 
 void dns_service_loop(int socket_fd) {
 
     while (dns_service_running()) {
-        context_t context = create_context();
+        transaction_context context = create_context();
         process_request(&context, socket_fd);
     }
 }
 
 
-int dns_service_start(context_t *context) {
+int dns_service_start(transaction_context *context) {
 
     if (dns_get_resolvers() != NULL) {
 
@@ -405,3 +413,4 @@ int dns_service_start(context_t *context) {
     dns_cache_stop();
     return SO_ERROR;
 }
+

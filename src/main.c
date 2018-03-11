@@ -40,23 +40,24 @@
 #include "dns_service.h"
 #include "dns_cache.h"
 #include "dns_settings.h"
+#include "dns_service_etcd.h"
 
 void shutdown_service() {
-    context_t context = create_context();
+    transaction_context context = create_context();
     ERROR_LOG(&context, "Service is shutting down!");
     dns_service_stop();
     dns_cache_stop();
 }
 
 void signal_shutdown(int value) {
-    context_t context = create_context();
+    transaction_context context = create_context();
     ERROR_LOG(&context, "Shutting down the service, signal: %d", value);
     shutdown_service();
     exit(value);
 }
 
 void signal_SIGPIPE(int value) {
-    context_t context = create_context();
+    transaction_context context = create_context();
     ERROR_LOG(&context, "SIGPIPE failure: %d", value);
     shutdown_service();
     exit(value);
@@ -100,7 +101,6 @@ void usage(const char *program) {
     fprintf(stdout, "     entries        Max cache entries. default: %d\n", dns_get_cache_entries());
     fprintf(stdout, "     debug          Simple DEBUG port to dump diagnostics, support HTTP GET, [host]:[port], "
             "if zero then disabled.  default: %hu\n", debug_get_port());
-
     fprintf(stdout, "     log            General logging messages. default: %s\n",
             dns_get_log_mode() ? "true" : "false");
     fprintf(stdout, "     optimize       Optimize the use of ports by reusing them. default: %s\n",
@@ -202,7 +202,7 @@ char **resolvers_parse(const char *resolvers_file, size_t *count) {
     return resolvers;
 }
 
-bool parse_arguments(context_t *context, int argc, char *argv[]) {
+bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
 
     static struct option long_options[] =
             {
@@ -212,11 +212,13 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                     {"timeout",   optional_argument, 0, 't'},
                     {"interval",  optional_argument, 0, 'v'},
                     {"entries",   optional_argument, 0, 'e'},
+                    {"etcd",      optional_argument, 0, 'E'},
                     {"debug",     optional_argument, 0, 'd'},
                     {"bypass",    optional_argument, 0, 'b'},
                     {"optimize",  optional_argument, 0, 'o'},
                     {"maxttl",    optional_argument, 0, 'm'},
                     {"daemon",    optional_argument, 0, 'D'},
+                    {"host_name", optional_argument, 0, 'h'},
                     {"help",      optional_argument, 0, '?'},
                     {0, 0,                           0, 0}
             };
@@ -238,7 +240,7 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                 break;
 
             case 'p':
-                dns_set_port((in_port_t) atoi(optarg));
+                dns_set_port((in_port_t) strtol(optarg, NULL, 10));
                 INFO_LOG(context, "Port to use %s", optarg);
                 break;
 
@@ -252,29 +254,38 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                 break;
 
             case 't':
-                dns_set_socket_timeout((unsigned int) atol(optarg));
+                dns_set_socket_timeout((unsigned int) atol(optarg)); // NOLINT
                 INFO_LOG(context, "Network timeout %ss", optarg);
                 break;
 
             case 'v':
-                dns_set_cache_polling_interval((unsigned int) atol(optarg));
+                dns_set_cache_polling_interval((unsigned int) atol(optarg)); // NOLINT
                 INFO_LOG(context, "DNS cache polling interval %ss", optarg);
                 break;
 
             case 'e':
-                dns_set_cache_entries((unsigned int) atol(optarg));
+                dns_set_cache_entries((unsigned int) atol(optarg)); // NOLINT
                 INFO_LOG(context, "Max cache entries %s", optarg);
                 break;
 
+            case 'E': {
+                char *etcd = malloc_string(strlen(optarg));
+                strncpy(etcd, optarg, strlen(optarg));
+                dns_set_etcd(etcd);
+
+                INFO_LOG(context, "Etcd server %s", optarg);
+            }
+                break;
+
             case 'd':
-                debug_set_port((unsigned short) atol(optarg));
+                debug_set_port((unsigned short) atol(optarg)); // NOLINT
                 dns_set_debug_mode(debug_get_port() != 0);
                 INFO_LOG(context, "Enable debug mode at port", optarg);
                 break;
 
             case 'b':
                 dns_set_bypass_mode(strcmp(optarg, "true") == 0);
-                INFO_LOG(context, "Bypass cache, usefull for debugging %s", optarg);
+                INFO_LOG(context, "Bypass cache, useful for debugging %s", optarg);
                 break;
 
             case 'o':
@@ -283,7 +294,7 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                 break;
 
             case 'm':
-                dns_set_max_ttl((unsigned int) atol(optarg));
+                dns_set_max_ttl((unsigned int) strtol(optarg, NULL, 10));
                 INFO_LOG(context, "DNS Max TTL %s", optarg);
                 break;
 
@@ -292,6 +303,14 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                 INFO_LOG(context, "Run as a daemon %s", optarg);
                 break;
 
+            case 'h': {
+                char *host_name = malloc_string(strlen(optarg));
+                strncpy(host_name, optarg, strlen(optarg));
+                dns_set_host_name(host_name);
+
+                INFO_LOG(context, "Host Name %s", optarg);
+            }
+                break;
             case '?':
             default:
                 usage("dns_active_cache");
@@ -308,7 +327,7 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
     return true;
 }
 
-void fork_process(context_t *context) {
+void fork_process(transaction_context *context) {
     if (dns_get_run_as_daemon()) {
         // Create child process
         //
@@ -372,7 +391,7 @@ int main(int argc, char *argv[]) {
 
     // Context for the transaction
     //
-    context_t context = create_context();
+    transaction_context context = create_context();
 
     // Setup base service
     //
@@ -406,6 +425,10 @@ int main(int argc, char *argv[]) {
                 // Log the version
                 //
                 INFO_LOG(&context, "Staring DNS Active Service version: %s", get_active_cache_version());
+
+                // Start Etcd Service
+                //
+                dns_service_etcd(&context);
 
                 // Start Processing Messages
                 //

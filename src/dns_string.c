@@ -25,6 +25,7 @@
 **********************************************************************/
 
 #pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
 
 #define _GNU_SOURCE
@@ -33,95 +34,110 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "dns_string.h"
 #include "dns_utils.h"
 
 dns_string_ptr dns_string_new(size_t size) {
-    dns_string_ptr dns_string = (dns_string_ptr) malloc(sizeof(dns_string_t));
-    if (dns_string) {
-        memory_clear(dns_string, sizeof(dns_string_t));
+    dns_string_ptr new_string = (dns_string_ptr) memory_alloc(sizeof(dns_string));
+    if (new_string) {
         size = max(size, 4);
 
-        dns_string->size = size;
-        dns_string->c_string = (char *) malloc(size);
-        memory_clear(dns_string->c_string, size);
-
-        dns_string->position = 0;
+        new_string->size = size;
+        new_string->c_string = (char *) memory_alloc(size);
+        new_string->position = 0;
     }
 
-    return dns_string;
+    return new_string;
 }
 
-void dns_string_reset(dns_string_ptr dns_string) {
-    if (NULL != dns_string) {
-        dns_string->position = 0;
-        memory_clear(dns_string->c_string, dns_string->size);
+dns_string_ptr dns_string_new_empty() {
+    return dns_string_new(16);
+}
+
+dns_string_ptr dns_string_new_c_string(size_t size, const char *string) {
+    dns_string_ptr new_string = dns_string_new(size);
+    dns_string_append_str_length(new_string, string, size);
+    return new_string;
+}
+
+dns_string_ptr dns_string_new_str(dns_string_ptr source) {
+    dns_string_ptr new_string = dns_string_new(dns_string_length(source));
+    dns_string_append_str(new_string, dns_string_c_str(source));
+
+    return new_string;
+}
+
+void dns_string_reset(dns_string_ptr target) {
+    if (NULL != target) {
+        target->position = 0;
+        memory_clear(target->c_string, target->size);
     }
 }
 
-void dns_string_delete(dns_string_ptr dns_string, bool free_string) {
+void dns_string_free(dns_string_ptr target, bool free_string) {
 
-    if (dns_string) {
+    if (target) {
         if (free_string) {
-            memory_clear(dns_string->c_string, dns_string->size);
-            free(dns_string->c_string);
+            memory_clear(target->c_string, target->size);
+            free(target->c_string);
         }
 
-        memory_clear(dns_string, sizeof(dns_string_t));
-        free(dns_string);
+        memory_clear(target, sizeof(dns_string));
+        free(target);
     }
 }
 
-bool string_buffer_realloc(dns_string_ptr dns_string, const size_t new_size) {
+bool string_buffer_realloc(dns_string_ptr target, const size_t new_size) {
 
-    if (NULL == dns_string) {
+    if (NULL == target) {
         return false;
     }
 
-    char *old_c_string = dns_string->c_string;
+    char *old_c_string = target->c_string;
 
-    dns_string->c_string = (char *) realloc(dns_string->c_string, new_size);
-    if (dns_string->c_string == NULL) {
-        dns_string->c_string = old_c_string;
+    target->c_string = (char *) realloc(target->c_string, new_size);
+    if (target->c_string == NULL) {
+        target->c_string = old_c_string;
         return false;
     }
-    memory_clear(dns_string->c_string + dns_string->position, new_size - dns_string->position);
+    memory_clear(target->c_string + target->position, new_size - target->position);
 
-    dns_string->size = new_size;
+    target->size = new_size;
     return true;
 }
 
-int string_buffer_double_size(dns_string_ptr dns_string) {
-    return string_buffer_realloc(dns_string, dns_string->size * 2);
+int string_buffer_double_size(dns_string_ptr target) {
+    return string_buffer_realloc(target, target->size * 2);
 }
 
-void dns_string_trim(dns_string_ptr dns_string, size_t length) {
-    if (NULL == dns_string) {
+void dns_string_trim(dns_string_ptr target, size_t length) {
+    if (NULL == target) {
         return;
     }
 
-    if (length >= dns_string->position) {
-        dns_string->position = 0;
+    if (length >= target->position) {
+        target->position = 0;
     } else {
-        dns_string->position = dns_string->position - length;
+        target->position = target->position - length;
     }
 }
 
-void dns_string_append_char(dns_string_ptr dns_string, char ch) {
-    if (NULL == dns_string) {
+void dns_string_append_char(dns_string_ptr target, char ch) {
+    if (NULL == target) {
         return;
     }
 
-    if (dns_string->position == dns_string->size - 1) {
-        string_buffer_double_size(dns_string);
+    if (target->position == target->size - 1) {
+        string_buffer_double_size(target);
     }
 
-    dns_string->c_string[dns_string->position++] = ch;
+    target->c_string[target->position++] = ch;
 }
 
-void dns_string_append_str_length(dns_string_ptr dns_string, const char *src, size_t length) {
+void dns_string_append_str_length(dns_string_ptr target, const char *source, size_t length) {
 
-    if (NULL == dns_string || NULL == src) {
+    if (NULL == target || NULL == source) {
         return;
     }
 
@@ -130,27 +146,27 @@ void dns_string_append_str_length(dns_string_ptr dns_string, const char *src, si
     size_t new_size;
 
     // <buffer size> - <zero based index of next char to write> - <space for null terminator>
-    chars_remaining = dns_string->size - dns_string->position - 1;
+    chars_remaining = target->size - target->position - 1;
     if (chars_remaining < length) {
         chars_required = length - chars_remaining;
-        new_size = dns_string->size;
+        new_size = target->size;
         do {
             new_size = new_size * 2;
-        } while (new_size < (dns_string->size + chars_required));
-        string_buffer_realloc(dns_string, new_size);
+        } while (new_size < (target->size + chars_required));
+        string_buffer_realloc(target, new_size);
     }
 
-    memcpy(dns_string->c_string + dns_string->position, src, length);
-    dns_string->position += length;
+    memcpy(target->c_string + target->position, source, length);
+    target->position += length;
 }
 
-void dns_string_append_str(dns_string_ptr dns_string, const char *src) {
-    dns_string_append_str_length(dns_string, src, strlen(src));
+void dns_string_append_str(dns_string_ptr target, const char *source) {
+    dns_string_append_str_length(target, source, strlen(source));
 }
 
-void dns_string_sprintf(dns_string_ptr dns_string, const char *template, ...) {
-    if (NULL == dns_string) {
-        return;
+dns_string_ptr dns_string_sprintf(dns_string_ptr target, const char *template, ...) {
+    if (NULL == target) {
+        return target;
     }
 
     char *str;
@@ -161,34 +177,147 @@ void dns_string_sprintf(dns_string_ptr dns_string, const char *template, ...) {
     va_end(arg_list);
 
     if (!str) {
-        return;
+        return NULL;
     }
 
-    dns_string_append_str(dns_string, str);
+    dns_string_append_str(target, str);
     free(str);
+
+    return target;
 }
 
-int dns_string_strcmp(dns_string_ptr string_buffer_1, dns_string_ptr string_buffer_2) {
+int dns_string_strcmp(dns_string_ptr string_1, dns_string_ptr string_2) {
     // If they are both NULL then I guess they are "equal"
     //
-    if (string_buffer_1 == NULL && string_buffer_2 == NULL) {
+    if (string_1 == NULL && string_2 == NULL) {
         return 0;
     }
 
     // If they are one is NULL then I guess they are "not equal"
     //
-    if (string_buffer_1 == NULL) {
+    if (string_1 == NULL) {
         return -1;
     }
 
-    if (string_buffer_2 == NULL) {
+    if (string_2 == NULL) {
         return 1;
     }
 
-    return strncmp(dns_string_c_string(string_buffer_1),
-                   dns_string_c_string(string_buffer_2),
-                   max(dns_string_c_string_length(string_buffer_1),
-                       dns_string_c_string_length(string_buffer_2)));
+    return strncmp(dns_string_c_str(string_1),
+                   dns_string_c_str(string_2),
+                   max(dns_string_length(string_1),
+                       dns_string_length(string_2)));
+}
+
+size_t dns_string_token_count(dns_string_ptr string, const char *sep) {
+    char *str = alloca(dns_string_length(string));
+
+    strcpy(str, dns_string_c_str(string));
+
+    char *pch = strtok(str, sep);
+    size_t count = 0;
+
+    while (pch != NULL) {
+        pch = strtok(NULL, sep);
+        count++;
+    }
+    return count;
+}
+
+char *g_empty_string = "";
+
+char *dns_string_c_str(dns_string_ptr target) {
+    if (target == NULL) {
+        return g_empty_string;
+    }
+
+    return target->c_string;
+}
+
+size_t dns_string_length(dns_string_ptr target) {
+    if (target == NULL) {
+        return 0;
+    }
+
+    return target->position;
+
+}
+
+dns_string_array_ptr dns_string_array_new(size_t size) {
+    return dns_array_create(size);
+}
+
+void dns_string_array_destroy(dns_string_array_ptr string_array) {
+    size_t count = dns_array_size(string_array);
+
+    for (size_t index = 0; index < count; index++) {
+        dns_string_free(dns_array_get(string_array, index), true);
+        dns_array_set(string_array, index, NULL);
+    }
+    dns_array_destroy(string_array);
+}
+
+void dns_string_array_delete(dns_string_array_ptr string_array) {
+
+    if (string_array) {
+        dns_string_array_destroy(string_array);
+        free(string_array);
+    }
+}
+
+dns_string_array_ptr dns_string_split_length(dns_string_ptr target, const char *separator, size_t *count) {
+
+    if (target == NULL || separator == NULL || *dns_string_c_str(target) == '\0' || *separator == '\0') {
+        return NULL;
+    }
+
+    size_t token_count = dns_string_token_count(target, separator);
+
+    if (count) {
+        *count = token_count;
+    }
+
+    // Allocate the array to return.
+    //
+    dns_string_array_ptr string_array = dns_string_array_new(token_count);
+
+    // Create a temp location for strtok to use.
+    //
+    char *str = alloca(dns_string_length(target));
+    strcpy(str, dns_string_c_str(target));
+    char *pch = strtok(str, separator);
+
+    // Loop through and break it up.
+    //
+    size_t item_count = 0;
+    while (pch != NULL && item_count < token_count) {
+        dns_array_append(string_array, dns_string_new_c_string(strlen(pch), pch));
+        pch = strtok(NULL, separator);
+        item_count++;
+    }
+
+    return string_array;
+}
+
+
+void dns_string_tolower(dns_string_ptr target) {
+    if (target && target->position) {
+        size_t len = dns_string_length(target);
+
+        for (int index = 0; index < len; index++) {
+            target->c_string[index] = (char) tolower(target->c_string[index]);
+        }
+    }
+}
+
+void dns_string_toupper(dns_string_ptr target) {
+    if (target && target->position) {
+        size_t len = dns_string_length(target);
+
+        for (int index = 0; index < len; index++) {
+            target->c_string[index] = (char) toupper(target->c_string[index]);
+        }
+    }
 }
 
 #pragma clang diagnostic pop

@@ -1,5 +1,5 @@
 /**********************************************************************
-//    Copyright (c) 2015 Henry Seurer
+//    Copyright (c) 2018 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
 //    obtaining a copy of this software and associated documentation
@@ -24,26 +24,27 @@
 //
 **********************************************************************/
 
-#ifndef DNS_CACHE_SERVICE_H
-#define DNS_CACHE_SERVICE_H
+#ifndef DNS_ACTIVE_CACHE_SERVICE_ETCD_H
+#define DNS_ACTIVE_CACHE_SERVICE_ETCD_H
 
-#include <stdbool.h>
-#include "dns_packet.h"
 #include "dns_utils.h"
+#include "dns_cache.h"
 
-int dns_service_start(transaction_context *context);
+typedef struct dns_etcd_cache_t {
+    int refcount;
+    dns_array *dns_etcd_entries;
+} dns_etcd_cache;
 
-void dns_service_stop();
+typedef dns_etcd_cache *dns_etcd_cache_ptr;
 
-bool dns_resolve(transaction_context *context,
-                 int dns_socket,
-                 dns_packet *packet,
-                 size_t packet_size,
-                 dns_packet *dns_packet_response,
-                 size_t *dns_packet_response_size);
+dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request);
 
-int startup_connection(transaction_context *context, short port);
+dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns_packet_to_find);
 
-bool dns_service_running();
+int dns_service_etcd(transaction_context *context);
 
-#endif //DNS_CACHE_DNS_CACHE_H
+dns_etcd_cache_ptr dns_etcd_cache_hold(dns_etcd_cache_ptr cache);
+
+dns_etcd_cache_ptr dns_etcd_cache_release(dns_etcd_cache_ptr cache);
+
+#endif //DNS_ACTIVE_CACHE_SERVICE_ETCD_H

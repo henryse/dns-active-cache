@@ -1,5 +1,4 @@
 /**********************************************************************
-//    Copyright (c) 2015 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
 //    obtaining a copy of this software and associated documentation
@@ -22,28 +21,42 @@
 //    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 //    OTHER DEALINGS IN THE SOFTWARE.
 //
+//    This file is derived from: https://github.com/shafreeck/cetcd
+//
 **********************************************************************/
 
-#ifndef DNS_CACHE_SERVICE_H
-#define DNS_CACHE_SERVICE_H
+#ifndef DNS_ACTIVE_CACHE_DNS_ARRAY_H
+#define DNS_ACTIVE_CACHE_DNS_ARRAY_H
 
-#include <stdbool.h>
-#include "dns_packet.h"
-#include "dns_utils.h"
+#include <stdlib.h>
 
-int dns_service_start(transaction_context *context);
+typedef struct dns_array_t {
+    void **elem;
+    size_t count;
+    size_t cap;
+} dns_array;
 
-void dns_service_stop();
+size_t dns_array_size(dns_array *ca);
+// size_t etcd_array_cap(dns_array *ca);
 
-bool dns_resolve(transaction_context *context,
-                 int dns_socket,
-                 dns_packet *packet,
-                 size_t packet_size,
-                 dns_packet *dns_packet_response,
-                 size_t *dns_packet_response_size);
+dns_array *dns_array_create(size_t cap);
 
-int startup_connection(transaction_context *context, short port);
+void dns_array_release(dns_array *ca);
 
-bool dns_service_running();
+int dns_array_init(dns_array *ca, size_t cap);
 
-#endif //DNS_CACHE_DNS_CACHE_H
+int dns_array_destroy(dns_array *ca);
+
+int dns_array_append(dns_array *ca, void *p);
+
+void *dns_array_get(dns_array *ca, size_t index);
+
+int dns_array_set(dns_array *ca, size_t index, void *p);
+
+void *dns_array_top(dns_array *ca);
+
+void *dns_array_pop(dns_array *ca);
+
+dns_array *dns_array_shuffle(dns_array *cards);
+
+#endif //DNS_ACTIVE_CACHE_DNS_ARRAY_H

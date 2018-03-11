@@ -78,6 +78,14 @@ void free_string_array(char **resolvers, size_t count) {
     }
 }
 
+void *memory_alloc(size_t n) {
+    void *p = malloc(n);
+    if (p) {
+        memory_clear(p, n);
+    }
+    return p;
+}
+
 void *memory_clear(void *p, size_t n) {
     if (NULL != p) {
         memset(p, 0, n);
@@ -133,8 +141,8 @@ long long timer_end(struct timespec start_time) {
     return timespec_to_ns(&end_time) - timespec_to_ns(&start_time);
 }
 
-context_t create_context() {
-    context_t context;
+transaction_context create_context() {
+    transaction_context context;
     memory_clear(&context, sizeof context);
 
     uuid_generate(context.origination_uuid);
@@ -147,8 +155,8 @@ context_t create_context() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuninitialized"
 
-void create_output_header(dns_string_t *output, const char *status, const char *function, const char *file,
-                          int line, context_t *context) {
+void create_output_header(dns_string *output, const char *status, const char *function, const char *file,
+                          int line, transaction_context *context) {
 
     // Build Context ID
     //
@@ -180,7 +188,7 @@ void log_message(int log_level,
                  const char *function,
                  const char *file,
                  int line,
-                 context_t *context,
+                 transaction_context *context,
                  const char *template, ...) {
 
     char *message_type = NULL;
@@ -232,7 +240,7 @@ void log_message(int log_level,
                 case LOG_CRIT:
                 case LOG_ERR:
                 case LOG_WARNING:
-                    fprintf(stderr, "%s\n", dns_string_c_string(output));
+                    fprintf(stderr, "%s\n", dns_string_c_str(output));
                     fflush(stderr);
                     break;
 
@@ -240,15 +248,15 @@ void log_message(int log_level,
                 case LOG_INFO:
                 case LOG_DEBUG:
                 default:
-                    fprintf(stdout, "%s\n", dns_string_c_string(output));
+                    fprintf(stdout, "%s\n", dns_string_c_str(output));
                     fflush(stdout);
                     break;
             }
         }
 
-        syslog(log_level, "%s", dns_string_c_string(output));
+        syslog(log_level, "%s", dns_string_c_str(output));
 
-        dns_string_delete(output, true);
+        dns_string_free(output, true);
     }
 }
 

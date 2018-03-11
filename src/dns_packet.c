@@ -33,6 +33,7 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <memory.h>
 #include "dns_packet.h"
 #include "dns_settings.h"
 
@@ -41,13 +42,13 @@
 
 // Converts names from: 3www7hotwire3com format to www.hotwire.com
 //
-void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host_string, dns_string_ptr host) {
+void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string_ptr host) {
 
     if (host != NULL) {
 
         dns_string_reset(host);
 
-        if (dns_packet != NULL && dns_host_string != NULL) {
+        if (packet != NULL && dns_host_string != NULL) {
 
             // Scan through the name, one character at a time. We need to look at
             // each character to look for values we can't print in order to allocate
@@ -59,13 +60,13 @@ void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host
             // read in should be impossible.
             //
             size_t steps = 0;
-            size_t position = (size_t) dns_host_string - (size_t) dns_packet->body;
+            size_t position = (size_t) dns_host_string - (size_t) packet->body;
             size_t length = DNS_PACKET_SIZE;
-            unsigned char *packet = (unsigned char *) dns_packet->body;
+            unsigned char *packet_body = (unsigned char *) packet->body;
 
             size_t next_position = position;
-            while (position < length && !(next_position == position && packet[position] == 0) && steps < length * 2) {
-                unsigned char c = packet[position];
+            while (position < length && !(next_position == position && packet_body[position] == 0) && steps < length * 2) {
+                unsigned char c = packet_body[position];
                 steps++;
                 if (next_position == position) {
                     // Handle message compression.
@@ -79,7 +80,7 @@ void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host
                             return;
                         }
 
-                        position = ((size_t) (((c & 0x3f) << 8) + packet[position + 1])) - sizeof(dns_header_t);
+                        position = ((size_t) (((c & 0x3f) << 8) + packet_body[position + 1])) - sizeof(dns_header);
 
                         if (position >= length) {
                             ERROR_LOG(NULL, "Malformed DNS Packet, jumped off the end.");
@@ -106,10 +107,10 @@ void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host
                 return;
             }
 
-            position = (size_t) dns_host_string - (size_t) dns_packet->body;
+            position = (size_t) dns_host_string - (size_t) packet->body;
 
             // Now actually assemble the name.
-            // We've already made sure that we don't exceed the packet length, so
+            // We've already made sure that we don't exceed the packet_body length, so
             // we don't need to make those checks anymore.
             // Non-printable and whitespace characters are replaced with a question
             // mark. They shouldn't be allowed under any circumstances anyway.
@@ -119,24 +120,24 @@ void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host
             //
             next_position = position;
             size_t i = 0;
-            while (next_position != position || packet[position] != 0) {
+            while (next_position != position || packet_body[position] != 0) {
                 if (position == next_position) {
-                    if ((packet[position] & 0xc0) == 0xc0) {
-                        position = ((size_t) (((packet[position] & 0x3f) << 8) + packet[position + 1])) -
-                                   sizeof(dns_header_t);
+                    if ((packet_body[position] & 0xc0) == 0xc0) {
+                        position = ((size_t) (((packet_body[position] & 0x3f) << 8) + packet_body[position + 1])) -
+                                   sizeof(dns_header);
                         next_position = position;
                     } else {
                         // Add a period except for the first time.
                         if (i != 0) {
                             dns_string_append_char(host, '.');
                         }
-                        next_position = position + packet[position] + 1;
+                        next_position = position + packet_body[position] + 1;
                         position++;
                     }
                 } else {
-                    uint8_t c = packet[position];
+                    uint8_t c = packet_body[position];
                     if (c >= '!' && c <= '~' && c != '\\') {
-                        dns_string_append_char(host, packet[position]);
+                        dns_string_append_char(host, packet_body[position]);
                         i++;
                         position++;
                     } else {
@@ -165,17 +166,17 @@ void dns_convert_to_host(dns_packet_t *dns_packet, const unsigned char *dns_host
 
 #pragma clang diagnostic pop
 
-void dns_question_to_host(dns_packet_t *dns_packet, question_t *question, dns_string_ptr host) {
+void dns_packet_question_to_host(dns_packet *packet, question_ptr *question, dns_string_ptr host) {
 
     if (question == NULL || host == NULL) {
         return;
     }
 
-    dns_convert_to_host(dns_packet, (const unsigned char *) question, host);
+    dns_packet_convert_to_host(packet, (const unsigned char *) question, host);
 }
 
-question_t *dns_question_next(question_t *question) {
-    question_t *next_question = NULL;
+question_ptr *dns_question_next(question_ptr *question) {
+    question_ptr *next_question = NULL;
 
     if (question) {
         unsigned char *count = (unsigned char *) question;
@@ -186,13 +187,13 @@ question_t *dns_question_next(question_t *question) {
 
         count++;
 
-        next_question = (question_t *) (count + sizeof(question_type_t));
+        next_question = (question_ptr *) (count + sizeof(dns_question));
     }
 
     return next_question;
 }
 
-question_type_t *dns_question_type(question_t *question) {
+dns_question *dns_question_type(question_ptr *question) {
 
     if (question == NULL) {
         return NULL;
@@ -206,14 +207,14 @@ question_type_t *dns_question_type(question_t *question) {
 
     count++;
 
-    return (question_type_t *) count;
+    return (dns_question *) count;
 }
 
-question_t *dns_packet_get_question(dns_packet_t *dns_packet, unsigned index) {
-    question_t *question = NULL;
+question_ptr *dns_packet_get_question(dns_packet *packet, unsigned index) {
+    question_ptr *question = NULL;
 
-    if (dns_packet && index < ntohs(dns_packet->header.question_count)) {
-        question = (question_t *) dns_packet->body;
+    if (packet && index < ntohs(packet->header.question_count)) {
+        question = (question_ptr *) packet->body;
 
         if (index) {
             for (unsigned count = 0; count < index; count++) {
@@ -225,7 +226,7 @@ question_t *dns_packet_get_question(dns_packet_t *dns_packet, unsigned index) {
     return question;
 }
 
-bool dns_resource_name_is_pointer(resource_resource_t *resource_record) {
+bool dns_resource_name_is_pointer(resource_header_ptr *resource_record) {
     if (NULL == resource_record)
         return false;
 
@@ -244,7 +245,7 @@ bool dns_resource_name_is_pointer(resource_resource_t *resource_record) {
     return *((char *) resource_record) & 0xC0 ? true : false;
 }
 
-unsigned short dns_resource_pointer_offset(resource_resource_t *resource_record) {
+unsigned short dns_resource_pointer_offset(resource_header_ptr *resource_record) {
     unsigned short value = 0;
 
     if (dns_resource_name_is_pointer(resource_record)) {
@@ -266,8 +267,8 @@ unsigned short dns_resource_pointer_offset(resource_resource_t *resource_record)
     return value;
 }
 
-dns_resource_header_t *dns_resource_header_get(resource_resource_t *resource_record) {
-    dns_resource_header_t *record_data = NULL;
+dns_resource_header *dns_resource_header_get(resource_header_ptr *resource_record) {
+    dns_resource_header *record_data = NULL;
 
     if (resource_record) {
 
@@ -284,21 +285,21 @@ dns_resource_header_t *dns_resource_header_get(resource_resource_t *resource_rec
             ptr++;
         }
 
-        record_data = (dns_resource_header_t *) ptr;
+        record_data = (dns_resource_header *) ptr;
     }
 
     return record_data;
 }
 
-resource_resource_t *dns_resource_next(resource_resource_t *resource_record) {
-    resource_resource_t *next_resource = NULL;
+resource_header_ptr *dns_resource_next(resource_header_ptr *resource_record) {
+    resource_header_ptr *next_resource = NULL;
 
     if (resource_record) {
 
-        dns_resource_header_t *record_data = dns_resource_header_get(resource_record);
+        dns_resource_header *record_data = dns_resource_header_get(resource_record);
 
         if (record_data) {
-            next_resource = (resource_resource_t *) ((char *) record_data + sizeof(dns_resource_header_t) +
+            next_resource = (resource_header_ptr *) ((char *) record_data + sizeof(dns_resource_header) +
                                                      ntohs(record_data->record_data_len));
         }
     }
@@ -306,7 +307,7 @@ resource_resource_t *dns_resource_next(resource_resource_t *resource_record) {
     return next_resource;
 }
 
-unsigned char *dns_get_resource_data(resource_resource_t *resource_record) {
+unsigned char *dns_resource_data_get(resource_header_ptr *resource_record) {
 
     if (resource_record) {
 
@@ -323,36 +324,36 @@ unsigned char *dns_get_resource_data(resource_resource_t *resource_record) {
 
             ptr++;
         }
-        return &ptr[sizeof(dns_resource_header_t)];
+        return &ptr[sizeof(dns_resource_header)];
     }
 
     return NULL;
 }
 
-resource_resource_t *dns_packet_get_resource(dns_packet_t *dns_packet, unsigned int index) {
+resource_header_ptr *dns_packet_get_resource(dns_packet *packet, unsigned int index) {
 
-    resource_resource_t *resource_record = NULL;
+    resource_header_ptr *resource_record = NULL;
 
-    if (dns_packet) {
-        unsigned int resource_count = ntohs(dns_packet->header.authority_count) +
-                                      ntohs(dns_packet->header.answer_count) +
-                                      ntohs(dns_packet->header.resource_count);
+    if (packet) {
+        unsigned int resource_count = ntohs(packet->header.authority_count) +
+                                      ntohs(packet->header.answer_count) +
+                                      ntohs(packet->header.resource_count);
 
         if (index < resource_count) {
             // skip past the questions.
             //
-            question_t *question = (question_t *) dns_packet->body;
-            unsigned question_count = ntohs(dns_packet->header.question_count);
+            question_ptr *question = (question_ptr *) packet->body;
+            unsigned question_count = ntohs(packet->header.question_count);
             if (question_count) {
                 for (unsigned count = 0; count < question_count; count++) {
                     question = dns_question_next(question);
                 }
             }
 
+            // TODO: Verify this works.
             // Find the resource
             //
-            resource_record = question;
-
+            resource_record = (resource_header_ptr *) question;
             for (unsigned count = 0; count < index; count++) {
                 resource_record = dns_resource_next(resource_record);
             }
@@ -362,76 +363,77 @@ resource_resource_t *dns_packet_get_resource(dns_packet_t *dns_packet, unsigned 
     return resource_record;
 }
 
-resource_resource_t *dns_packet_get_answer(dns_packet_t *dns_packet, unsigned int index) {
-    resource_resource_t *resource_record = NULL;
+resource_header_ptr *dns_packet_get_answer(dns_packet *packet, unsigned int index) {
+    resource_header_ptr *resource_record = NULL;
 
-    if (index <= ntohs(dns_packet->header.answer_count)) {
-        resource_record = dns_packet_get_resource(dns_packet, index);
+    if (index <= ntohs(packet->header.answer_count)) {
+        resource_record = dns_packet_get_resource(packet, index);
     }
 
     return resource_record;
 }
 
 
-resource_resource_t *dns_packet_get_authority(dns_packet_t *dns_packet, unsigned int index) {
-    resource_resource_t *resource_record = NULL;
+resource_header_ptr *dns_packet_get_authority(dns_packet *packet, unsigned int index) {
+    resource_header_ptr *resource_record = NULL;
 
-    unsigned short authority_count = ntohs(dns_packet->header.authority_count);
+    unsigned short authority_count = ntohs(packet->header.authority_count);
     if (index <= authority_count) {
-        resource_record = dns_packet_get_resource(dns_packet, index + ntohs(dns_packet->header.answer_count));
+        resource_record = dns_packet_get_resource(packet, index + ntohs(packet->header.answer_count));
     }
 
     return resource_record;
 }
 
-resource_resource_t *dns_packet_get_additional_information(dns_packet_t *dns_packet, unsigned int index) {
-    resource_resource_t *resource_record = NULL;
+resource_header_ptr *dns_packet_get_additional_information(dns_packet *packet, unsigned int index) {
+    resource_header_ptr *resource_record = NULL;
 
-    unsigned short resource_count = ntohs(dns_packet->header.resource_count);
+    unsigned short resource_count = ntohs(packet->header.resource_count);
     if (index <= resource_count) {
-        unsigned short answer_count = ntohs(dns_packet->header.answer_count);
-        unsigned short authority_count = ntohs(dns_packet->header.authority_count);
-        resource_record = dns_packet_get_resource(dns_packet, index + answer_count + authority_count);
+        unsigned short answer_count = ntohs(packet->header.answer_count);
+        unsigned short authority_count = ntohs(packet->header.authority_count);
+        resource_record = dns_packet_get_resource(packet, index + answer_count + authority_count);
     }
 
     return resource_record;
 }
 
-void dns_resource_to_host(dns_packet_t *dns_packet, resource_resource_t *resource_record, dns_string_ptr host_name) {
+void dns_packet_resource_to_host(dns_packet *packet, resource_header_ptr *resource_record,
+                                 dns_string_ptr host_name) {
     unsigned char *offset = (unsigned char *) resource_record;
 
     if (dns_resource_name_is_pointer(resource_record)) {
-        offset = (unsigned char *) dns_packet + dns_resource_pointer_offset(resource_record);
+        offset = (unsigned char *) packet + dns_resource_pointer_offset(resource_record);
     }
 
-    dns_convert_to_host(dns_packet, (const unsigned char *) offset, host_name);
+    dns_packet_convert_to_host(packet, (const unsigned char *) offset, host_name);
 }
 
 void dns_resource_log(dns_string_ptr log_output,
-                      dns_packet_t *dns_packet,
-                      resource_resource_t *resource_record) {
+                      dns_packet *packet,
+                      resource_header_ptr *resource_record) {
     if (resource_record) {
         dns_string_ptr host_name = dns_string_new(256);
 
-        dns_resource_to_host(dns_packet, resource_record, host_name);
-        if (dns_string_c_string_length(host_name) == 0) {
-            dns_convert_to_host(dns_packet, (const unsigned char *) dns_packet->body, host_name);
+        dns_packet_resource_to_host(packet, resource_record, host_name);
+        if (dns_string_length(host_name) == 0) {
+            dns_packet_convert_to_host(packet, (const unsigned char *) packet->body, host_name);
         }
-        dns_resource_header_t *record_data = dns_resource_header_get(resource_record);
+        dns_resource_header *record_data = dns_resource_header_get(resource_record);
         if (record_data) {
             dns_string_sprintf(log_output, "    name: %s, type: 0x%X, class: 0x%X, ttl: %d, data length: %d",
-                               dns_string_c_string(host_name),
+                               dns_string_c_str(host_name),
                                ntohs(record_data->record_type),
                                ntohs(record_data->record_class),
                                ntohs(record_data->record_ttl),
                                ntohs(record_data->record_data_len));
         }
 
-        dns_string_delete(host_name, true);
+        dns_string_free(host_name, true);
     }
 }
 
-void dns_additional_log(dns_string_ptr log_output, additional_records_t *additional_records) {
+void dns_additional_log(dns_string_ptr log_output, additional_records_ptr *additional_records) {
     if (additional_records) {
         //   +------------------+------------------------------------------------+
         //   |  Identifier Type | Identifier                                     |
@@ -456,9 +458,9 @@ void dns_additional_log(dns_string_ptr log_output, additional_records_t *additio
     }
 }
 
-void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *template, ...) {
-    if (dns_get_debug_mode() && dns_packet != NULL) {
-        dns_header_t *header = &dns_packet->header;
+void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...) {
+    if (dns_get_debug_mode() && packet != NULL) {
+        dns_header *header = &packet->header;
 
         dns_string_ptr log_output = dns_string_new(4096);
 
@@ -472,17 +474,17 @@ void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *te
         if (!str) {
             ERROR_LOG(context, "Failed to allocate logging string, out of memory?"
                     "  This is either a bug or an issue with the server.");
-            dns_string_delete(log_output, true);
+            dns_string_free(log_output, true);
             return;
         }
 
         dns_string_append_str(log_output, str);
         free(str);
 
-        unsigned short answer_count = ntohs(dns_packet->header.answer_count);
-        unsigned short authority_count = ntohs(dns_packet->header.authority_count);
-        unsigned short resource_count = ntohs(dns_packet->header.resource_count);
-        unsigned short question_count = ntohs(dns_packet->header.question_count);
+        unsigned short answer_count = ntohs(packet->header.answer_count);
+        unsigned short authority_count = ntohs(packet->header.authority_count);
+        unsigned short resource_count = ntohs(packet->header.resource_count);
+        unsigned short question_count = ntohs(packet->header.question_count);
 
         dns_string_sprintf(log_output, "  Identification number(id): %d\n", header->id);
         dns_string_sprintf(log_output, "  Recursion desired(recursion_desired): %d\n", header->recursion_desired);
@@ -507,21 +509,21 @@ void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *te
                  question_index < question_count;
                  question_index++) {
 
-                question_t *question = dns_packet_get_question(dns_packet, question_index);
+                question_ptr *question = dns_packet_get_question(packet, question_index);
 
                 if (question) {
                     dns_string_ptr host_name = dns_string_new(256);
 
-                    dns_question_to_host(dns_packet, question, host_name);
+                    dns_packet_question_to_host(packet, question, host_name);
 
-                    question_type_t *question_type = dns_question_type(question);
+                    dns_question *question_type = dns_question_type(question);
 
                     dns_string_sprintf(log_output, "    host: %s, question_type: %d, class: %d \n",
-                                       dns_string_c_string(host_name),
+                                       dns_string_c_str(host_name),
                                        ntohs(question_type->question_type),
                                        ntohs(question_type->question_class));
 
-                    dns_string_delete(host_name, true);
+                    dns_string_free(host_name, true);
                 }
             }
         }
@@ -529,8 +531,8 @@ void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *te
         if (answer_count) {
             dns_string_sprintf(log_output, "  Answers : \n");
             for (unsigned answer_index = 0; answer_index < answer_count; answer_index++) {
-                resource_resource_t *answer = dns_packet_get_answer(dns_packet, answer_index);
-                dns_resource_log(log_output, dns_packet, answer);
+                resource_header_ptr *answer = dns_packet_get_answer(packet, answer_index);
+                dns_resource_log(log_output, packet, answer);
             }
         }
 
@@ -538,8 +540,8 @@ void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *te
             dns_string_sprintf(log_output, "  Authority : \n");
             for (unsigned answer_index = 0;
                  answer_index < authority_count; answer_index++) {
-                resource_resource_t *answer = dns_packet_get_authority(dns_packet, answer_index);
-                dns_resource_log(log_output, dns_packet, answer);
+                resource_header_ptr *answer = dns_packet_get_authority(packet, answer_index);
+                dns_resource_log(log_output, packet, answer);
             }
         }
 
@@ -547,58 +549,59 @@ void dns_packet_log(context_t *context, dns_packet_t *dns_packet, const char *te
             dns_string_sprintf(log_output, "\n  Additional Records : \n");
             for (unsigned answer_index = 0;
                  answer_index < resource_count; answer_index++) {
-                additional_records_t *additional_records = dns_packet_get_additional_information(dns_packet,
-                                                                                                 answer_index);
+                // TODO: Need to verify this:
+                additional_records_ptr *additional_records = (additional_records_ptr *) dns_packet_get_additional_information(packet,
+                                                                                                                              answer_index);
                 dns_additional_log(log_output, additional_records);
             }
         }
 
-        DEBUG_LOG(context, "Packet Information: \n\n%s\n", dns_string_c_string(log_output));
+        DEBUG_LOG(context, "Packet Information: \n\n%s\n", dns_string_c_str(log_output));
 
-        dns_string_delete(log_output, true);
+        dns_string_free(log_output, true);
     }
 }
 
-size_t dns_packet_question_size(context_t *context, dns_packet_t *dns_packet) {
-    ASSERT(context, dns_packet);
+size_t dns_packet_question_size(transaction_context *context, dns_packet *packet) {
+    ASSERT(context, packet);
 
-    if (dns_packet) {
-        question_t *question = (question_t *) dns_packet->body;
+    if (packet) {
+        question_ptr *question = (question_ptr *) packet->body;
 
-        for (int index = 0; index < ntohs(dns_packet->header.question_count); index++) {
+        for (int index = 0; index < ntohs(packet->header.question_count); index++) {
             question = dns_question_next(question);
         }
 
-        return (unsigned char *) question - (unsigned char *) dns_packet;
+        return (unsigned char *) question - (unsigned char *) packet;
     }
 
     return 0;
 }
 
-unsigned int dns_packet_record_ttl_get(dns_packet_t *dns_packet, record_type_t record_type) {
+unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type) {
 
     unsigned int ttl_seconds = UINT_MAX;
-    unsigned short answer_count = ntohs(dns_packet->header.answer_count);
+    unsigned short answer_count = ntohs(packet->header.answer_count);
 
     if (answer_count) {
 
         for (unsigned answer_index = 0; answer_index < answer_count; answer_index++) {
 
-            resource_resource_t *resource_record = dns_packet_get_answer(dns_packet, answer_index);
+            resource_header_ptr *resource_record = dns_packet_get_answer(packet, answer_index);
 
             if (resource_record) {
                 dns_string_ptr host_name = dns_string_new(256);
 
-                dns_resource_to_host(dns_packet, resource_record, host_name);
+                dns_packet_resource_to_host(packet, resource_record, host_name);
 
-                dns_resource_header_t *record_data = dns_resource_header_get(resource_record);
+                dns_resource_header *record_data = dns_resource_header_get(resource_record);
 
                 if (record_data && (ntohs(record_data->record_type) == record_type)) {
                     unsigned int record_ttl = ntohl(record_data->record_ttl);
                     ttl_seconds = min(ttl_seconds, record_ttl);
                 }
 
-                dns_string_delete(host_name, true);
+                dns_string_free(host_name, true);
             }
         }
     }
@@ -610,35 +613,35 @@ unsigned int dns_packet_record_ttl_get(dns_packet_t *dns_packet, record_type_t r
     return ttl_seconds;
 }
 
-void dns_packet_record_ttl_set(dns_packet_t *dns_packet, record_type_t record_type, unsigned int new_ttl) {
+void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, unsigned int new_ttl) {
 
-    unsigned short answer_count = ntohs(dns_packet->header.answer_count);
+    unsigned short answer_count = ntohs(packet->header.answer_count);
 
     if (answer_count) {
 
         for (unsigned answer_index = 0; answer_index < answer_count; answer_index++) {
 
-            resource_resource_t *resource_record = dns_packet_get_answer(dns_packet, answer_index);
+            resource_header_ptr *resource_record = dns_packet_get_answer(packet, answer_index);
 
             if (resource_record) {
                 dns_string_ptr host_name = dns_string_new(256);
 
-                dns_resource_to_host(dns_packet, resource_record, host_name);
+                dns_packet_resource_to_host(packet, resource_record, host_name);
 
-                dns_resource_header_t *record_data = dns_resource_header_get(resource_record);
+                dns_resource_header *record_data = dns_resource_header_get(resource_record);
 
                 if (record_data && (ntohs(record_data->record_type) == record_type)) {
                     record_data->record_ttl = htonl(new_ttl);
                 }
 
-                dns_string_delete(host_name, true);
+                dns_string_free(host_name, true);
             }
         }
     }
 }
 
 
-const char *dns_get_record_type_string(unsigned short record_type) {
+const char *dns_record_type_string(unsigned short record_type) {
     switch (ntohs(record_type)) {
         case RECORD_A:
             return "A";
@@ -668,6 +671,78 @@ const char *dns_get_record_type_string(unsigned short record_type) {
     }
 
     return "UNKNOWN";
+}
+
+
+size_t host_to_dns(dns_string_ptr host_name, char *dest, size_t dest_size) {
+    memory_clear(dest, dest_size);
+
+    char *target = dest;
+    char *host = dns_string_c_str(host_name);
+    char *token = strtok(host, ".");
+
+    while (token != NULL) {
+        size_t length = strlen(token);
+        target[0] = (char) length;
+        target++;
+        memcpy(target, token, length);
+        target+=length;
+
+        token = strtok(NULL, ".");
+    }
+
+    return target - dest;
+}
+
+#define INVALID_IP 0
+
+unsigned int dns_packet_ip_to_int (const char * ip)
+{
+    // The return value.
+    //
+    unsigned v = 0;
+
+    // The count of the number of bytes processed.
+    //
+    int i;
+
+    // A pointer to the next digit to process.
+    //
+    const char * start;
+
+    start = ip;
+    for (i = 0; i < 4; i++) {
+        // The digit being processed.
+        //
+        char c;
+        // The value of this byte.
+        //
+        int n = 0;
+        while (1) {
+            c = * start;
+            start++;
+            if (c >= '0' && c <= '9') {
+                n *= 10;
+                n += c - '0';
+            }
+                // We insist on stopping at "." if we are still parsing
+                //   the first, second, or third numbers. If we have reached
+                //   the end of the numbers, we will allow any character.
+                //
+            else if ((i < 3 && c == '.') || i == 3) {
+                break;
+            }
+            else {
+                return INVALID_IP;
+            }
+        }
+        if (n >= 256) {
+            return INVALID_IP;
+        }
+        v *= 256;
+        v += n;
+    }
+    return v;
 }
 
 #pragma clang diagnostic pop

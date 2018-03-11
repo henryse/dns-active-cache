@@ -24,39 +24,65 @@
 //
 **********************************************************************/
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #ifndef DNS_ACTIVE_CACHE_STRING_H
 #define DNS_ACTIVE_CACHE_STRING_H
 
 #include <stdbool.h>
+#include "dns_array.h"
 
-typedef struct dns_string_struct {
-    char *c_string;         // Data buffer
+typedef struct dns_string_t {
     size_t position;        // Position of end of the string
     size_t size;            // Buffer Size, position must be less than size
-} dns_string_t;
+    char *c_string;         // Data buffer
+} dns_string;
 
-typedef dns_string_t *dns_string_ptr;
+typedef dns_string *dns_string_ptr;
+
+typedef dns_array dns_string_array;
+
+typedef dns_string_array *dns_string_array_ptr;
 
 dns_string_ptr dns_string_new(size_t size);
 
-void dns_string_delete(dns_string_ptr dns_string, bool free_string);
+dns_string_ptr dns_string_new_empty();
 
-void dns_string_reset(dns_string_ptr dns_string);
+dns_string_ptr dns_string_new_c_string(size_t size, const char *string);
 
-void dns_string_trim(dns_string_ptr dns_string, size_t length);
+dns_string_ptr dns_string_new_str(dns_string_ptr source);
 
-void dns_string_append_char(dns_string_ptr dns_string, char ch);
+void dns_string_free(dns_string_ptr target, bool free_string);
 
-void dns_string_append_str_length(dns_string_ptr dns_string, const char *src, size_t length);
+void dns_string_reset(dns_string_ptr target);
 
-void dns_string_append_str(dns_string_ptr dns_string, const char *src);
+void dns_string_trim(dns_string_ptr target, size_t length);
 
-void dns_string_sprintf(dns_string_ptr dns_string, const char *fmt, ...);
+void dns_string_append_char(dns_string_ptr target, char ch);
 
-int dns_string_strcmp(dns_string_ptr string_buffer_1, dns_string_ptr string_buffer_2);
+void dns_string_append_str_length(dns_string_ptr target, const char *source, size_t length);
 
-#define dns_string_c_string(dns_string) ((dns_string)->c_string)
+void dns_string_append_str(dns_string_ptr target, const char *source);
 
-#define dns_string_c_string_length(dns_string) ((dns_string)->position)
+dns_string_ptr dns_string_sprintf(dns_string_ptr target, const char *fmt, ...);
+
+int dns_string_strcmp(dns_string_ptr string_1, dns_string_ptr string_2);
+
+char *dns_string_c_str(dns_string_ptr target);
+
+size_t dns_string_length(dns_string_ptr target);
+
+dns_string_array_ptr dns_string_split_length(dns_string_ptr target, const char *separator, size_t *count);
+
+dns_string_array_ptr dns_string_array_new(size_t size);
+
+void dns_string_array_destroy(dns_string_array_ptr string_array);
+
+void dns_string_array_delete(dns_string_array_ptr string_array);
+
+void dns_string_tolower(dns_string_ptr target);
+
+void dns_string_toupper(dns_string_ptr target);
 
 #endif //DNS_ACTIVE_CACHE_STRING_H
+#pragma clang diagnostic pop

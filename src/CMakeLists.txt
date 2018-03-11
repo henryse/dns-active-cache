@@ -27,22 +27,28 @@
 cmake_minimum_required(VERSION 3.3)
 project(dns_active_cache)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(ACTIVE_DNS_CACHE_VERSION "dns-active-cache-v1.0.3")
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_C_FLAGS "-std=gnu99")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_C_FLAGS "-std=gnu99 -pthread -luuid -lrt")
-endif()
+endif ()
 
-configure_file( version_config.h.in ${CMAKE_BINARY_DIR}/generated/version_config.h )
-include_directories( ${CMAKE_BINARY_DIR}/generated/ ) # Make sure it can be included...
+find_package(JAJL REQUIRED)
+find_package(CURL REQUIRED)
+find_package(Threads REQUIRED)
+
+configure_file(version_config.h.in ${CMAKE_BINARY_DIR}/generated/version_config.h)
+include_directories(${CMAKE_BINARY_DIR}/generated/ /usr/local/include/ ${CURL_INCLUDE_DIRS} ${YAJL_INCLUDE_DIRS}) # Make sure it can be included...
 
 set(SOURCE_FILES
         main.c
         dns_service.c
         dns_service.h
-        dns_utils.c dns_utils.h
+        dns_utils.c
+        dns_utils.h
         dns_packet.c
         dns_packet.h
         dns_cache.c
@@ -51,9 +57,16 @@ set(SOURCE_FILES
         dns_settings.h
         dns_string.c
         dns_string.h
-        version_config.h dns_debug.c dns_debug.h)
+        version_config.h
+        dns_debug.c
+        dns_debug.h
+        dns_etcd.h
+        dns_array.h
+        dns_array.c
+        dns_ectd.c
+        dns_etcd_json_parser.h dns_service_etcd.c dns_service_etcd.h)
 
-find_package(Threads)
+link_libraries(${CURL_LIBRARY} ${YAJL_LIBRARIES})
 
 add_executable(dns_active_cache ${SOURCE_FILES})
 

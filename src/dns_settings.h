@@ -29,7 +29,7 @@
 
 #include "dns_utils.h"
 
-bool dns_set_calling_socket_options(context_t *context, int dns_socket);
+bool dns_set_calling_socket_options(transaction_context *context, int dns_socket);
 
 bool dns_get_debug_mode();
 
@@ -98,6 +98,14 @@ unsigned int dns_get_cache_timestamp_next();
 const char *get_active_cache_version();
 
 int get_dns_resolve_retry_count();
+
+void dns_set_etcd(const char *etcd);
+
+const char *dns_get_etcd();
+
+void dns_set_host_name(const char *host_name);
+
+const char *dns_get_host_name();
 
 #endif //DNS_CACHE_DNS_SETTINGS_H
 

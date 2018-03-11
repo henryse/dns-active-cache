@@ -43,13 +43,15 @@ unsigned int g_cache_entries = 64;
 unsigned int g_cache_polling_interval_seconds = 16;
 char *g_resolvers_file = NULL;
 char **g_resolvers = NULL;
+const char *g_etcd_server = NULL;
+const char *g_host_name = NULL;
 size_t g_resolvers_count = 0;
 unsigned int g_cache_timestamp_next = 0;
 unsigned int g_max_ttl = UINT_MAX / 2;
 bool g_run_as_daemon = false;
 pid_t g_daemon_process_id = 0;
 
-bool dns_set_calling_socket_options(context_t *context, int dns_socket) {
+bool dns_set_calling_socket_options(transaction_context *context, int dns_socket) {
     struct timeval timeout;
     timeout.tv_sec = dns_get_socket_timeout();
     timeout.tv_usec = 0;
@@ -223,4 +225,20 @@ const char *get_active_cache_version() {
 
 int get_dns_resolve_retry_count() {
     return 3;
+}
+
+void dns_set_etcd(const char *etcd) {
+    g_etcd_server = etcd;
+}
+
+const char *dns_get_etcd() {
+    return g_etcd_server;
+}
+
+void dns_set_host_name(const char *host_name) {
+    g_host_name = host_name;
+}
+
+const char *dns_get_host_name() {
+    return g_host_name;
 }
