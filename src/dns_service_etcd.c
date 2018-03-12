@@ -221,7 +221,7 @@ dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request)
             for (unsigned request_index = 0;
                  request_index < ntohs(request->header.question_count) && cache_entry.entry_state == ENTRY_FREE;
                  request_index++) {
-                question_ptr *question = dns_packet_get_question(request, request_index);
+                dns_question *question = dns_packet_get_question(request, request_index);
 
                 if (question) {
                     dns_string_ptr request_host_name = dns_string_new(64);

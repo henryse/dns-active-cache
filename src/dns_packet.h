@@ -66,13 +66,13 @@ typedef struct dns_packet_t {
     char body[DNS_PACKET_SIZE - DNS_HEADER_SIZE];   // Question and answers can be found in the body
 } dns_packet;
 
+typedef dns_packet *dns_packet_ptr;
+
 //Constant sized fields of query structure
 typedef struct question_t {
     unsigned short question_type;
     unsigned short question_class;
 } dns_question;
-
-typedef dns_question *question_ptr;
 
 #define RECORD_A 0x01             /* '0001 (1)	 Requests the A record for the domain name */
 #define RECORD_NS 0x02            /* '0002 (2)	 Requests the NS record(s) for the domain name */
@@ -105,8 +105,6 @@ typedef struct dns_resource_header_t {
     unsigned short record_data_len;     // The length of RR specific data in octets, for example, 27
 } dns_resource_header;
 
-typedef dns_resource_header *resource_header_ptr;
-
 //Constant sized fields of the resource record structure
 typedef struct dns_additional_record_t {
     //   +------------------+------------------------------------------------+
@@ -127,22 +125,22 @@ typedef struct dns_additional_record_t {
     //   |      0xffff      | Undefined; RESERVED.                           |
     //   +------------------+------------------------------------------------+
     unsigned short identifier_type_code;
-    // NOTES: Need to create a union to break these up, based on the identifier_type_code
+    // TODO: Need to create a union to break these up, based on the identifier_type_code
     // unsigned htype;
     // unsigned hlen;
 } dns_additional_record;
-
-typedef dns_additional_record *additional_records_ptr;
 
 #pragma pack(pop)
 
 void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...);
 
-question_ptr *dns_packet_get_question(dns_packet *packet, unsigned index);
+dns_question *dns_packet_get_question(dns_packet *packet, unsigned index);
 
-dns_question *dns_question_type(question_ptr *question);
+dns_question *dns_question_type(dns_question *question);
 
-void dns_packet_question_to_host(dns_packet *packet, question_ptr *question, dns_string_ptr host);
+void dns_packet_question_to_host(dns_packet *packet, dns_question *question, dns_string_ptr host);
+
+dns_question *dns_question_next(dns_question *question);
 
 size_t dns_packet_question_size(transaction_context *context, dns_packet *packet);
 
@@ -150,17 +148,17 @@ unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_
 
 void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, unsigned int new_ttl);
 
-resource_header_ptr *dns_packet_get_answer(dns_packet *packet, unsigned int index);
+dns_resource_header *dns_packet_get_answer(dns_packet *packet, unsigned int index);
 
 void dns_packet_resource_to_host(dns_packet *packet,
-                                 resource_header_ptr *resource_record,
+                                 dns_resource_header *resource_record,
                                  dns_string_ptr host_name);
 
-dns_resource_header *dns_resource_header_get(resource_header_ptr *resource_record);
+dns_resource_header *dns_resource_header_get(dns_resource_header *resource_record);
 
 const char *dns_record_type_string(unsigned short record_type);
 
-unsigned char *dns_resource_data_get(resource_header_ptr *resource_record);
+unsigned char *dns_resource_data_get(dns_resource_header *resource_record);
 
 void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string_ptr host);
 

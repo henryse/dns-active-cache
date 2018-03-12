@@ -153,7 +153,7 @@ void dns_cache_log(transaction_context *context) {
             dns_string_sprintf(log_data, "\nquestion, expired_time_stamp, reference_count, entry_state\n");
 
             while (record) {
-                question_ptr *question = dns_packet_get_question(&record->cache_entry.dns_packet_response, 0);
+                dns_question *question = dns_packet_get_question(&record->cache_entry.dns_packet_response, 0);
 
                 dns_string_ptr host_name = dns_string_new(256);
 
@@ -192,7 +192,7 @@ void dns_cache_log_answers(dns_cache_record *record, dns_string_ptr response) {
         unsigned short answer_count = ntohs(packet->header.answer_count);
         if (answer_count) {
             for (unsigned answer_index = 0; answer_index < answer_count; answer_index++) {
-                resource_header_ptr *answer = dns_packet_get_answer(packet, answer_index);
+                dns_resource_header *answer = dns_packet_get_answer(packet, answer_index);
 
                 if (answer) {
                     dns_resource_header *record_header = dns_resource_header_get(answer);
@@ -274,7 +274,7 @@ bool dns_cache_health_check(transaction_context *context) {
                  question_index < ntohs(packet->header.question_count);
                  question_index++) {
 
-                question_ptr *question = dns_packet_get_question(packet, question_index);
+                dns_question *question = dns_packet_get_question(packet, question_index);
 
                 if (question) {
 
@@ -320,7 +320,7 @@ void dns_cache_json_log(transaction_context *context, dns_string_ptr response) {
                  question_index < question_count;
                  question_index++) {
 
-                question_ptr *question = dns_packet_get_question(packet, question_index);
+                dns_question *question = dns_packet_get_question(packet, question_index);
 
                 if (question) {
 
@@ -387,7 +387,7 @@ void dns_cache_html_log(transaction_context *context, dns_string_ptr response) {
                  question_index < ntohs(packet->header.question_count);
                  question_index++) {
 
-                question_ptr *question = dns_packet_get_question(packet, question_index);
+                dns_question *question = dns_packet_get_question(packet, question_index);
 
                 if (question) {
                     dns_packet_question_to_host(packet, question, host_name);
@@ -438,7 +438,7 @@ bool dns_cache_compare(transaction_context *context, dns_packet *request, dns_pa
 
         for (unsigned request_index = 0; request_index < ntohs(request->header.question_count); request_index++) {
 
-            question_ptr *question = dns_packet_get_question(request, request_index);
+            dns_question *question = dns_packet_get_question(request, request_index);
 
             if (question) {
                 dns_string_ptr request_host_name = dns_string_new(256);
@@ -834,33 +834,43 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
     // /                                               /
     // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 
-    cache_entry->dns_packet_response.header.id = (unsigned short) (rand() % 0x3FFF); // NOLINT
-    cache_entry->dns_packet_response.header.answer_count = htons(1);
+    if (cache_entry) {
+        dns_packet_ptr packet = &cache_entry->dns_packet_response;
+
+        packet->header.query_response_flag = 1;
+        packet->header.authenticated_data = 0;
+        packet->header.recursion_available = 1;
+        packet->header.answer_count = htons(1);
+
+        // Skip past the questions
+        //
+        dns_question *question = (dns_question *) packet->body;
+        unsigned question_count = ntohs(packet->header.question_count);
+        if (question_count) {
+            for (unsigned count = 0; count < question_count; count++) {
+                question = dns_question_next(question);
+            }
+        }
+
+        // Write the answer
+        //
+        dns_resource_header *resource = (dns_resource_header *) question;
+
+        memory_clear(resource, sizeof(dns_resource_header));
+
+        resource->record_type = htons(RECORD_A);
+        resource->record_class = htons(CLASS_IN);
+        resource->record_ttl = htonl(30);      // TODO: Need to find a way to "configure" this.
+        resource->record_data_len = htons(4);
+
+        // RDATA Ptr
+        void *resource_data = ((void *)question) + sizeof(dns_resource_header);
+
+        // Store IP Address.
+        inet_pton(AF_INET, dns_string_c_str(ip), resource_data);
+
+        return resource_data - (void *)packet + sizeof(unsigned int);
+    }
 
     return 0;
-
-//    cache_entry->dns_packet_response.header.resource_count = 0;
-//    cache_entry->dns_packet_response.header.authority_count = 0;
-//
-//    cache_entry->dns_packet_response.header.authoritative_answer = 0;
-//    cache_entry->dns_packet_response.header.recursion_available = '\x01';
-//    cache_entry->dns_packet_response.header.query_response_flag = 0x01;
-//    cache_entry->dns_packet_response.header.recursion_desired = 0x01;
-//
-//    cache_entry->dns_packet_response.header.answer_count = htons(1);
-//    cache_entry->dns_packet_response.header.question_count = htons(1);
-//    void *body_ptr = cache_entry->dns_packet_response.body;
-//    size_t count = host_to_dns(host_name, body_ptr, sizeof(cache_entry->dns_packet_response.body));
-//    body_ptr +=count;
-//
-//    resource_header_ptr resource = body_ptr;
-//    memory_clear(resource, sizeof(resource));
-//
-//    resource->record_type = htons(RECORD_A);
-//    resource->record_class = htons(CLASS_CH);
-//    resource->record_ttl = htons(dns_get_max_ttl());
-//    resource->record_data_len = htons(4);
-//    body_ptr += sizeof(dns_resource_header) + 4;
-
-//    return (char *)body_ptr - packet->body;
 }

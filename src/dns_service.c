@@ -294,7 +294,7 @@ dns_cache_entry lookup_dns_packet(transaction_context *context, dns_packet *dns_
 }
 
 dns_string_ptr get_first_question_host_name(dns_packet *packet) {
-    question_ptr *question = dns_packet_get_question(packet, 0);
+    dns_question *question = dns_packet_get_question(packet, 0);
 
     dns_string_ptr host = dns_string_new(256);
 
