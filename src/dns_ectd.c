@@ -1282,6 +1282,7 @@ void *etcd_cluster_request(etcd_client *cli,
                                                 dns_string_c_str((dns_string *) dns_array_get(cli->addresses,
                                                                                                 cli->picked)),
                                                 dns_string_c_str(req->uri));
+
         // TODO: This needs to be cleaned up!  Get rid of the evil void * from the calls.
         req->url = url;
         req->cli = cli;
