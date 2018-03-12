@@ -135,7 +135,7 @@ void log_incoming_request(transaction_context *context, struct sockaddr_storage 
                       ip_string, sizeof ip_string);
         }
 
-        dns_string_ptr sb_response = dns_string_new(1024);
+        dns_string *sb_response = dns_string_new(1024);
 
         dns_string_sprintf(sb_response, "request=incoming;bytes=%d;ip_address=%s", packet_size, ip_string);
 
@@ -293,10 +293,10 @@ dns_cache_entry lookup_dns_packet(transaction_context *context, dns_packet *dns_
     return dns_cache_find(context, dns_packet_to_find);
 }
 
-dns_string_ptr get_first_question_host_name(dns_packet *packet) {
+dns_string *get_first_question_host_name(dns_packet *packet) {
     dns_question *question = dns_packet_get_question(packet, 0);
 
-    dns_string_ptr host = dns_string_new(256);
+    dns_string *host = dns_string_new(256);
 
     dns_packet_question_to_host(packet, question, host);
 
@@ -306,7 +306,7 @@ dns_string_ptr get_first_question_host_name(dns_packet *packet) {
 struct timespec log_start_request(transaction_context *context, dns_incoming_request *incoming_request) {
     struct timespec start_time = timer_start();
 
-    dns_string_ptr first_question_host_name = get_first_question_host_name(&incoming_request->packet);
+    dns_string *first_question_host_name = get_first_question_host_name(&incoming_request->packet);
 
     if (first_question_host_name) {
         INFO_LOG(context, "Started processing for '%s'", dns_string_c_str(first_question_host_name));
@@ -321,7 +321,7 @@ struct timespec log_start_request(transaction_context *context, dns_incoming_req
 
 void log_end_request(transaction_context *context, struct timespec start_time, dns_incoming_request *incoming_request) {
 
-    dns_string_ptr first_question_host_name = get_first_question_host_name(&incoming_request->packet);
+    dns_string *first_question_host_name = get_first_question_host_name(&incoming_request->packet);
 
     if (first_question_host_name) {
         INFO_LOG(context, "'%s';nanoseconds=%d ",

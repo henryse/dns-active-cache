@@ -46,7 +46,7 @@
 #include "dns_service.h"
 #include "dns_cache.h"
 
-size_t http_read_line(int socket, dns_string_ptr buffer) {
+size_t http_read_line(int socket, dns_string *buffer) {
     if (NULL == buffer) {
         return 0;
     }
@@ -82,9 +82,9 @@ size_t http_read_line(int socket, dns_string_ptr buffer) {
     return dns_string_length(buffer);
 }
 
-void http_output_debug_page(transaction_context *context, dns_string_ptr response) {
+void http_output_debug_page(transaction_context *context, dns_string *response) {
 
-    dns_string_ptr response_body = dns_string_new(1024);
+    dns_string *response_body = dns_string_new(1024);
 
     dns_string_sprintf(response_body, "<HTML><TITLE>DNS Active Cache </TITLE>\r\n");
     dns_string_sprintf(response_body, "<BODY><CENTER><B>DNS Active Cache Stats</B></CENTER><BR>\r\n");
@@ -107,9 +107,9 @@ void http_output_debug_page(transaction_context *context, dns_string_ptr respons
     dns_string_free(response_body, true);
 }
 
-void http_output_status_page(transaction_context *context, dns_string_ptr response) {
+void http_output_status_page(transaction_context *context, dns_string *response) {
 
-    dns_string_ptr response_body = dns_string_new(1024);
+    dns_string *response_body = dns_string_new(1024);
 
     dns_cache_json_log(context, response_body);
 
@@ -124,9 +124,9 @@ void http_output_status_page(transaction_context *context, dns_string_ptr respon
 }
 
 
-void http_output_health_check(transaction_context *context, dns_string_ptr response) {
+void http_output_health_check(transaction_context *context, dns_string *response) {
 
-    dns_string_ptr response_body = dns_string_new(1024);
+    dns_string *response_body = dns_string_new(1024);
 
     if (dns_cache_health_check(context)) {
         dns_string_sprintf(response_body, "{\"status\":\"UP\"}");
@@ -145,9 +145,9 @@ void http_output_health_check(transaction_context *context, dns_string_ptr respo
     dns_string_free(response_body, true);
 }
 
-void http_output_active(transaction_context  __unused *context, dns_string_ptr response) {
+void http_output_active(transaction_context  __unused *context, dns_string *response) {
 
-    dns_string_ptr response_body = dns_string_new(1024);
+    dns_string *response_body = dns_string_new(1024);
 
     dns_string_sprintf(response_body, "ACTIVE");
 
@@ -162,9 +162,9 @@ void http_output_active(transaction_context  __unused *context, dns_string_ptr r
     dns_string_free(response_body, true);
 }
 
-void http_output_build_info(dns_string_ptr response) {
+void http_output_build_info(dns_string *response) {
 
-    dns_string_ptr response_body = dns_string_new(1024);
+    dns_string *response_body = dns_string_new(1024);
 
     dns_string_sprintf(response_body, "{\"version\":\"%s\"}", get_active_cache_version());
 
@@ -178,9 +178,9 @@ void http_output_build_info(dns_string_ptr response) {
     dns_string_free(response_body, true);
 }
 
-void http_not_found(dns_string_ptr response) {
+void http_not_found(dns_string *response) {
 
-    dns_string_ptr response_body = dns_string_new(1024);
+    dns_string *response_body = dns_string_new(1024);
 
     dns_string_sprintf(response_body, "<HTML><TITLE>Not Found</TITLE>\r\n");
     dns_string_sprintf(response_body, "<BODY><P>The server could not fulfill\r\n");
@@ -199,7 +199,7 @@ void http_not_found(dns_string_ptr response) {
     dns_string_free(response_body, true);
 }
 
-void http_output_response(transaction_context *context, dns_string_ptr request_path, dns_string_ptr response) {
+void http_output_response(transaction_context *context, dns_string *request_path, dns_string *response) {
 
     if (request_path && 0 == strncmp(dns_string_c_str(request_path), "/health", strlen("/health"))) {
         // Do Health Checks
@@ -227,7 +227,7 @@ void http_output_response(transaction_context *context, dns_string_ptr request_p
     }
 }
 
-void http_send_response(int socket, dns_string_ptr response) {
+void http_send_response(int socket, dns_string *response) {
     if (NULL != response) {
         if (dns_string_length(response) > 0) {
             send(socket,
@@ -307,7 +307,7 @@ typedef enum {
     http_connect
 } http_method_t;
 
-http_method_t http_map_string_to_method(dns_string_ptr request_buffer) {
+http_method_t http_map_string_to_method(dns_string *request_buffer) {
     http_method_t result = http_invalid;
     const char *method = dns_string_c_str(request_buffer);
 
@@ -332,7 +332,7 @@ http_method_t http_map_string_to_method(dns_string_ptr request_buffer) {
     return result;
 }
 
-dns_string_ptr http_parse_path(dns_string_ptr request_buffer) {
+dns_string *http_parse_path(dns_string *request_buffer) {
     const char *query = dns_string_c_str(request_buffer);
 
     // Skip Method
@@ -347,7 +347,7 @@ dns_string_ptr http_parse_path(dns_string_ptr request_buffer) {
         ++query;
     }
 
-    dns_string_ptr request_path = dns_string_new(1024);
+    dns_string *request_path = dns_string_new(1024);
 
     // Extract the path
     //
@@ -372,7 +372,7 @@ void *debug_thread(void __unused *arg) {
             INFO_LOG(&context, "[INFO] DNS Active Cache has taking the stage on port %d", debug_get_port());
 
             while (dns_service_running()) {
-                dns_string_ptr request_buffer = dns_string_new(1024);
+                dns_string *request_buffer = dns_string_new(1024);
 
                 struct sockaddr_in sockaddr_client;
                 socklen_t sockaddr_client_length = sizeof(sockaddr_client);
@@ -383,9 +383,9 @@ void *debug_thread(void __unused *arg) {
 
                 http_method_t method = http_map_string_to_method(request_buffer);
 
-                dns_string_ptr request_path = http_parse_path(request_buffer);
+                dns_string *request_path = http_parse_path(request_buffer);
 
-                dns_string_ptr response_buffer = dns_string_new(1024);
+                dns_string *response_buffer = dns_string_new(1024);
                 switch (method) {
                     case http_get:
                         http_output_response(&context, request_path, response_buffer);

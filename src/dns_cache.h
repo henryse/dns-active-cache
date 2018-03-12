@@ -53,12 +53,12 @@ int dns_cache_init(transaction_context *context);
 
 void dns_cache_stop();
 
-void dns_cache_html_log(transaction_context *context, dns_string_ptr response);
+void dns_cache_html_log(transaction_context *context, dns_string *response);
 
-void dns_cache_json_log(transaction_context *context, dns_string_ptr response);
+void dns_cache_json_log(transaction_context *context, dns_string *response);
 
 bool dns_cache_health_check(transaction_context *context);
 
-size_t dns_packet_a_record_create(dns_cache_entry *cache_entry, dns_string_ptr host_name, dns_string_ptr ip);
+size_t dns_packet_a_record_create(dns_cache_entry *cache_entry, dns_string *host_name, dns_string *ip);
 
 #endif //DNS_CACHE_DNS_CACHE_H

@@ -138,7 +138,7 @@ dns_question *dns_packet_get_question(dns_packet *packet, unsigned index);
 
 dns_question *dns_question_type(dns_question *question);
 
-void dns_packet_question_to_host(dns_packet *packet, dns_question *question, dns_string_ptr host);
+void dns_packet_question_to_host(dns_packet *packet, dns_question *question, dns_string *host);
 
 dns_question *dns_question_next(dns_question *question);
 
@@ -152,7 +152,7 @@ dns_resource_header *dns_packet_get_answer(dns_packet *packet, unsigned int inde
 
 void dns_packet_resource_to_host(dns_packet *packet,
                                  dns_resource_header *resource_record,
-                                 dns_string_ptr host_name);
+                                 dns_string *host_name);
 
 dns_resource_header *dns_resource_header_get(dns_resource_header *resource_record);
 
@@ -160,7 +160,7 @@ const char *dns_record_type_string(unsigned short record_type);
 
 unsigned char *dns_resource_data_get(dns_resource_header *resource_record);
 
-void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string_ptr host);
+void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string *host);
 
 #endif //DNS_PACKET_READ
 

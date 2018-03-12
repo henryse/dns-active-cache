@@ -217,7 +217,7 @@ void log_message(int log_level,
     }
 
     if (log_message) {
-        dns_string_ptr output = dns_string_new(1024);
+        dns_string *output = dns_string_new(1024);
 
         create_output_header(output, message_type, function, file, line, context);
 

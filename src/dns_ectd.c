@@ -39,9 +39,9 @@ enum ETCD_API_TYPE {
 typedef struct etcd_request_t {
     enum ETCD_HTTP_METHOD method;
     enum ETCD_API_TYPE api_type;
-    dns_string_ptr uri;
-    dns_string_ptr url;
-    dns_string_ptr data;
+    dns_string *uri;
+    dns_string *url;
+    dns_string *data;
     etcd_client *cli;
 } etcd_request;
 
@@ -58,7 +58,7 @@ typedef struct etcd_response_parser_t {
     int st;
     int http_status;
     enum ETCD_API_TYPE api_type;
-    dns_string_ptr buf;
+    dns_string *buf;
     void *resp;
     yajl_parser_context ctx;
     yajl_handle json;
@@ -82,7 +82,7 @@ int etcd_curl_setopt(CURL *curl, etcd_watcher *watcher);
 void etcd_client_init(etcd_client *cli, dns_array *addresses) {
     size_t i = 0;
     dns_array *addrs = NULL;
-    dns_string_ptr addr = NULL;
+    dns_string *addr = NULL;
     curl_global_init(CURL_GLOBAL_ALL);
     srand((unsigned int) time(0));
 
@@ -148,7 +148,7 @@ void etcd_client_release(etcd_client *cli) {
 }
 
 void etcd_addresses_release(dns_array *addrs) {
-    dns_string_ptr string = NULL;
+    dns_string *string = NULL;
     if (addrs) {
         size_t count = dns_array_size(addrs);
         for (size_t i = 0; i < count; ++i) {
@@ -280,11 +280,11 @@ void etcd_watcher_reset(etcd_watcher *watcher) {
     }
 }
 
-static dns_string_ptr etcd_watcher_build_url(etcd_client *cli, etcd_watcher *watcher) {
-    dns_string_ptr url = NULL;
+static dns_string *etcd_watcher_build_url(etcd_client *cli, etcd_watcher *watcher) {
+    dns_string *url = NULL;
     url = dns_string_sprintf(dns_string_new_empty(),
                              "%s/%s%s?wait=true",
-                             (dns_string_ptr) dns_array_get(cli->addresses,
+                             (dns_string *) dns_array_get(cli->addresses,
                                                             cli->picked),
                              cli->keys_space,
                              watcher->key);
@@ -298,7 +298,7 @@ static dns_string_ptr etcd_watcher_build_url(etcd_client *cli, etcd_watcher *wat
 }
 
 int etcd_curl_setopt(CURL *curl, etcd_watcher *watcher) {
-    dns_string_ptr url = NULL;
+    dns_string *url = NULL;
 
     url = etcd_watcher_build_url(watcher->cli, watcher);
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -381,7 +381,7 @@ static int etcd_reap_watchers(etcd_client *cli, CURLM *mcurl) {
     int added = 0, ignore = 0;
     CURLMsg *msg = NULL;
     CURL *curl = NULL;
-    dns_string_ptr url = NULL;
+    dns_string *url = NULL;
     etcd_watcher *watcher = NULL;
     etcd_response *resp = NULL;
     added = 0;
@@ -595,7 +595,7 @@ etcd_response *etcd_set(etcd_client *cli, const char *key,
     req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s", cli->keys_space, key);
 
     char *value_escaped = curl_easy_escape(cli->curl, value, (int) strlen(value));
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "value=%s", value_escaped);
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "value=%s", value_escaped);
 
     curl_free(value_escaped);
     if (ttl) {
@@ -621,7 +621,7 @@ etcd_response *etcd_mkdir(etcd_client *cli, const char *key, uint64_t ttl) {
     req.api_type = ETCD_KEYS;
     req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s", cli->keys_space, key);
 
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "dir=true&prevExist=false");
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "dir=true&prevExist=false");
     if (ttl) {
         params = dns_string_sprintf(params, "&ttl=%lu", ttl);
     }
@@ -641,7 +641,7 @@ etcd_response *etcd_setdir(etcd_client *cli, const char *key, uint64_t ttl) {
     req.api_type = ETCD_KEYS;
     req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s", cli->keys_space, key);
 
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "dir=true");
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "dir=true");
     if (ttl) {
         params = dns_string_sprintf(params, "&ttl=%lu", ttl);
     }
@@ -662,7 +662,7 @@ etcd_response *etcd_updatedir(etcd_client *cli, const char *key, uint64_t ttl) {
     req.api_type = ETCD_KEYS;
     req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s", cli->keys_space, key);
 
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "dir=true&prevExist=true");
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "dir=true&prevExist=true");
     if (ttl) {
         params = dns_string_sprintf(params, "&ttl=%lu", ttl);
     }
@@ -686,7 +686,7 @@ etcd_response *etcd_update(etcd_client *cli,
     req.api_type = ETCD_KEYS;
     req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s", cli->keys_space, key);
 
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "prevExist=true");
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "prevExist=true");
     if (value) {
         char *value_escaped;
         value_escaped = curl_easy_escape(cli->curl, value, (int) strlen(value));
@@ -719,7 +719,7 @@ etcd_response *etcd_create(etcd_client *cli,
     req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s", cli->keys_space, key);
 
     char *value_escaped = curl_easy_escape(cli->curl, value, (int) strlen(value));
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "prevExist=false&value=%s", value_escaped);
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "prevExist=false&value=%s", value_escaped);
     curl_free(value_escaped);
     if (ttl) {
         params = dns_string_sprintf(params, "&ttl=%lu", ttl);
@@ -744,7 +744,7 @@ etcd_response *etcd_create_in_order(etcd_client *cli,
     req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s", cli->keys_space, key);
 
     char *value_escaped = curl_easy_escape(cli->curl, value, (int) strlen(value));
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "value=%s", value_escaped);
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "value=%s", value_escaped);
     curl_free(value_escaped);
     if (ttl) {
         params = dns_string_sprintf(params, "&ttl=%lu", ttl);
@@ -825,7 +825,7 @@ etcd_response *etcd_cmp_and_swap(etcd_client *cli, const char *key, const char *
 
     char *value_escaped = curl_easy_escape(cli->curl, value, (int) strlen(value));
 
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "value=%s&prevValue=%s", value_escaped, prev);
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "value=%s&prevValue=%s", value_escaped, prev);
     curl_free(value_escaped);
     if (ttl) {
         params = dns_string_sprintf(params, "&ttl=%lu", ttl);
@@ -852,7 +852,7 @@ etcd_response *etcd_cmp_and_swap_by_index(etcd_client *cli,
 
     char *value_escaped = curl_easy_escape(cli->curl, value, (int) strlen(value));
 
-    dns_string_ptr params = dns_string_sprintf(dns_string_new_empty(), "value=%s&prevIndex=%lu", value_escaped, prev);
+    dns_string *params = dns_string_sprintf(dns_string_new_empty(), "value=%s&prevIndex=%lu", value_escaped, prev);
     curl_free(value_escaped);
     if (ttl) {
         params = dns_string_sprintf(params, "&ttl=%lu", ttl);
@@ -1051,7 +1051,7 @@ size_t etcd_parse_response(char *ptr,
         }
 
         if (parser->st == request_line_http_status_end_st) {
-            dns_string_ptr val = parser->buf;
+            dns_string *val = parser->buf;
             parser->http_status = atoi(dns_string_c_str(val)); // NOLINT
             dns_string_reset(parser->buf);
             parser->st = request_line_end_st;
@@ -1118,8 +1118,8 @@ size_t etcd_parse_response(char *ptr,
                 continue;
             }
 
-            dns_string_ptr key = dns_array_get(kvs, 0);
-            dns_string_ptr val = dns_array_get(kvs, 1);
+            dns_string *key = dns_array_get(kvs, 0);
+            dns_string *val = dns_array_get(kvs, 1);
             if (strncmp(dns_string_c_str(key), "X-Etcd-Index", sizeof("X-Etcd-Index") - 1) == 0) {
                 resp->etcd_index = (uint64_t) atoi(dns_string_c_str(val)); // NOLINT
             } else if (strncmp(dns_string_c_str(key), "X-Raft-Index", sizeof("X-Raft-Index") - 1) == 0) {
@@ -1278,8 +1278,8 @@ void *etcd_cluster_request(etcd_client *cli,
     size_t count = dns_array_size(cli->addresses);
 
     for (size_t i = 0; i < count; ++i) {
-        dns_string_ptr url = dns_string_sprintf(dns_string_new_empty(), "%s/%s",
-                                                dns_string_c_str((dns_string_ptr) dns_array_get(cli->addresses,
+        dns_string *url = dns_string_sprintf(dns_string_new_empty(), "%s/%s",
+                                                dns_string_c_str((dns_string *) dns_array_get(cli->addresses,
                                                                                                 cli->picked)),
                                                 dns_string_c_str(req->uri));
         // TODO: This needs to be cleaned up!  Get rid of the evil void * from the calls.

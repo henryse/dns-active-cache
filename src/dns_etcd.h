@@ -67,8 +67,8 @@ enum ETCD_EVENT_ACTION {
 #define error_cluster_failed         1002
 typedef struct etcd_error_t {
     int etcd_code;
-    dns_string_ptr message;
-    dns_string_ptr cause;
+    dns_string *message;
+    dns_string *cause;
     uint64_t index;
 } etcd_error;
 
@@ -87,16 +87,16 @@ typedef struct etcd_client_t {
         uint64_t connect_timeout;
         uint64_t read_timeout;
         uint64_t write_timeout;
-        dns_string_ptr user;
-        dns_string_ptr password;
+        dns_string *user;
+        dns_string *password;
     } settings;
 
 } etcd_client;
 
 typedef struct etcd_response_node_t {
     dns_array *nodes;          //struct etcd_response_node_t
-    dns_string_ptr key;
-    dns_string_ptr value;
+    dns_string *key;
+    dns_string *value;
     int dir;                    // 1 for true, and 0 for false
     uint64_t expiration;
     int64_t ttl;
@@ -131,7 +131,7 @@ typedef struct etcd_watcher_t {
     int once;
     int recursive;
     uint64_t index;
-    dns_string_ptr key;
+    dns_string *key;
     void *user_data;
     etcd_watcher_callback callback;
 } etcd_watcher;

@@ -32,9 +32,9 @@ etcd_client g_cli;
 
 
 typedef struct dns_etcd_entry_t {
-    dns_string_ptr name;
-    dns_string_ptr ip;
-    dns_string_ptr value;
+    dns_string *name;
+    dns_string *ip;
+    dns_string *value;
     unsigned short __unused port;
 } dns_etcd_entry;
 
@@ -101,7 +101,7 @@ void __unused dns_etcd_entry_free(dns_etcd_entry_ptr entry) {
     }
 }
 
-void dns_etcd_push(transaction_context *context, dns_array *etcd_dns_entries, dns_string_ptr service,
+void dns_etcd_push(transaction_context *context, dns_array *etcd_dns_entries, dns_string *service,
                    etcd_response_node *node) {
     INFO_LOG(context, "Pushing node: %s : %s", dns_string_c_str(node->key), dns_string_c_str(node->value));
 
@@ -179,7 +179,7 @@ void dns_cache_entry_setup(dns_cache_entry *cache_entry, dns_etcd_entry_ptr etcd
 }
 
 
-bool dns_etcd_search(dns_string_ptr request_host_name, dns_cache_entry *cache_entry) {
+bool dns_etcd_search(dns_string *request_host_name, dns_cache_entry *cache_entry) {
 
     dns_etcd_cache_ptr cache = dns_etcd_cache_hold(g_cache);
     bool found = false;
@@ -224,7 +224,7 @@ dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request)
                 dns_question *question = dns_packet_get_question(request, request_index);
 
                 if (question) {
-                    dns_string_ptr request_host_name = dns_string_new(64);
+                    dns_string *request_host_name = dns_string_new(64);
 
                     dns_packet_question_to_host(request, question, request_host_name);
 
@@ -272,7 +272,7 @@ int dns_service_etcd(transaction_context *context) {
 
         INFO_LOG(context, "ETCD service defined, using: %s", dns_get_etcd());
 
-        dns_string_ptr etcd_url = dns_string_new_c_string(strlen(dns_get_etcd()), dns_get_etcd());
+        dns_string *etcd_url = dns_string_new_c_string(strlen(dns_get_etcd()), dns_get_etcd());
         dns_array_append(addresses, (void *) etcd_url);
         etcd_client_init(&g_cli, addresses);
 

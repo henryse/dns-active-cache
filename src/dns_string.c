@@ -38,8 +38,8 @@
 #include "dns_string.h"
 #include "dns_utils.h"
 
-dns_string_ptr dns_string_new(size_t size) {
-    dns_string_ptr new_string = (dns_string_ptr) memory_alloc(sizeof(dns_string));
+dns_string *dns_string_new(size_t size) {
+    dns_string *new_string = (dns_string *) memory_alloc(sizeof(dns_string));
     if (new_string) {
         size = max(size, 4);
 
@@ -51,31 +51,31 @@ dns_string_ptr dns_string_new(size_t size) {
     return new_string;
 }
 
-dns_string_ptr dns_string_new_empty() {
+dns_string *dns_string_new_empty() {
     return dns_string_new(16);
 }
 
-dns_string_ptr dns_string_new_c_string(size_t size, const char *string) {
-    dns_string_ptr new_string = dns_string_new(size);
+dns_string *dns_string_new_c_string(size_t size, const char *string) {
+    dns_string *new_string = dns_string_new(size);
     dns_string_append_str_length(new_string, string, size);
     return new_string;
 }
 
-dns_string_ptr dns_string_new_str(dns_string_ptr source) {
-    dns_string_ptr new_string = dns_string_new(dns_string_length(source));
+dns_string *dns_string_new_str(dns_string *source) {
+    dns_string *new_string = dns_string_new(dns_string_length(source));
     dns_string_append_str(new_string, dns_string_c_str(source));
 
     return new_string;
 }
 
-void dns_string_reset(dns_string_ptr target) {
+void dns_string_reset(dns_string *target) {
     if (NULL != target) {
         target->position = 0;
         memory_clear(target->c_string, target->size);
     }
 }
 
-void dns_string_free(dns_string_ptr target, bool free_string) {
+void dns_string_free(dns_string *target, bool free_string) {
 
     if (target) {
         if (free_string) {
@@ -88,7 +88,7 @@ void dns_string_free(dns_string_ptr target, bool free_string) {
     }
 }
 
-bool string_buffer_realloc(dns_string_ptr target, const size_t new_size) {
+bool string_buffer_realloc(dns_string *target, const size_t new_size) {
 
     if (NULL == target) {
         return false;
@@ -107,11 +107,11 @@ bool string_buffer_realloc(dns_string_ptr target, const size_t new_size) {
     return true;
 }
 
-int string_buffer_double_size(dns_string_ptr target) {
+int string_buffer_double_size(dns_string *target) {
     return string_buffer_realloc(target, target->size * 2);
 }
 
-void dns_string_trim(dns_string_ptr target, size_t length) {
+void dns_string_trim(dns_string *target, size_t length) {
     if (NULL == target) {
         return;
     }
@@ -123,7 +123,7 @@ void dns_string_trim(dns_string_ptr target, size_t length) {
     }
 }
 
-void dns_string_append_char(dns_string_ptr target, char ch) {
+void dns_string_append_char(dns_string *target, char ch) {
     if (NULL == target) {
         return;
     }
@@ -135,7 +135,7 @@ void dns_string_append_char(dns_string_ptr target, char ch) {
     target->c_string[target->position++] = ch;
 }
 
-void dns_string_append_str_length(dns_string_ptr target, const char *source, size_t length) {
+void dns_string_append_str_length(dns_string *target, const char *source, size_t length) {
 
     if (NULL == target || NULL == source) {
         return;
@@ -160,11 +160,11 @@ void dns_string_append_str_length(dns_string_ptr target, const char *source, siz
     target->position += length;
 }
 
-void dns_string_append_str(dns_string_ptr target, const char *source) {
+void dns_string_append_str(dns_string *target, const char *source) {
     dns_string_append_str_length(target, source, strlen(source));
 }
 
-dns_string_ptr dns_string_sprintf(dns_string_ptr target, const char *template, ...) {
+dns_string *dns_string_sprintf(dns_string *target, const char *template, ...) {
     if (NULL == target) {
         return target;
     }
@@ -186,7 +186,7 @@ dns_string_ptr dns_string_sprintf(dns_string_ptr target, const char *template, .
     return target;
 }
 
-int dns_string_strcmp(dns_string_ptr string_1, dns_string_ptr string_2) {
+int dns_string_strcmp(dns_string *string_1, dns_string *string_2) {
     // If they are both NULL then I guess they are "equal"
     //
     if (string_1 == NULL && string_2 == NULL) {
@@ -209,7 +209,7 @@ int dns_string_strcmp(dns_string_ptr string_1, dns_string_ptr string_2) {
                        dns_string_length(string_2)));
 }
 
-size_t dns_string_token_count(dns_string_ptr string, const char *sep) {
+size_t dns_string_token_count(dns_string *string, const char *sep) {
     char *str = alloca(dns_string_length(string));
 
     strcpy(str, dns_string_c_str(string));
@@ -226,7 +226,7 @@ size_t dns_string_token_count(dns_string_ptr string, const char *sep) {
 
 char *g_empty_string = "";
 
-char *dns_string_c_str(dns_string_ptr target) {
+char *dns_string_c_str(dns_string *target) {
     if (target == NULL) {
         return g_empty_string;
     }
@@ -234,7 +234,7 @@ char *dns_string_c_str(dns_string_ptr target) {
     return target->c_string;
 }
 
-size_t dns_string_length(dns_string_ptr target) {
+size_t dns_string_length(dns_string *target) {
     if (target == NULL) {
         return 0;
     }
@@ -265,7 +265,7 @@ void dns_string_array_delete(dns_string_array_ptr string_array) {
     }
 }
 
-dns_string_array_ptr dns_string_split_length(dns_string_ptr target, const char *separator, size_t *count) {
+dns_string_array_ptr dns_string_split_length(dns_string *target, const char *separator, size_t *count) {
 
     if (target == NULL || separator == NULL || *dns_string_c_str(target) == '\0' || *separator == '\0') {
         return NULL;
@@ -300,7 +300,7 @@ dns_string_array_ptr dns_string_split_length(dns_string_ptr target, const char *
 }
 
 
-void dns_string_tolower(dns_string_ptr target) {
+void dns_string_tolower(dns_string *target) {
     if (target && target->position) {
         size_t len = dns_string_length(target);
 
@@ -310,7 +310,7 @@ void dns_string_tolower(dns_string_ptr target) {
     }
 }
 
-void dns_string_toupper(dns_string_ptr target) {
+void dns_string_toupper(dns_string *target) {
     if (target && target->position) {
         size_t len = dns_string_length(target);
 

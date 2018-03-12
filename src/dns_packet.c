@@ -41,7 +41,7 @@
 
 // Converts names from: 3www7hotwire3com format to www.hotwire.com
 //
-void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string_ptr host) {
+void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string *host) {
 
     if (host != NULL) {
 
@@ -165,7 +165,7 @@ void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_hos
 
 #pragma clang diagnostic pop
 
-void dns_packet_question_to_host(dns_packet *packet, dns_question *question, dns_string_ptr host) {
+void dns_packet_question_to_host(dns_packet *packet, dns_question *question, dns_string *host) {
 
     if (question == NULL || host == NULL) {
         return;
@@ -398,7 +398,7 @@ dns_resource_header *dns_packet_get_additional_information(dns_packet *packet, u
 }
 
 void dns_packet_resource_to_host(dns_packet *packet, dns_resource_header *resource_record,
-                                 dns_string_ptr host_name) {
+                                 dns_string *host_name) {
     unsigned char *offset = (unsigned char *) resource_record;
 
     if (dns_resource_name_is_pointer(resource_record)) {
@@ -408,11 +408,11 @@ void dns_packet_resource_to_host(dns_packet *packet, dns_resource_header *resour
     dns_packet_convert_to_host(packet, (const unsigned char *) offset, host_name);
 }
 
-void dns_resource_log(dns_string_ptr log_output,
+void dns_resource_log(dns_string *log_output,
                       dns_packet *packet,
                       dns_resource_header *resource_record) {
     if (resource_record) {
-        dns_string_ptr host_name = dns_string_new(256);
+        dns_string *host_name = dns_string_new(256);
 
         dns_packet_resource_to_host(packet, resource_record, host_name);
         if (dns_string_length(host_name) == 0) {
@@ -432,7 +432,7 @@ void dns_resource_log(dns_string_ptr log_output,
     }
 }
 
-void dns_additional_log(dns_string_ptr log_output, dns_additional_record *additional_records) {
+void dns_additional_log(dns_string *log_output, dns_additional_record *additional_records) {
     if (additional_records) {
         //   +------------------+------------------------------------------------+
         //   |  Identifier Type | Identifier                                     |
@@ -461,7 +461,7 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
     if (dns_get_debug_mode() && packet != NULL) {
         dns_header *header = &packet->header;
 
-        dns_string_ptr log_output = dns_string_new(4096);
+        dns_string *log_output = dns_string_new(4096);
 
         char *str;
         va_list arg_list;
@@ -511,7 +511,7 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
                 dns_question *question = dns_packet_get_question(packet, question_index);
 
                 if (question) {
-                    dns_string_ptr host_name = dns_string_new(256);
+                    dns_string *host_name = dns_string_new(256);
 
                     dns_packet_question_to_host(packet, question, host_name);
 
@@ -589,7 +589,7 @@ unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_
             dns_resource_header *resource_record = dns_packet_get_answer(packet, answer_index);
 
             if (resource_record) {
-                dns_string_ptr host_name = dns_string_new(256);
+                dns_string *host_name = dns_string_new(256);
 
                 dns_packet_resource_to_host(packet, resource_record, host_name);
 
@@ -623,7 +623,7 @@ void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, un
             dns_resource_header *resource_record = dns_packet_get_answer(packet, answer_index);
 
             if (resource_record) {
-                dns_string_ptr host_name = dns_string_new(256);
+                dns_string *host_name = dns_string_new(256);
 
                 dns_packet_resource_to_host(packet, resource_record, host_name);
 
@@ -674,7 +674,7 @@ const char *dns_record_type_string(unsigned short record_type) {
 
 
 //TODO: Do we still need this?
-//size_t host_to_dns(dns_string_ptr host_name, char *dest, size_t dest_size) {
+//size_t host_to_dns(dns_string *host_name, char *dest, size_t dest_size) {
 //    memory_clear(dest, dest_size);
 //
 //    char *target = dest;

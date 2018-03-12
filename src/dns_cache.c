@@ -148,14 +148,14 @@ void dns_cache_log(transaction_context *context) {
         dns_cache_record *record = dns_get_head(context);
 
         if (record) {
-            dns_string_ptr log_data = dns_string_new(1024);
+            dns_string *log_data = dns_string_new(1024);
 
             dns_string_sprintf(log_data, "\nquestion, expired_time_stamp, reference_count, entry_state\n");
 
             while (record) {
                 dns_question *question = dns_packet_get_question(&record->cache_entry.dns_packet_response, 0);
 
-                dns_string_ptr host_name = dns_string_new(256);
+                dns_string *host_name = dns_string_new(256);
 
                 dns_packet_question_to_host(&record->cache_entry.dns_packet_response, question, host_name);
 
@@ -178,7 +178,7 @@ void dns_cache_log(transaction_context *context) {
     }
 }
 
-void dns_cache_log_answers(dns_cache_record *record, dns_string_ptr response) {
+void dns_cache_log_answers(dns_cache_record *record, dns_string *response) {
 
     dns_string_sprintf(response, "\"answers\":[");
 
@@ -186,8 +186,8 @@ void dns_cache_log_answers(dns_cache_record *record, dns_string_ptr response) {
     if (record && record->cache_entry.dns_packet_response_size) {
         dns_packet *packet = &record->cache_entry.dns_packet_response;
 
-        dns_string_ptr host_name = dns_string_new(256);
-        dns_string_ptr resource_information = dns_string_new(256);
+        dns_string *host_name = dns_string_new(256);
+        dns_string *resource_information = dns_string_new(256);
 
         unsigned short answer_count = ntohs(packet->header.answer_count);
         if (answer_count) {
@@ -293,7 +293,7 @@ bool dns_cache_health_check(transaction_context *context) {
     return true;
 }
 
-void dns_cache_json_log(transaction_context *context, dns_string_ptr response) {
+void dns_cache_json_log(transaction_context *context, dns_string *response) {
     dns_cache_record *record = dns_get_head(context);
 
     unsigned int timestamp_now = dns_get_timestamp_now();
@@ -308,7 +308,7 @@ void dns_cache_json_log(transaction_context *context, dns_string_ptr response) {
 
     if (record) {
 
-        dns_string_ptr host_name = dns_string_new(256);
+        dns_string *host_name = dns_string_new(256);
 
         while (record) {
 
@@ -354,7 +354,7 @@ void dns_cache_json_log(transaction_context *context, dns_string_ptr response) {
     dns_string_sprintf(response, "}");
 }
 
-void dns_cache_html_log(transaction_context *context, dns_string_ptr response) {
+void dns_cache_html_log(transaction_context *context, dns_string *response) {
     dns_cache_record *record = dns_get_head(context);
 
     unsigned int timestamp_now = dns_get_timestamp_now();
@@ -377,7 +377,7 @@ void dns_cache_html_log(transaction_context *context, dns_string_ptr response) {
 
     if (record) {
 
-        dns_string_ptr host_name = dns_string_new(256);
+        dns_string *host_name = dns_string_new(256);
 
         while (record) {
 
@@ -441,14 +441,14 @@ bool dns_cache_compare(transaction_context *context, dns_packet *request, dns_pa
             dns_question *question = dns_packet_get_question(request, request_index);
 
             if (question) {
-                dns_string_ptr request_host_name = dns_string_new(256);
+                dns_string *request_host_name = dns_string_new(256);
 
                 dns_packet_question_to_host(request, question, request_host_name);
                 for (unsigned cache_index = 0;
                      cache_index < ntohs(cache_entry->header.question_count); cache_index++) {
                     question = dns_packet_get_question(cache_entry, cache_index);
                     if (question) {
-                        dns_string_ptr cache_host_name = dns_string_new(256);
+                        dns_string *cache_host_name = dns_string_new(256);
 
                         dns_packet_question_to_host(cache_entry, question, cache_host_name);
                         if (dns_string_strcmp(cache_host_name, request_host_name) == 0) {
@@ -811,8 +811,8 @@ void dns_cache_stop() {
 }
 
 size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
-                                  dns_string_ptr host_name,
-                                  dns_string_ptr ip) {
+                                  dns_string *host_name,
+                                  dns_string *ip) {
     //                                1  1  1  1  1  1
     //  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
     // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
