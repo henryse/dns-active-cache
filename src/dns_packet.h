@@ -94,7 +94,7 @@ typedef struct question_t {
 typedef unsigned short record_type_t;
 
 //Constant sized fields of the resource record structure
-typedef struct dns_resource_header_t {
+typedef struct dns_resource_t {
     unsigned short record_type;         // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
     unsigned short record_class;        // A 16 bit value which defines the protocol family or an
     // instance of the protocol. The normal value is IN = Internet protocol
@@ -103,32 +103,8 @@ typedef struct dns_resource_header_t {
     // and indicates how long the RR may be cached. The value zero indicates
     // the data should not be cached.
     unsigned short record_data_len;     // The length of RR specific data in octets, for example, 27
-} dns_resource_header;
-
-//Constant sized fields of the resource record structure
-typedef struct dns_additional_record_t {
-    //   +------------------+------------------------------------------------+
-    //   |  Identifier Type | Identifier                                     |
-    //   |       Code       |                                                |
-    //   +------------------+------------------------------------------------+
-    //   |      0x0000      | The 1-octet 'htype' followed by 'hlen' octets  |
-    //   |                  | of 'chaddr' from a DHCPv4 client's DHCPREQUEST |
-    //   |                  | [7].                                           |
-    //   |      0x0001      | The data octets (i.e., the Type and            |
-    //   |                  | Client-Identifier fields) from a DHCPv4        |
-    //   |                  | client's Client Identifier option [10].        |
-    //   |      0x0002      | The client's DUID (i.e., the data octets of a  |
-    //   |                  | DHCPv6 client's Client Identifier option [11]  |
-    //   |                  | or the DUID field from a DHCPv4 client's       |
-    //   |                  | Client Identifier option [6]).                 |
-    //   |  0x0003 - 0xfffe | Undefined; available to be assigned by IANA.   |
-    //   |      0xffff      | Undefined; RESERVED.                           |
-    //   +------------------+------------------------------------------------+
-    unsigned short identifier_type_code;
-    // TODO: Need to create a union to break these up, based on the identifier_type_code
-    // unsigned htype;
-    // unsigned hlen;
-} dns_additional_record;
+    char record_data[];
+} dns_resource;
 
 #pragma pack(pop)
 
@@ -148,17 +124,17 @@ unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_
 
 void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, unsigned int new_ttl);
 
-dns_resource_header *dns_packet_get_answer(dns_packet *packet, unsigned int index);
+dns_resource *dns_packet_get_answer(dns_packet *packet, unsigned int index);
 
 void dns_packet_resource_to_host(dns_packet *packet,
-                                 dns_resource_header *resource_record,
+                                 dns_resource *resource_record,
                                  dns_string *host_name);
 
-dns_resource_header *dns_resource_header_get(dns_resource_header *resource_record);
+dns_resource *dns_resource_header_get(dns_resource *resource_record);
 
 const char *dns_record_type_string(unsigned short record_type);
 
-unsigned char *dns_resource_data_get(dns_resource_header *resource_record);
+unsigned char *dns_resource_data_get(dns_resource *resource_record);
 
 void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string *host);
 

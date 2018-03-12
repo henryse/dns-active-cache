@@ -192,10 +192,10 @@ void dns_cache_log_answers(dns_cache_record *record, dns_string *response) {
         unsigned short answer_count = ntohs(packet->header.answer_count);
         if (answer_count) {
             for (unsigned answer_index = 0; answer_index < answer_count; answer_index++) {
-                dns_resource_header *answer = dns_packet_get_answer(packet, answer_index);
+                dns_resource *answer = dns_packet_get_answer(packet, answer_index);
 
                 if (answer) {
-                    dns_resource_header *record_header = dns_resource_header_get(answer);
+                    dns_resource *record_header = dns_resource_header_get(answer);
                     if (record_header) {
                         if (ntohs(record_header->record_type) == RECORD_CNAME) {
                             dns_packet_resource_to_host(packet, answer, host_name);
@@ -854,9 +854,9 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
 
         // Write the answer
         //
-        dns_resource_header *resource = (dns_resource_header *) question;
+        dns_resource *resource = (dns_resource *) question;
 
-        memory_clear(resource, sizeof(dns_resource_header));
+        memory_clear(resource, sizeof(dns_resource));
 
         resource->record_type = htons(RECORD_A);
         resource->record_class = htons(CLASS_IN);
@@ -864,7 +864,7 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
         resource->record_data_len = htons(4);
 
         // RDATA Ptr
-        void *resource_data = ((void *)question) + sizeof(dns_resource_header);
+        void *resource_data = ((void *)question) + sizeof(dns_resource);
 
         // Store IP Address.
         inet_pton(AF_INET, dns_string_c_str(ip), resource_data);
