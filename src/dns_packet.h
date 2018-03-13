@@ -1,4 +1,4 @@
-/**********************************************************************
+#include <ntsid.h>/**********************************************************************
 //    Copyright (c) 2015 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -25,9 +25,7 @@
 **********************************************************************/
 
 #pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
-
 #ifndef DNS_PACKET_H
 #define DNS_PACKET_H
 
@@ -36,7 +34,6 @@
 #include "dns_string.h"
 #include "dns_utils.h"
 
-#pragma pack(push, 1)
 
 //DNS header structure
 
@@ -97,16 +94,15 @@ typedef unsigned short record_type_t;
 typedef struct dns_resource_t {
     unsigned short record_type;         // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
     unsigned short record_class;        // A 16 bit value which defines the protocol family or an
-    // instance of the protocol. The normal value is IN = Internet protocol
-    // (other values are HS and CH both historic MIT protocols).
+                                        // instance of the protocol. The normal value is IN = Internet protocol
+                                        // (other values are HS and CH both historic MIT protocols).
     unsigned int record_ttl;            // 32 bit value. The Time to Live in seconds (range is 1 to 2147483647)
-    // and indicates how long the RR may be cached. The value zero indicates
-    // the data should not be cached.
+                                        // and indicates how long the RR may be cached. The value zero indicates
+                                        // the data should not be cached.
     unsigned short record_data_len;     // The length of RR specific data in octets, for example, 27
-    char record_data[];
+    char __unused record_data[];
 } dns_resource;
 
-#pragma pack(pop)
 
 void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...);
 
@@ -139,5 +135,4 @@ unsigned char *dns_resource_data_get(dns_resource *resource_record);
 void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string *host);
 
 #endif //DNS_PACKET_READ
-
 #pragma clang diagnostic pop
