@@ -56,6 +56,7 @@ char *malloc_string(size_t size) {
 
 void free_string(char *string) {
     if (string != NULL) {
+        memory_clear(string, strlen(string));
         free(string);
     }
 }
@@ -230,6 +231,7 @@ void log_message(int log_level,
 
         if (str) {
             dns_string_append_str(output, str);
+            memory_clear(str, strlen(str));
             free(str);
         }
 

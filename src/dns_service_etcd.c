@@ -38,12 +38,10 @@ typedef struct dns_etcd_entry_t {
     unsigned short __unused port;
 } dns_etcd_entry;
 
-typedef dns_etcd_entry *dns_etcd_entry_ptr;
+dns_etcd_cache *g_cache;
 
-dns_etcd_cache_ptr g_cache;
-
-dns_etcd_cache_ptr dns_etcd_cache_allocate() {
-    dns_etcd_cache_ptr cache = memory_alloc(sizeof(dns_etcd_cache));
+dns_etcd_cache *dns_etcd_cache_allocate() {
+    dns_etcd_cache *cache = memory_alloc(sizeof(dns_etcd_cache));
     cache->refcount = 1;
 
     cache->dns_etcd_entries = dns_array_create(16);
@@ -52,7 +50,7 @@ dns_etcd_cache_ptr dns_etcd_cache_allocate() {
     return cache;
 }
 
-void dns_etcd_cache_free(dns_etcd_cache_ptr cache) {
+void dns_etcd_cache_free(dns_etcd_cache *cache) {
     if (cache) {
         size_t size = dns_array_size(cache->dns_etcd_entries);
 
@@ -66,7 +64,7 @@ void dns_etcd_cache_free(dns_etcd_cache_ptr cache) {
     }
 }
 
-dns_etcd_cache_ptr dns_etcd_cache_hold(dns_etcd_cache_ptr cache) {
+dns_etcd_cache *dns_etcd_cache_hold(dns_etcd_cache *cache) {
     if (cache) {
         __sync_fetch_and_add(&cache->refcount, 1);
     }
@@ -74,23 +72,24 @@ dns_etcd_cache_ptr dns_etcd_cache_hold(dns_etcd_cache_ptr cache) {
     return cache;
 }
 
-dns_etcd_cache_ptr dns_etcd_cache_release(dns_etcd_cache_ptr cache) {
+dns_etcd_cache *dns_etcd_cache_release(dns_etcd_cache *cache) {
     if (cache) {
         if (1 == __sync_fetch_and_sub(&cache->refcount, 1)) {
             dns_etcd_cache_free(cache);
+            return NULL;
         }
     }
 
     return cache;
 }
 
-dns_etcd_entry_ptr dns_etcd_entry_allocate() {
-    dns_etcd_entry_ptr entry = memory_alloc(sizeof(dns_etcd_entry));
+dns_etcd_entry *dns_etcd_entry_allocate() {
+    dns_etcd_entry *entry = memory_alloc(sizeof(dns_etcd_entry));
 
     return entry;
 }
 
-void __unused dns_etcd_entry_free(dns_etcd_entry_ptr entry) {
+void __unused dns_etcd_entry_free(dns_etcd_entry *entry) {
     if (entry != NULL) {
         dns_string_free(entry->name, true);
         dns_string_free(entry->ip, true);
@@ -105,10 +104,10 @@ void dns_etcd_push(transaction_context *context, dns_array *etcd_dns_entries, dn
                    etcd_response_node *node) {
     INFO_LOG(context, "Pushing node: %s : %s", dns_string_c_str(node->key), dns_string_c_str(node->value));
 
-    dns_etcd_entry_ptr entry = dns_etcd_entry_allocate();
+    dns_etcd_entry *entry = dns_etcd_entry_allocate();
 
     size_t count = 0;
-    dns_string_array_ptr array = dns_string_split_length(node->value, ":", &count);
+    dns_string_array *array = dns_string_split_length(node->value, ":", &count);
 
     entry->name = dns_string_sprintf(dns_string_new_empty(), "%s.%s", dns_string_c_str(service) + 1,
                                      dns_get_host_name());
@@ -126,10 +125,10 @@ void dns_etcd_push(transaction_context *context, dns_array *etcd_dns_entries, dn
     dns_array_append(etcd_dns_entries, entry);
 }
 
-void dns_etcd_populate(transaction_context *context, dns_etcd_cache_ptr cache) {
+void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
     // Start at the root.
     //
-    etcd_response_ptr response = etcd_get(&g_cli, "/");
+    etcd_response *response = etcd_get(&g_cli, "/");
 
     if (response && response->node && response->node->nodes) {
 
@@ -168,7 +167,7 @@ void dns_etcd_populate(transaction_context *context, dns_etcd_cache_ptr cache) {
     etcd_response_free(response);
 }
 
-void dns_cache_entry_setup(dns_cache_entry *cache_entry, dns_etcd_entry_ptr etcd_entry) {
+void dns_cache_entry_setup(dns_cache_entry *cache_entry, dns_etcd_entry *etcd_entry) {
     cache_entry->entry_state = ENTRY_ENABLED;
 
 
@@ -181,14 +180,14 @@ void dns_cache_entry_setup(dns_cache_entry *cache_entry, dns_etcd_entry_ptr etcd
 
 bool dns_etcd_search(dns_string *request_host_name, dns_cache_entry *cache_entry) {
 
-    dns_etcd_cache_ptr cache = dns_etcd_cache_hold(g_cache);
+    dns_etcd_cache *cache = dns_etcd_cache_hold(g_cache);
     bool found = false;
 
     if (cache) {
         size_t size = dns_array_size(cache->dns_etcd_entries);
 
         for (size_t index = 0; index < size; index++) {
-            dns_etcd_entry_ptr etcd_entry = dns_array_get(cache->dns_etcd_entries, index);
+            dns_etcd_entry *etcd_entry = dns_array_get(cache->dns_etcd_entries, index);
 
             if (dns_string_strcmp(request_host_name, etcd_entry->name) == 0) {
                 dns_cache_entry_setup(cache_entry, etcd_entry);
@@ -229,7 +228,7 @@ dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request)
                     dns_packet_question_to_host(request, question, request_host_name);
 
                     // Is the host name requested
-                    bool found  = dns_etcd_search(request_host_name, &cache_entry);
+                    dns_etcd_search(request_host_name, &cache_entry);
 
                     dns_string_free(request_host_name, true);
                 }

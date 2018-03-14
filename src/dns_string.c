@@ -81,6 +81,7 @@ void dns_string_free(dns_string *target, bool free_string) {
         if (free_string) {
             memory_clear(target->c_string, target->size);
             free(target->c_string);
+            target->c_string = NULL;
         }
 
         memory_clear(target, sizeof(dns_string));
@@ -181,6 +182,7 @@ dns_string *dns_string_sprintf(dns_string *target, const char *template, ...) {
     }
 
     dns_string_append_str(target, str);
+    memory_clear(str, strlen(str));
     free(str);
 
     return target;
@@ -243,11 +245,11 @@ size_t dns_string_length(dns_string *target) {
 
 }
 
-dns_string_array_ptr dns_string_array_new(size_t size) {
+dns_string_array *dns_string_array_new(size_t size) {
     return dns_array_create(size);
 }
 
-void dns_string_array_destroy(dns_string_array_ptr string_array) {
+void dns_string_array_destroy(dns_string_array *string_array) {
     size_t count = dns_array_size(string_array);
 
     for (size_t index = 0; index < count; index++) {
@@ -257,7 +259,7 @@ void dns_string_array_destroy(dns_string_array_ptr string_array) {
     dns_array_destroy(string_array);
 }
 
-void dns_string_array_delete(dns_string_array_ptr string_array) {
+void dns_string_array_delete(dns_string_array *string_array) {
 
     if (string_array) {
         dns_string_array_destroy(string_array);
@@ -265,7 +267,7 @@ void dns_string_array_delete(dns_string_array_ptr string_array) {
     }
 }
 
-dns_string_array_ptr dns_string_split_length(dns_string *target, const char *separator, size_t *count) {
+dns_string_array *dns_string_split_length(dns_string *target, const char *separator, size_t *count) {
 
     if (target == NULL || separator == NULL || *dns_string_c_str(target) == '\0' || *separator == '\0') {
         return NULL;
@@ -279,7 +281,7 @@ dns_string_array_ptr dns_string_split_length(dns_string *target, const char *sep
 
     // Allocate the array to return.
     //
-    dns_string_array_ptr string_array = dns_string_array_new(token_count);
+    dns_string_array *string_array = dns_string_array_new(token_count);
 
     // Create a temp location for strtok to use.
     //

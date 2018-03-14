@@ -35,16 +35,14 @@ typedef struct dns_etcd_cache_t {
     dns_array *dns_etcd_entries;
 } dns_etcd_cache;
 
-typedef dns_etcd_cache *dns_etcd_cache_ptr;
-
 dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request);
 
 dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns_packet_to_find);
 
 int dns_service_etcd(transaction_context *context);
 
-dns_etcd_cache_ptr dns_etcd_cache_hold(dns_etcd_cache_ptr cache);
+dns_etcd_cache *dns_etcd_cache_hold(dns_etcd_cache *cache);
 
-dns_etcd_cache_ptr dns_etcd_cache_release(dns_etcd_cache_ptr cache);
+dns_etcd_cache *dns_etcd_cache_release(dns_etcd_cache *cache);
 
 #endif //DNS_ACTIVE_CACHE_SERVICE_ETCD_H

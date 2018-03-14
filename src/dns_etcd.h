@@ -115,8 +115,6 @@ typedef struct etcd_response_t {
     uint64_t raft_term;
 } etcd_response;
 
-typedef etcd_response *etcd_response_ptr;
-
 struct etcd_response_parser_t;
 
 typedef int (*etcd_watcher_callback)(void *user_data, etcd_response *resp);

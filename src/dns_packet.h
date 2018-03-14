@@ -1,4 +1,4 @@
-#include <ntsid.h>/**********************************************************************
+/**********************************************************************
 //    Copyright (c) 2015 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -29,11 +29,11 @@
 #ifndef DNS_PACKET_H
 #define DNS_PACKET_H
 
+#include <ntsid.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "dns_string.h"
 #include "dns_utils.h"
-
 
 //DNS header structure
 
@@ -62,8 +62,6 @@ typedef struct dns_packet_t {
     dns_header header;                              // DNS HEADER (see above)
     char body[DNS_PACKET_SIZE - DNS_HEADER_SIZE];   // Question and answers can be found in the body
 } dns_packet;
-
-typedef dns_packet *dns_packet_ptr;
 
 //Constant sized fields of query structure
 typedef struct question_t {

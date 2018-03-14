@@ -835,7 +835,7 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
     // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 
     if (cache_entry) {
-        dns_packet_ptr packet = &cache_entry->dns_packet_response;
+        dns_packet *packet = &cache_entry->dns_packet_response;
 
         packet->header.query_response_flag = 1;
         packet->header.authenticated_data = 0;

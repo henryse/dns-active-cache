@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-COUNTER=1024
+COUNTER=1
 until [ ${COUNTER} -lt 0 ]; do
     dig @localhost -p 5300 www.bing.com
     dig @localhost -p 5300 www.hotwire.com
@@ -26,29 +26,29 @@ until [ ${COUNTER} -lt 0 ]; do
     dig @localhost -p 5300 www.mastercard.com
 
 
-    dig www.bing.com
-    dig www.hotwire.com
-    dig www.expedia.com
-    dig www.wotif.com
-    dig www.travelocity.com
-    dig www.microsoft.com
-    dig www.vatican.va
-    dig www.google.com
-    dig www.orbitz.com
-    dig www.booking.com
-    dig www.priceline.com
-    dig www.apple.com
-    dig www.appleinsider.com
-    dig www.zerohedge.com
-    dig www.peakprosperity.com
-    dig www.ft.com
-    dig www.pugetsoundbees.org
-    dig www.latimes.com
-    dig www.united.com
-    dig winefolly.com
-    dig news.bbc.co.uk
-    dig www.visa.com
-    dig www.mastercard.com
+#    dig www.bing.com
+#    dig www.hotwire.com
+#    dig www.expedia.com
+#    dig www.wotif.com
+#    dig www.travelocity.com
+#    dig www.microsoft.com
+#    dig www.vatican.va
+#    dig www.google.com
+#    dig www.orbitz.com
+#    dig www.booking.com
+#    dig www.priceline.com
+#    dig www.apple.com
+#    dig www.appleinsider.com
+#    dig www.zerohedge.com
+#    dig www.peakprosperity.com
+#    dig www.ft.com
+#    dig www.pugetsoundbees.org
+#    dig www.latimes.com
+#    dig www.united.com
+#    dig winefolly.com
+#    dig news.bbc.co.uk
+#    dig www.visa.com
+#    dig www.mastercard.com
 
 #    dig @::1 -p 5300 www.hotwire.com
 #    dig @::1 -p 5300 www.expedia.com

@@ -126,11 +126,11 @@ bool is_valid_ip_address(char *ipAddress) {
 
 bool get_ip_address(char *line, char **ip_address) {
     if (NULL != line) {
-        char *save_ptr = NULL;
-        char *token = strtok_r(line, " \n", &save_ptr);
+        char *save = NULL;
+        char *token = strtok_r(line, " \n", &save);
 
         if (token && strcmp(token, "nameserver") == 0) {
-            token = strtok_r(save_ptr, " \n", &save_ptr);
+            token = strtok_r(save, " \n", &save);
             if (is_valid_ip_address(token)) {
                 if (ip_address != NULL) {
                     *ip_address = malloc_string(strlen(token));

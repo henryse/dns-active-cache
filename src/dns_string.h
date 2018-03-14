@@ -40,8 +40,6 @@ typedef struct dns_string_t {
 
 typedef dns_array dns_string_array;
 
-typedef dns_string_array *dns_string_array_ptr;
-
 dns_string *dns_string_new(size_t size);
 
 dns_string *dns_string_new_empty();
@@ -70,13 +68,13 @@ char *dns_string_c_str(dns_string *target);
 
 size_t dns_string_length(dns_string *target);
 
-dns_string_array_ptr dns_string_split_length(dns_string *target, const char *separator, size_t *count);
+dns_string_array *dns_string_split_length(dns_string *target, const char *separator, size_t *count);
 
-dns_string_array_ptr dns_string_array_new(size_t size);
+dns_string_array *dns_string_array_new(size_t size);
 
-void dns_string_array_destroy(dns_string_array_ptr string_array);
+void dns_string_array_destroy(dns_string_array *string_array);
 
-void dns_string_array_delete(dns_string_array_ptr string_array);
+void dns_string_array_delete(dns_string_array *string_array);
 
 void dns_string_tolower(dns_string *target);
 

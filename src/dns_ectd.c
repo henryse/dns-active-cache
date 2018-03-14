@@ -244,6 +244,7 @@ void etcd_watcher_release(etcd_watcher *watcher) {
             }
             etcd_response_free(watcher->parser->resp);
             free(watcher->parser);
+            watcher->parser = NULL;
         }
         free(watcher);
     }
@@ -273,6 +274,8 @@ void etcd_watcher_reset(etcd_watcher *watcher) {
         // after having got some response
         if (watcher->parser->json) {
             yajl_free(watcher->parser->json);
+            watcher->parser->json = NULL;
+
             dns_string_array_destroy(&watcher->parser->ctx.key_stack);
             dns_string_array_destroy(&watcher->parser->ctx.node_stack);
             watcher->parser->json = NULL;
@@ -1111,7 +1114,7 @@ size_t etcd_parse_response(char *ptr,
                 continue;
             }
             size_t count = 0;
-            dns_string_array_ptr kvs = dns_string_split_length(parser->buf, ":", &count);
+            dns_string_array *kvs = dns_string_split_length(parser->buf, ":", &count);
             dns_string_reset(parser->buf);
             if (count < 2) {
                 dns_string_array_delete(kvs);
@@ -1286,7 +1289,7 @@ void *etcd_cluster_request(etcd_client *cli,
         // TODO: This needs to be cleaned up!  Get rid of the evil void * from the calls.
         req->url = url;
         req->cli = cli;
-        etcd_response_ptr etcd_response = etcd_send_request(cli->curl, req);
+        etcd_response *etcd_response = etcd_send_request(cli->curl, req);
         dns_string_free(url, true);
 
         if (req->api_type == ETCD_MEMBERS) {
@@ -1306,9 +1309,11 @@ void *etcd_cluster_request(etcd_client *cli,
             resp = etcd_response;
             if (resp && resp->err && resp->err->etcd_code == error_send_request_failed) {
                 if (i == count - 1) {
+                    // Note we
                     break;
                 }
                 etcd_response_free(resp);
+                resp=NULL;
             } else {
                 // got response, return
                 return resp;
