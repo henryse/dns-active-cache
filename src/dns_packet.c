@@ -236,21 +236,21 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
         if (answer_count) {
             dns_string_sprintf(log_output, "  Answers : \n");
             for (uint16_t answer_index = 0; answer_index < answer_count; answer_index++) {
-                dns_resource_log(log_output, packet, dns_packet_answer_get(packet, answer_index));
+                dns_resource_log(context, log_output, packet, dns_packet_answer_get(context, packet, answer_index));
             }
         }
 
         if (authority_count) {
             dns_string_sprintf(log_output, "  Authority : \n");
             for (uint16_t authority_index = 0; authority_index < authority_count; authority_index++) {
-                dns_resource_log(log_output, packet, dns_packet_authority_get(packet, authority_index));
+                dns_resource_log(context, log_output, packet, dns_packet_authority_get(context, packet, authority_index));
             }
         }
 
         if (information_count) {
             dns_string_sprintf(log_output, "\n  Resources : \n");
             for (uint16_t information_index = 0; information_index < information_count; information_index++) {
-                dns_resource_log(log_output, packet, dns_packet_information_get(packet, information_index));
+                dns_resource_log(context, log_output, packet, dns_packet_information_get(NULL, packet, information_index));
             }
         }
 
@@ -260,7 +260,9 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
     }
 }
 
-uint32_t dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type) {
+uint32_t dns_packet_record_ttl_get(transaction_context *context,
+                                   dns_packet *packet,
+                                   record_type_t record_type) {
 
     uint32_t ttl_seconds = UINT_MAX;
     uint16_t answer_count = ntohs(packet->header.answer_count);
@@ -269,11 +271,11 @@ uint32_t dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type
 
         for (uint16_t answer_index = 0; answer_index < answer_count; answer_index++) {
 
-            dns_resource_handle resource = dns_packet_answer_get(packet, answer_index);
+            dns_resource_handle resource = dns_packet_answer_get(context, packet, answer_index);
 
             if (resource) {
-                if (dns_resource_record_type(resource) == record_type) {
-                    uint32_t record_ttl = dns_resource_ttl(resource);
+                if (dns_resource_record_type(context, resource) == record_type) {
+                    uint32_t record_ttl = dns_resource_ttl(context, resource);
                     ttl_seconds = min(ttl_seconds, record_ttl);
                 }
             }
@@ -287,7 +289,10 @@ uint32_t dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type
     return ttl_seconds;
 }
 
-void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, uint32_t new_ttl) {
+void dns_packet_record_ttl_set(transaction_context *context,
+                               dns_packet *packet,
+                               record_type_t record_type,
+                               uint32_t new_ttl) {
 
     uint16_t answer_count = ntohs(packet->header.answer_count);
 
@@ -295,11 +300,11 @@ void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, ui
 
         for (uint16_t answer_index = 0; answer_index < answer_count; answer_index++) {
 
-            dns_resource_handle resource = dns_packet_answer_get(packet, answer_index);
+            dns_resource_handle resource = dns_packet_answer_get(context, packet, answer_index);
 
             if (resource) {
-                if (dns_resource_record_type(resource) == record_type) {
-                    dns_resource_ttl_set(resource, new_ttl);
+                if (dns_resource_record_type(context, resource) == record_type) {
+                    dns_resource_ttl_set(context, resource, new_ttl);
                 }
             }
         }

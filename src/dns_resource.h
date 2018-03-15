@@ -33,26 +33,26 @@ typedef void *dns_resource_handle;
 
 dns_string *dns_resource_host(dns_packet *packet, dns_resource_handle resource);
 
-record_type_t dns_resource_record_type(dns_resource_handle resource);
+record_type_t dns_resource_record_type(transaction_context *context, dns_resource_handle resource);
 
-class_type_t dns_resource_class_type(dns_resource_handle resource);
+class_type_t dns_resource_class_type(transaction_context *context, dns_resource_handle resource);
 
-uint32_t dns_resource_ttl(dns_resource_handle resource);
+uint32_t dns_resource_ttl(transaction_context *context, dns_resource_handle resource);
 
-uint32_t dns_resource_ttl_set(dns_resource_handle resource, uint32_t new_ttl);
+uint32_t dns_resource_ttl_set(transaction_context *context, dns_resource_handle resource, uint32_t new_ttl);
 
-void dns_resource_log(dns_string *log_output, dns_packet *packet, dns_resource_handle resource);
+void dns_resource_log(transaction_context *context, dns_string *log_output, dns_packet *packet, dns_resource_handle resource);
 
-dns_resource_handle dns_packet_answer_get(dns_packet *packet, uint16_t index);
+dns_resource_handle dns_packet_answer_get(transaction_context *context, dns_packet *packet, uint16_t index);
 
-dns_resource_handle dns_packet_authority_get(dns_packet *packet, uint16_t index);
+dns_resource_handle dns_packet_authority_get(transaction_context *context, dns_packet *packet, uint16_t index);
 
-dns_resource_handle dns_packet_information_get(dns_packet *packet, uint16_t index);
+dns_resource_handle dns_packet_information_get(transaction_context *context, dns_packet *packet, uint16_t index);
 
-dns_string *dns_resource_data_string(dns_packet *packet, dns_resource_handle resource);
+dns_string *dns_resource_data_string(transaction_context *context, dns_packet *packet, dns_resource_handle resource);
 
-uint32_t dns_resource_data_uint32(dns_resource_handle resource);
+uint32_t dns_resource_data_uint32(transaction_context *context, dns_resource_handle resource);
 
-uint16_t dns_resource_data_uint16(dns_resource_handle resource);
+uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_handle resource);
 
 #endif //DNS_ACTIVE_CACHE_DNS_RESOURCE_H

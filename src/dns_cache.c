@@ -1,4 +1,4 @@
-#include <ntsid.h>/**********************************************************************
+/**********************************************************************
 //    Copyright (c) 2015 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -29,8 +29,9 @@
 #define _POSIX_C_SOURCE 200809L
 #define __unused
 #else
-
+#include <ntsid.h>
 #endif
+#include <stdint.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -177,7 +178,7 @@ void dns_cache_log(transaction_context *context) {
     }
 }
 
-void dns_cache_log_answers(dns_cache_record *record, dns_string *response) {
+void dns_cache_log_answers(transaction_context *context, dns_cache_record *record, dns_string *response) {
 
     dns_string_sprintf(response, "\"answers\":[");
 
@@ -187,36 +188,36 @@ void dns_cache_log_answers(dns_cache_record *record, dns_string *response) {
 
         uint16_t answer_count = ntohs(packet->header.answer_count);
         if (answer_count) {
-            for (unsigned answer_index = 0; answer_index < answer_count; answer_index++) {
-                dns_resource_handle answer = dns_packet_answer_get(packet, answer_index);
+            for (uint16_t answer_index = 0; answer_index < answer_count; answer_index++) {
+                dns_resource_handle answer = dns_packet_answer_get(context, packet, answer_index);
 
                 dns_string *host_name = NULL;
                 dns_string *resource_information = NULL;
 
                 if (answer) {
-                    if (dns_resource_record_type(answer) == RECORD_CNAME) {
+                    if (dns_resource_record_type(context, answer) == RECORD_CNAME) {
                         host_name = dns_resource_host(packet, answer);
-                        resource_information = dns_resource_data_string(packet, answer);
-                    } else if (dns_resource_record_type(answer) == RECORD_A) {
+                        resource_information = dns_resource_data_string(context, packet, answer);
+                    } else if (dns_resource_record_type(context, answer) == RECORD_A) {
                         host_name = dns_resource_host(packet, answer);
                         struct sockaddr_in address;
-                        address.sin_addr.s_addr = dns_resource_data_uint32(answer);
+                        address.sin_addr.s_addr = dns_resource_data_uint32(context, answer);
                         dns_string_reset(resource_information);
                         dns_string_sprintf(resource_information, "%s", inet_ntoa(address.sin_addr));
-                    } else if (dns_resource_record_type(answer) == RECORD_NS) {
+                    } else if (dns_resource_record_type(context, answer) == RECORD_NS) {
                         struct sockaddr_in address;
-                        address.sin_addr.s_addr = dns_resource_data_uint32(answer);
+                        address.sin_addr.s_addr = dns_resource_data_uint32(context, answer);
                         dns_string_reset(resource_information);
                         dns_string_sprintf(resource_information, "%s", inet_ntoa(address.sin_addr));
                     } else {
                         dns_string_reset(resource_information);
                         dns_string_sprintf(resource_information, "Not implemented for %s",
-                                           dns_record_type_string(dns_resource_record_type(answer)));
+                                           dns_record_type_string(dns_resource_record_type(context, answer)));
                     }
 
                     dns_string_sprintf(response, "\"%s, %s, %s\",",
                                        dns_string_c_str(host_name),
-                                       dns_record_type_string(dns_resource_record_type(answer)),
+                                       dns_record_type_string(dns_resource_record_type(context, answer)),
                                        dns_string_c_str(resource_information));
                     found_answer = true;
 
@@ -325,7 +326,7 @@ void dns_cache_json_log(transaction_context *context, dns_string *response) {
                     dns_string_sprintf(response, "\"entry_state\":\"%s\",",
                                        dns_cache_http_entry_state(record->cache_entry.entry_state));
 
-                    dns_cache_log_answers(record, response);
+                    dns_cache_log_answers(context, record, response);
 
                     dns_string_sprintf(response, "}");
 
@@ -387,7 +388,7 @@ void dns_cache_html_log(transaction_context *context, dns_string *response) {
                                        record->reference_count,
                                        dns_cache_http_entry_state(record->cache_entry.entry_state));
 
-                    dns_cache_log_answers(record, response);
+                    dns_cache_log_answers(context, record, response);
 
                     dns_string_sprintf(response, "</td></tr>");
 
@@ -496,10 +497,10 @@ dns_cache_entry dns_cache_find(transaction_context *context, dns_packet *dns_pac
             // line parameter for max ttl
             //
             dns_packet *packet = &dns_cache_entry_found.dns_packet_response;
-            uint32_t current_ttl = dns_packet_record_ttl_get(packet, RECORD_A);
+            uint32_t current_ttl = dns_packet_record_ttl_get(context, packet, RECORD_A);
 
             if (current_ttl > dns_get_max_ttl()) {
-                dns_packet_record_ttl_set(packet, RECORD_A, dns_get_max_ttl());
+                dns_packet_record_ttl_set(context, packet, RECORD_A, dns_get_max_ttl());
             }
 
             // Release the record, we are done with it.
@@ -612,7 +613,7 @@ dns_cache_record *dns_cache_insert_internal(transaction_context *context, dns_pa
 
             // The TTL for the RECORD_A and cap it to the command line parameter for max ttl
             //
-            uint32_t ttl = min(dns_packet_record_ttl_get(packet, RECORD_A), dns_get_max_ttl());
+            uint32_t ttl = min(dns_packet_record_ttl_get(context, packet, RECORD_A), dns_get_max_ttl());
 
             // Sometimes DNS Servers return 0 for A record times, in these cases we will
             // just go with the polling time.
@@ -796,7 +797,7 @@ void dns_cache_stop() {
 
 size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
                                   dns_string  __unused *host_name,
-                                  dns_string *ip) {
+                                  dns_string __unused *ip) {
     //                                1  1  1  1  1  1
     //  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
     // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
