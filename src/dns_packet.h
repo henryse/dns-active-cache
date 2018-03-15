@@ -63,12 +63,7 @@ typedef struct dns_packet_t {
     char body[DNS_PACKET_SIZE - DNS_HEADER_SIZE];   // Question and answers can be found in the body
 } dns_packet;
 
-//Constant sized fields of query structure
-typedef struct question_t {
-    unsigned short question_type;
-    unsigned short question_class;
-} dns_question;
-
+#define RECORD_INVALID 0x00       /* Invalid value */
 #define RECORD_A 0x01             /* '0001 (1)	 Requests the A record for the domain name */
 #define RECORD_NS 0x02            /* '0002 (2)	 Requests the NS record(s) for the domain name */
 #define RECORD_CNAME 0x05         /* '0005 (5)	 Requests the CNAME record(s) for the domain name */
@@ -81,17 +76,19 @@ typedef struct question_t {
 #define RECORD_A6 0x26            /* '0026 (38)	 Obsolete. AAAA is the recommended IPv6 address record. Historical status */
 #define RECORD_ANY 0xFF           /* '00FF (255) Requests ANY resource record (typically wants SOA, MX, NS and MX) */
 
+typedef unsigned short record_type_t;
+
 #define CLASS_IN 1                /* the Internet */
 #define CLASS_CS 2                /* the CSNET class (Obsolete - used only for examples in some obsolete RFCs) */
 #define CLASS_CH 3                /* the CHAOS class */
 #define CLASS_HS 4                /* Hesiod [Dyer 87] */
 
-typedef unsigned short record_type_t;
+typedef unsigned short class_type_t;
 
 //Constant sized fields of the resource record structure
 typedef struct dns_resource_t {
-    unsigned short record_type;         // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
-    unsigned short record_class;        // A 16 bit value which defines the protocol family or an
+    record_type_t record_type;          // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
+    class_type_t record_class;          // A 16 bit value which defines the protocol family or an
                                         // instance of the protocol. The normal value is IN = Internet protocol
                                         // (other values are HS and CH both historic MIT protocols).
     unsigned int record_ttl;            // 32 bit value. The Time to Live in seconds (range is 1 to 2147483647)
@@ -103,16 +100,6 @@ typedef struct dns_resource_t {
 
 
 void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...);
-
-dns_question *dns_packet_get_question(dns_packet *packet, unsigned index);
-
-dns_question *dns_question_type(dns_question *question);
-
-void dns_packet_question_to_host(dns_packet *packet, dns_question *question, dns_string *host);
-
-dns_question *dns_question_next(dns_question *question);
-
-size_t dns_packet_question_size(transaction_context *context, dns_packet *packet);
 
 unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type);
 

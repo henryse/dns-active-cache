@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include "dns_packet.h"
 #include "dns_settings.h"
+#include "dns_question.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
@@ -165,66 +166,6 @@ void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_hos
 
 #pragma clang diagnostic pop
 
-void dns_packet_question_to_host(dns_packet *packet, dns_question *question, dns_string *host) {
-
-    if (question == NULL || host == NULL) {
-        return;
-    }
-
-    dns_packet_convert_to_host(packet, (const unsigned char *) question, host);
-}
-
-dns_question *dns_question_next(dns_question *question) {
-    dns_question *next_question = NULL;
-
-    if (question) {
-        unsigned char *count = (unsigned char *) question;
-
-        while (*count) {
-            count += (*count + 1);
-        }
-
-        count++;
-
-        next_question = (dns_question *) (count + sizeof(dns_question));
-    }
-
-    return next_question;
-}
-
-dns_question *dns_question_type(dns_question *question) {
-
-    if (question == NULL) {
-        return NULL;
-    }
-
-    unsigned char *count = (unsigned char *) question;
-
-    while (*count) {
-        count += (*count + 1);
-    }
-
-    count++;
-
-    return (dns_question *) count;
-}
-
-dns_question *dns_packet_get_question(dns_packet *packet, unsigned index) {
-    dns_question *question = NULL;
-
-    if (packet && index < ntohs(packet->header.question_count)) {
-        question = (dns_question *) packet->body;
-
-        if (index) {
-            for (unsigned count = 0; count < index; count++) {
-                question = dns_question_next(question);
-            }
-        }
-    }
-
-    return question;
-}
-
 bool dns_resource_name_is_pointer(dns_resource *resource_record) {
     if (NULL == resource_record)
         return false;
@@ -242,6 +183,7 @@ bool dns_resource_name_is_pointer(dns_resource *resource_record) {
     //    domain header).  A zero offset specifies the first byte of the ID field,
     //    etc.
     return *((char *) resource_record) & 0xC0 ? true : false;
+
 }
 
 unsigned short dns_resource_pointer_offset(dns_resource *resource_record) {
@@ -260,7 +202,8 @@ unsigned short dns_resource_pointer_offset(dns_resource *resource_record) {
         //    the start of the message (i.e., the first octet of the ID field in the
         //    domain header).  A zero offset specifies the first byte of the ID field,
         //    etc.
-        value = (ntohs(*(unsigned short *) resource_record)) & (unsigned short) 0x3FFF;
+        unsigned short offset = *(unsigned short *) resource_record;
+        value = ntohs(offset) & (unsigned short) 0x3FFF;
     }
 
     return value;
@@ -339,20 +282,9 @@ dns_resource *dns_packet_get_resource(dns_packet *packet, unsigned int index) {
                                       ntohs(packet->header.resource_count);
 
         if (index < resource_count) {
-            // skip past the questions.
-            //
-            dns_question *question = (dns_question *) packet->body;
-            unsigned question_count = ntohs(packet->header.question_count);
-            if (question_count) {
-                for (unsigned count = 0; count < question_count; count++) {
-                    question = dns_question_next(question);
-                }
-            }
-
-            // TODO: Verify this works.
             // Find the resource
             //
-            resource_record = (dns_resource *) question;
+            resource_record = (dns_resource *)  dns_packet_question_skip(packet);
             for (unsigned count = 0; count < index; count++) {
                 resource_record = dns_resource_next(resource_record);
             }
@@ -469,19 +401,15 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
                  question_index < question_count;
                  question_index++) {
 
-                dns_question *question = dns_packet_get_question(packet, question_index);
+                dns_question_handle question = dns_packet_question_index(packet, question_index);
 
                 if (question) {
-                    dns_string *host_name = dns_string_new(256);
+                    dns_string *host_name = dns_question_host(question);
 
-                    dns_packet_question_to_host(packet, question, host_name);
-
-                    dns_question *question_type = dns_question_type(question);
-
-                    dns_string_sprintf(log_output, "    host: %s, question_type: %d, class: %d \n",
+                    dns_string_sprintf(log_output, "    host: %s, question_header: %d, class: %d \n",
                                        dns_string_c_str(host_name),
-                                       ntohs(question_type->question_type),
-                                       ntohs(question_type->question_class));
+                                       dns_question_type(question),
+                                       dns_question_class(question));
 
                     dns_string_free(host_name, true);
                 }
@@ -517,22 +445,6 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
 
         dns_string_free(log_output, true);
     }
-}
-
-size_t dns_packet_question_size(transaction_context *context, dns_packet *packet) {
-    ASSERT(context, packet);
-
-    if (packet) {
-        dns_question *question = (dns_question *) packet->body;
-
-        for (int index = 0; index < ntohs(packet->header.question_count); index++) {
-            question = dns_question_next(question);
-        }
-
-        return (unsigned char *) question - (unsigned char *) packet;
-    }
-
-    return 0;
 }
 
 unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type) {

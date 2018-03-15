@@ -37,6 +37,7 @@
 #include "dns_settings.h"
 #include "dns_debug.h"
 #include "dns_service_etcd.h"
+#include "dns_question.h"
 
 typedef struct dns_incoming_request_t {
     int socket_fd;
@@ -294,13 +295,8 @@ dns_cache_entry lookup_dns_packet(transaction_context *context, dns_packet *dns_
 }
 
 dns_string *get_first_question_host_name(dns_packet *packet) {
-    dns_question *question = dns_packet_get_question(packet, 0);
-
-    dns_string *host = dns_string_new(256);
-
-    dns_packet_question_to_host(packet, question, host);
-
-    return host;
+    dns_question_handle *question = dns_packet_question_index(packet, 0);
+    return dns_question_host(question);
 }
 
 struct timespec log_start_request(transaction_context *context, dns_incoming_request *incoming_request) {

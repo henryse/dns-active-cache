@@ -42,6 +42,7 @@
 #include "dns_cache.h"
 #include "dns_service.h"
 #include "dns_settings.h"
+#include "dns_question.h"
 
 // Internal cache structure, it is never passed outside
 // of this area, copies of the cache_entry can be
@@ -151,11 +152,10 @@ void dns_cache_log(transaction_context *context) {
             dns_string_sprintf(log_data, "\nquestion, expired_time_stamp, reference_count, entry_state\n");
 
             while (record) {
-                dns_question *question = dns_packet_get_question(&record->cache_entry.dns_packet_response, 0);
 
-                dns_string *host_name = dns_string_new(256);
+                dns_question_handle question = dns_packet_question_index(&record->cache_entry.dns_packet_response, 0);
 
-                dns_packet_question_to_host(&record->cache_entry.dns_packet_response, question, host_name);
+                dns_string *host_name = dns_question_host(question);
 
                 dns_string_sprintf(log_data, "%s: %u, %u, %d \n",
                                    dns_string_c_str(host_name),
@@ -272,7 +272,7 @@ bool dns_cache_health_check(transaction_context *context) {
                  question_index < ntohs(packet->header.question_count);
                  question_index++) {
 
-                dns_question *question = dns_packet_get_question(packet, question_index);
+                dns_question_handle question = dns_packet_question_index(packet, question_index);
 
                 if (question) {
 
@@ -305,9 +305,6 @@ void dns_cache_json_log(transaction_context *context, dns_string *response) {
     dns_string_sprintf(response, "\"records\": [");
 
     if (record) {
-
-        dns_string *host_name = dns_string_new(256);
-
         while (record) {
 
             dns_packet *packet = &record->cache_entry.dns_packet_response;
@@ -318,11 +315,10 @@ void dns_cache_json_log(transaction_context *context, dns_string *response) {
                  question_index < question_count;
                  question_index++) {
 
-                dns_question *question = dns_packet_get_question(packet, question_index);
+                dns_question_handle question = dns_packet_question_index(packet, question_index);
 
                 if (question) {
-
-                    dns_packet_question_to_host(packet, question, host_name);
+                    dns_string *host_name = dns_question_host(question);
                     dns_string_sprintf(response, "{");
                     dns_string_sprintf(response, "\"question\":\"%s\",", dns_string_c_str(host_name));
                     dns_string_sprintf(response, "\"time_stamp\":\"%u\",", record->expired_time_stamp);
@@ -338,13 +334,13 @@ void dns_cache_json_log(transaction_context *context, dns_string *response) {
                     dns_string_sprintf(response, "}");
 
                     dns_string_sprintf(response, ",");
+
+                    dns_string_free(host_name, true);
                 }
             }
 
             record = dns_get_next_record(context, record);
         }
-
-        dns_string_free(host_name, true);
         dns_string_trim(response, 1);
     }
     // Need to remove the last comma...
@@ -374,9 +370,6 @@ void dns_cache_html_log(transaction_context *context, dns_string *response) {
                        "<tr><th>Question</th><th>Time Stamp</th><th>Time Remaining (seconds)</th><th>Reference Count</th><th>Entry State</th><th>Answers</th></tr>");
 
     if (record) {
-
-        dns_string *host_name = dns_string_new(256);
-
         while (record) {
 
             dns_packet *packet = &record->cache_entry.dns_packet_response;
@@ -385,10 +378,11 @@ void dns_cache_html_log(transaction_context *context, dns_string *response) {
                  question_index < ntohs(packet->header.question_count);
                  question_index++) {
 
-                dns_question *question = dns_packet_get_question(packet, question_index);
+                dns_question_handle *question = dns_packet_question_index(packet, question_index);
 
                 if (question) {
-                    dns_packet_question_to_host(packet, question, host_name);
+                    dns_string *host_name = dns_question_host(question);
+
                     dns_string_sprintf(response,
                                        "<tr><td>%s</td><td>%u</td><td>%u</td><td>%u</td><td>%s</td><td>",
                                        dns_string_c_str(host_name),
@@ -400,13 +394,14 @@ void dns_cache_html_log(transaction_context *context, dns_string *response) {
                     dns_cache_log_answers(record, response);
 
                     dns_string_sprintf(response, "</td></tr>");
+
+                    dns_string_free(host_name, true);
                 }
             }
 
             record = dns_get_next_record(context, record);
         }
 
-        dns_string_free(host_name, true);
     }
     dns_string_sprintf(response, "</table>");
 }
@@ -436,19 +431,14 @@ bool dns_cache_compare(transaction_context *context, dns_packet *request, dns_pa
 
         for (unsigned request_index = 0; request_index < ntohs(request->header.question_count); request_index++) {
 
-            dns_question *question = dns_packet_get_question(request, request_index);
+            dns_question_handle question = dns_packet_question_index(request, request_index);
 
             if (question) {
-                dns_string *request_host_name = dns_string_new(256);
-
-                dns_packet_question_to_host(request, question, request_host_name);
-                for (unsigned cache_index = 0;
-                     cache_index < ntohs(cache_entry->header.question_count); cache_index++) {
-                    question = dns_packet_get_question(cache_entry, cache_index);
+                dns_string *request_host_name = dns_question_host(question);
+                for (unsigned cache_index = 0; cache_index < ntohs(cache_entry->header.question_count); cache_index++) {
+                    question = dns_packet_question_index(cache_entry, cache_index);
                     if (question) {
-                        dns_string *cache_host_name = dns_string_new(256);
-
-                        dns_packet_question_to_host(cache_entry, question, cache_host_name);
+                        dns_string *cache_host_name = dns_question_host(question);
                         if (dns_string_strcmp(cache_host_name, request_host_name) == 0) {
 
                             dns_string_free(cache_host_name, true);
@@ -840,19 +830,9 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
         packet->header.recursion_available = 1;
         packet->header.answer_count = htons(1);
 
-        // Skip past the questions
-        //
-        dns_question *question = (dns_question *) packet->body;
-        unsigned question_count = ntohs(packet->header.question_count);
-        if (question_count) {
-            for (unsigned count = 0; count < question_count; count++) {
-                question = dns_question_next(question);
-            }
-        }
-
         // Write the answer
         //
-        dns_resource *resource = (dns_resource *) question;
+        dns_resource *resource = (dns_resource *) dns_packet_question_skip(packet);
 
         memory_clear(resource, sizeof(dns_resource));
 
@@ -862,7 +842,7 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
         resource->record_data_len = htons(4);
 
         // RDATA Ptr
-        void *resource_data = ((void *)question) + sizeof(dns_resource);
+        void *resource_data = ((void *)resource) + sizeof(dns_resource);
 
         // Store IP Address.
         inet_pton(AF_INET, dns_string_c_str(ip), resource_data);

@@ -27,6 +27,7 @@
 #include "dns_service_etcd.h"
 #include "dns_etcd.h"
 #include "dns_settings.h"
+#include "dns_question.h"
 
 etcd_client g_cli;
 
@@ -225,14 +226,11 @@ dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request)
             for (unsigned request_index = 0;
                  request_index < ntohs(request->header.question_count) && cache_entry.entry_state == ENTRY_FREE;
                  request_index++) {
-                dns_question *question = dns_packet_get_question(request, request_index);
+                dns_question_handle question = dns_packet_question_index(request, request_index);
 
                 if (question) {
-                    dns_string *request_host_name = dns_string_new(64);
+                    dns_string *request_host_name = dns_question_host(question);
 
-                    dns_packet_question_to_host(request, question, request_host_name);
-
-                    // Is the host name requested
                     dns_etcd_search(request_host_name, &cache_entry);
 
                     dns_string_free(request_host_name, true);
