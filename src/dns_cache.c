@@ -1,4 +1,4 @@
-/**********************************************************************
+#include <ntsid.h>/**********************************************************************
 //    Copyright (c) 2015 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -29,8 +29,6 @@
 #define _POSIX_C_SOURCE 200809L
 #define __unused
 #else
-
-#include <ntsid.h>
 
 #endif
 
@@ -811,7 +809,7 @@ void dns_cache_stop() {
 }
 
 size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
-                                  dns_string *host_name,
+                                  dns_string  __unused *host_name,
                                   dns_string *ip) {
     //                                1  1  1  1  1  1
     //  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5

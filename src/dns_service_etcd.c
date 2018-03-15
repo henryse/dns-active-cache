@@ -92,10 +92,15 @@ dns_etcd_entry *dns_etcd_entry_allocate() {
 void __unused dns_etcd_entry_free(dns_etcd_entry *entry) {
     if (entry != NULL) {
         dns_string_free(entry->name, true);
-        dns_string_free(entry->ip, true);
-        dns_string_free(entry->value, true);
-        memory_clear(entry, sizeof(dns_etcd_entry));
+        entry->name = NULL;
 
+        dns_string_free(entry->ip, true);
+        entry->ip = NULL;
+
+        dns_string_free(entry->value, true);
+        entry->value = NULL;
+
+        memory_clear(entry, sizeof(dns_etcd_entry));
         free(entry);
     }
 }

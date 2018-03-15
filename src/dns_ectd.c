@@ -133,9 +133,17 @@ etcd_client *etcd_client_create(dns_array *addresses) {
 void etcd_client_destroy(etcd_client *cli) {
     etcd_addresses_release(cli->addresses);
     dns_array_release(cli->addresses);
+    cli->addresses = NULL;
+
     dns_string_free(cli->settings.user, 0);
+    cli->settings.user = NULL;
+
     dns_string_free(cli->settings.password, 0);
+    cli->settings.password = NULL;
+
     curl_easy_cleanup(cli->curl);
+    cli->curl = NULL;
+
     curl_global_cleanup();
     dns_array_destroy(&cli->watchers);
 }
@@ -231,18 +239,25 @@ void etcd_watcher_release(etcd_watcher *watcher) {
     if (watcher) {
         if (watcher->key) {
             dns_string_free(watcher->key, true);
+            watcher->key = NULL;
         }
         if (watcher->curl) {
             curl_easy_cleanup(watcher->curl);
+            watcher->curl = NULL;
         }
         if (watcher->parser) {
             dns_string_free(watcher->parser->buf, true);
+            watcher->parser->buf = NULL;
+
             if (watcher->parser->json) {
                 yajl_free(watcher->parser->json);
+                watcher->parser->json = NULL;
                 dns_string_array_destroy(&watcher->parser->ctx.key_stack);
                 dns_string_array_destroy(&watcher->parser->ctx.node_stack);
             }
             etcd_response_free(watcher->parser->resp);
+            watcher->parser->resp = NULL;
+
             free(watcher->parser);
             watcher->parser = NULL;
         }
@@ -906,9 +921,11 @@ void etcd_node_release(etcd_response_node *node) {
     }
     if (node->key) {
         dns_string_free(node->key, true);
+        node->key = NULL;
     }
     if (node->value) {
         dns_string_free(node->value, true);
+        node->value = NULL;
     }
 
     memory_clear(node, sizeof(etcd_response_node));
@@ -942,9 +959,11 @@ void etcd_error_release(etcd_error *err) {
     if (err) {
         if (err->message) {
             dns_string_free(err->message, true);
+            err->message = NULL;
         }
         if (err->cause) {
             dns_string_free(err->cause, true);
+            err->cause = NULL;
         }
         free(err);
     }
@@ -1277,8 +1296,8 @@ void *etcd_send_request(CURL *curl,
 //
 void *etcd_cluster_request(etcd_client *cli,
                            etcd_request *req) {
-    etcd_response *resp = NULL;
     size_t count = dns_array_size(cli->addresses);
+    etcd_response *response = NULL;
 
     for (size_t i = 0; i < count; ++i) {
         dns_string *url = dns_string_sprintf(dns_string_new_empty(), "%s/%s",
@@ -1289,11 +1308,11 @@ void *etcd_cluster_request(etcd_client *cli,
         // TODO: This needs to be cleaned up!  Get rid of the evil void * from the calls.
         req->url = url;
         req->cli = cli;
-        etcd_response *etcd_response = etcd_send_request(cli->curl, req);
+        void *service_response = etcd_send_request(cli->curl, req);
         dns_string_free(url, true);
 
         if (req->api_type == ETCD_MEMBERS) {
-            dns_array *addrs = (dns_array *) etcd_response;
+            dns_array *addrs = (dns_array *) service_response;
             // Got the result addresses, return
             if (addrs && dns_array_size(addrs)) {
                 return addrs;
@@ -1306,41 +1325,41 @@ void *etcd_cluster_request(etcd_client *cli,
                 break;
             }
         } else if (req->api_type == ETCD_KEYS) {
-            resp = etcd_response;
-            if (resp && resp->err && resp->err->etcd_code == error_send_request_failed) {
+            response = (etcd_response *)service_response;
+            if (response && response->err && response->err->etcd_code == error_send_request_failed) {
                 if (i == count - 1) {
                     // Note we
                     break;
                 }
-                etcd_response_free(resp);
-                resp=NULL;
+                etcd_response_free(response);
+                response=NULL;
             } else {
                 // got response, return
-                return resp;
+                return response;
             }
         }
         // try next
         cli->picked = (cli->picked + 1) % count;
     }
+
     // the whole cluster failed
     //
     if (req->api_type == ETCD_MEMBERS) return NULL;
-    if (resp) {
+    if (response) {
         etcd_error *err = NULL;
 
-        if (resp->err) {
-            err = resp->err; // remember last error
+        if (response->err) {
+            err = response->err; // remember last error
         }
-        resp->err = memory_alloc(sizeof(etcd_error));
-        resp->err->etcd_code = error_cluster_failed;
-        resp->err->message = dns_string_new_c_string(32, "etcd_cluster_request: all cluster servers failed.");
+        response->err = memory_alloc(sizeof(etcd_error));
+        response->err->etcd_code = error_cluster_failed;
+        response->err->message = dns_string_new_c_string(32, "etcd_cluster_request: all cluster servers failed.");
         if (err) {
-            resp->err->message = dns_string_sprintf(resp->err->message, " last error: %s", err->message);
             etcd_error_release(err);
         }
-        resp->err->cause = dns_string_new_str(req->uri);
+        response->err->cause = dns_string_new_str(req->uri);
     }
-    return resp;
+    return response;
 }
 
 #pragma clang diagnostic pop

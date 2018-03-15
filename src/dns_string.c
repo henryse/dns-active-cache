@@ -56,8 +56,9 @@ dns_string *dns_string_new_empty() {
 }
 
 dns_string *dns_string_new_c_string(size_t size, const char *string) {
-    dns_string *new_string = dns_string_new(size);
-    dns_string_append_str_length(new_string, string, size);
+    size_t computed_size = max(size, strlen(string));
+    dns_string *new_string = dns_string_new(computed_size);
+    dns_string_append_str_length(new_string, string, computed_size);
     return new_string;
 }
 
