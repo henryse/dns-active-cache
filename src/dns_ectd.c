@@ -84,7 +84,7 @@ void etcd_client_init(etcd_client *cli, dns_array *addresses) {
     dns_array *addrs = NULL;
     dns_string *addr = NULL;
     curl_global_init(CURL_GLOBAL_ALL);
-    srand((unsigned int) time(0));
+    srand((uint32_t) time(0));
 
     cli->keys_space = "v2/keys";
     cli->stat_space = "v2/stat";

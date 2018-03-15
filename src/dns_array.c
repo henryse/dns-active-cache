@@ -124,7 +124,7 @@ dns_array *dns_array_shuffle(dns_array *cards) {
     size_t i, j, count;
     void *src, *dst;
 
-    srand((unsigned int) time(0));
+    srand((uint32_t) time(0));
     count = dns_array_size(cards);
     if (count <= 1) {
         return cards;

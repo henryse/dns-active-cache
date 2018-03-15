@@ -38,7 +38,7 @@
 //DNS header structure
 
 typedef struct dns_header_t {
-    unsigned short id;                          // identification number
+    uint16_t id;                          // identification number
     unsigned char recursion_desired :1;         // recursion desired
     unsigned char truncated_message :1;         // truncated message
     unsigned char authoritative_answer :1;      // authoritative answer
@@ -49,10 +49,10 @@ typedef struct dns_header_t {
     unsigned char authenticated_data :1;        // authenticated data
     unsigned char z_reserved :1;                // its z! reserved
     unsigned char recursion_available :1;       // recursion available
-    unsigned short question_count;              // number of question entries
-    unsigned short answer_count;                // number of answer entries
-    unsigned short authority_count;             // number of authority entries
-    unsigned short resource_count;              // number of resource entries
+    uint16_t question_count;              // number of question entries
+    uint16_t answer_count;                // number of answer entries
+    uint16_t authority_count;             // number of authority entries
+    uint16_t information_count;           // number of information entries
 } dns_header;
 
 #define DNS_HEADER_SIZE 12
@@ -76,48 +76,25 @@ typedef struct dns_packet_t {
 #define RECORD_A6 0x26            /* '0026 (38)	 Obsolete. AAAA is the recommended IPv6 address record. Historical status */
 #define RECORD_ANY 0xFF           /* '00FF (255) Requests ANY resource record (typically wants SOA, MX, NS and MX) */
 
-typedef unsigned short record_type_t;
+typedef uint16_t record_type_t;
 
+#define CLASS_INVALID 0           /* Invalid Class */
 #define CLASS_IN 1                /* the Internet */
 #define CLASS_CS 2                /* the CSNET class (Obsolete - used only for examples in some obsolete RFCs) */
 #define CLASS_CH 3                /* the CHAOS class */
 #define CLASS_HS 4                /* Hesiod [Dyer 87] */
 
-typedef unsigned short class_type_t;
-
-//Constant sized fields of the resource record structure
-typedef struct dns_resource_t {
-    record_type_t record_type;          // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
-    class_type_t record_class;          // A 16 bit value which defines the protocol family or an
-                                        // instance of the protocol. The normal value is IN = Internet protocol
-                                        // (other values are HS and CH both historic MIT protocols).
-    unsigned int record_ttl;            // 32 bit value. The Time to Live in seconds (range is 1 to 2147483647)
-                                        // and indicates how long the RR may be cached. The value zero indicates
-                                        // the data should not be cached.
-    unsigned short record_data_len;     // The length of RR specific data in octets, for example, 27
-    char __unused record_data[];
-} dns_resource;
-
+typedef uint16_t class_type_t;
 
 void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...);
 
-unsigned int dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type);
+uint32_t dns_packet_record_ttl_get(dns_packet *packet, record_type_t record_type);
 
-void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, unsigned int new_ttl);
+void dns_packet_record_ttl_set(dns_packet *packet, record_type_t record_type, uint32_t new_ttl);
 
-dns_resource *dns_packet_get_answer(dns_packet *packet, unsigned int index);
+const char *dns_record_type_string(uint16_t record_type);
 
-void dns_packet_resource_to_host(dns_packet *packet,
-                                 dns_resource *resource_record,
-                                 dns_string *host_name);
-
-dns_resource *dns_resource_header_get(dns_resource *resource_record);
-
-const char *dns_record_type_string(unsigned short record_type);
-
-unsigned char *dns_resource_data_get(dns_resource *resource_record);
-
-void dns_packet_convert_to_host(dns_packet *packet, const unsigned char *dns_host_string, dns_string *host);
+void dns_string_to_host(const unsigned char *string, dns_string *host);
 
 #endif //DNS_PACKET_READ
 #pragma clang diagnostic pop

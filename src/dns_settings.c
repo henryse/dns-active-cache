@@ -36,18 +36,18 @@ bool g_debug_mode = false;
 bool g_log_mode = true;
 bool g_bypass_mode = false;
 bool g_optimize_mode = false;
-unsigned short g_port = 53;
-unsigned short g_debug_port = 0;
-unsigned int g_socket_timeout_sec = 5;
-unsigned int g_cache_entries = 64;
-unsigned int g_cache_polling_interval_seconds = 16;
+uint16_t g_port = 53;
+uint16_t g_debug_port = 0;
+uint32_t g_socket_timeout_sec = 5;
+uint32_t g_cache_entries = 64;
+uint32_t g_cache_polling_interval_seconds = 16;
 char *g_resolvers_file = NULL;
 char **g_resolvers = NULL;
 const char *g_etcd_server = NULL;
 const char *g_host_name = NULL;
 size_t g_resolvers_count = 0;
-unsigned int g_cache_timestamp_next = 0;
-unsigned int g_max_ttl = UINT_MAX / 2;
+uint32_t g_cache_timestamp_next = 0;
+uint32_t g_max_ttl = UINT_MAX / 2;
 bool g_run_as_daemon = false;
 pid_t g_daemon_process_id = 0;
 
@@ -91,35 +91,35 @@ bool dns_set_calling_socket_options(transaction_context *context, int dns_socket
     return true;
 }
 
-unsigned short dns_get_port() {
+uint16_t dns_get_port() {
     return g_port;
 }
 
-void dns_set_port(unsigned short port) {
+void dns_set_port(uint16_t port) {
     g_port = port;
 }
 
-unsigned short debug_get_port() {
+uint16_t debug_get_port() {
     return g_debug_port;
 }
 
-void debug_set_port(unsigned short port) {
+void debug_set_port(uint16_t port) {
     g_debug_port = port;
 }
 
-unsigned int dns_get_socket_timeout() {
+uint32_t dns_get_socket_timeout() {
     return g_socket_timeout_sec;
 }
 
-void dns_set_socket_timeout(unsigned int timeout_sec) {
+void dns_set_socket_timeout(uint32_t timeout_sec) {
     g_socket_timeout_sec = timeout_sec;
 }
 
-unsigned int dns_get_cache_entries() {
+uint32_t dns_get_cache_entries() {
     return g_cache_entries;
 }
 
-void dns_set_cache_entries(unsigned int cache_entries) {
+void dns_set_cache_entries(uint32_t cache_entries) {
     g_cache_entries = cache_entries;
 }
 
@@ -131,11 +131,11 @@ void dns_set_debug_mode(bool debug_mode) {
     g_debug_mode = debug_mode;
 }
 
-unsigned int dns_get_max_ttl() {
+uint32_t dns_get_max_ttl() {
     return g_max_ttl;
 }
 
-void dns_set_max_ttl(unsigned int max_ttl) {
+void dns_set_max_ttl(uint32_t max_ttl) {
     g_max_ttl = max_ttl;
 }
 
@@ -163,11 +163,11 @@ void dns_set_optimize_mode(bool optimize_mode) {
     g_optimize_mode = optimize_mode;
 }
 
-unsigned int dns_get_cache_polling_interval() {
+uint32_t dns_get_cache_polling_interval() {
     return g_cache_polling_interval_seconds;
 }
 
-void dns_set_cache_polling_interval(unsigned int cache_polling_interval_seconds) {
+void dns_set_cache_polling_interval(uint32_t cache_polling_interval_seconds) {
     g_cache_polling_interval_seconds = cache_polling_interval_seconds;
 }
 
@@ -211,11 +211,11 @@ void dns_set_daemon_process_id(pid_t daemon_process_id) {
     g_daemon_process_id = daemon_process_id;
 }
 
-void dns_set_cache_timestamp_next(unsigned int count) {
+void dns_set_cache_timestamp_next(uint32_t count) {
     g_cache_timestamp_next = count;
 }
 
-unsigned int dns_get_cache_timestamp_next() {
+uint32_t dns_get_cache_timestamp_next() {
     return g_cache_timestamp_next;
 }
 

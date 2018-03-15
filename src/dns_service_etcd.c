@@ -36,7 +36,7 @@ typedef struct dns_etcd_entry_t {
     dns_string *name;
     dns_string *ip;
     dns_string *value;
-    unsigned short __unused port;
+    uint16_t __unused port;
 } dns_etcd_entry;
 
 dns_etcd_cache *g_cache;
@@ -124,7 +124,7 @@ void dns_etcd_push(transaction_context *context, dns_array *etcd_dns_entries, dn
         dns_array_set(array, 0, NULL);
 
         if (count > 1) {
-            entry->port = (unsigned short) strtol(dns_string_c_str(dns_array_get(array, 1)), NULL, 10);
+            entry->port = (uint16_t) strtol(dns_string_c_str(dns_array_get(array, 1)), NULL, 10);
         }
     }
 

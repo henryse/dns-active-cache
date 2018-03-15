@@ -254,17 +254,17 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
                 break;
 
             case 't':
-                dns_set_socket_timeout((unsigned int) atol(optarg)); // NOLINT
+                dns_set_socket_timeout((uint32_t) atol(optarg)); // NOLINT
                 INFO_LOG(context, "Network timeout %ss", optarg);
                 break;
 
             case 'v':
-                dns_set_cache_polling_interval((unsigned int) atol(optarg)); // NOLINT
+                dns_set_cache_polling_interval((uint32_t) atol(optarg)); // NOLINT
                 INFO_LOG(context, "DNS cache polling interval %ss", optarg);
                 break;
 
             case 'e':
-                dns_set_cache_entries((unsigned int) atol(optarg)); // NOLINT
+                dns_set_cache_entries((uint32_t) atol(optarg)); // NOLINT
                 INFO_LOG(context, "Max cache entries %s", optarg);
                 break;
 
@@ -278,7 +278,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
                 break;
 
             case 'd':
-                debug_set_port((unsigned short) atol(optarg)); // NOLINT
+                debug_set_port((uint16_t) atol(optarg)); // NOLINT
                 dns_set_debug_mode(debug_get_port() != 0);
                 INFO_LOG(context, "Enable debug mode at port", optarg);
                 break;
@@ -294,7 +294,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
                 break;
 
             case 'm':
-                dns_set_max_ttl((unsigned int) strtol(optarg, NULL, 10));
+                dns_set_max_ttl((uint32_t) strtol(optarg, NULL, 10));
                 INFO_LOG(context, "DNS Max TTL %s", optarg);
                 break;
 
