@@ -37,7 +37,7 @@
 
 //DNS header structure
 
-typedef struct dns_header_t {
+typedef struct __attribute__((packed)) dns_header_t {
     uint16_t id;                          // identification number
     unsigned char recursion_desired :1;         // recursion desired
     unsigned char truncated_message :1;         // truncated message
@@ -58,7 +58,7 @@ typedef struct dns_header_t {
 #define DNS_HEADER_SIZE 12
 #define DNS_PACKET_SIZE 1024
 
-typedef struct dns_packet_t {
+typedef struct __attribute__((packed)) dns_packet_t {
     dns_header header;                              // DNS HEADER (see above)
     char body[DNS_PACKET_SIZE - DNS_HEADER_SIZE];   // Question and answers can be found in the body
 } dns_packet;

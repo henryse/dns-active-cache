@@ -30,7 +30,7 @@
 #include "dns_question.h"
 
 //Constant sized fields of the resource record structure
-typedef struct dns_resource_t {
+typedef struct __attribute__((packed)) dns_resource_t {
     record_type_t record_type;          // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
     class_type_t record_class;          // A 16 bit value which defines the protocol family or an
     // instance of the protocol. The normal value is IN = Internet protocol
@@ -39,7 +39,7 @@ typedef struct dns_resource_t {
     // and indicates how long the RR may be cached. The value zero indicates
     // the data should not be cached.
     uint16_t record_data_len;     // The length of RR specific data in octets, for example, 27
-    char __unused record_data[];
+    char record_data[];
 } dns_resource_header;
 
 bool dns_resource_name_is_pointer(dns_resource_handle resource) {
@@ -105,6 +105,14 @@ dns_resource_header *dns_resource_header_get(dns_resource_handle resource) {
     }
 
     return record_header;
+}
+
+uint32_t dns_resource_data_len(dns_resource_handle resource){
+    if (resource == NULL){
+        return 0;
+    }
+
+    return ntohs(dns_resource_header_get(resource)->record_data_len);
 }
 
 dns_string *dns_resource_host(  dns_packet *packet,
@@ -175,7 +183,7 @@ uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_han
 
     switch (dns_resource_record_type(context, resource)) {
         case RECORD_MX:
-            ASSERT(context, dns_resource_header_get(resource)->record_data_len == 2);
+            ASSERT(context, dns_resource_data_len(resource) == 2);
             value = ntohs(*(uint16_t *)&dns_resource_header_get(resource)->record_data);
             break;
         default:
@@ -189,7 +197,7 @@ uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_han
 uint32_t dns_resource_data_uint32(transaction_context *context, dns_resource_handle resource){
     uint32_t value = 0;
 
-    ASSERT(context, dns_resource_header_get(resource)->record_data_len == 4);
+    ASSERT(context, dns_resource_data_len(resource) == 4);
     switch (dns_resource_record_type(context, resource)) {
         case RECORD_A:
             value = ntohl(*(uint32_t *)&dns_resource_header_get(resource)->record_data);
@@ -260,23 +268,14 @@ uint32_t dns_resource_ttl_set(transaction_context *context, dns_resource_handle 
     return old_ttl;
 }
 
-uint32_t dns_resource_data_len(dns_resource_handle resource){
-    if (resource == NULL){
-        return 0;
-    }
-
-   return ntohs(dns_resource_header_get(resource)->record_data_len);
-}
-
 dns_resource_handle dns_resource_next(dns_resource_handle resource) {
     dns_resource_handle next_resource = NULL;
 
     if (resource) {
-
         dns_resource_header *record_header = dns_resource_header_get(resource);
 
         if (record_header) {
-            next_resource = (dns_resource_handle) ((char *) record_header
+            next_resource = (dns_resource_handle) ((uint8_t *)record_header
                                                    + sizeof(dns_resource_header)
                                                    + ntohs(record_header->record_data_len));
         }

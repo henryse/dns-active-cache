@@ -250,7 +250,7 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
         if (information_count) {
             dns_string_sprintf(log_output, "\n  Resources : \n");
             for (uint16_t information_index = 0; information_index < information_count; information_index++) {
-                dns_resource_log(context, log_output, packet, dns_packet_information_get(NULL, packet, information_index));
+                dns_resource_log(NULL, log_output, packet, dns_packet_information_get(NULL, packet, information_index));
             }
         }
 

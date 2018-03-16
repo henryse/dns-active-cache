@@ -26,7 +26,7 @@
 
 #include "dns_question.h"
 
-typedef struct question_header_t {
+typedef struct __attribute__((packed)) question_header_t {
     record_type_t question_type;
     class_type_t question_class;
 } dns_question_header;
