@@ -41,7 +41,8 @@ uint32_t dns_resource_ttl(transaction_context *context, dns_resource_handle reso
 
 uint32_t dns_resource_ttl_set(transaction_context *context, dns_resource_handle resource, uint32_t new_ttl);
 
-void dns_resource_log(transaction_context *context, dns_string *log_output, dns_packet *packet, dns_resource_handle resource);
+void dns_resource_log(transaction_context *context, dns_string *log_output, dns_packet *packet,
+                      dns_resource_handle resource);
 
 dns_resource_handle dns_packet_answer_get(transaction_context *context, dns_packet *packet, uint16_t index);
 

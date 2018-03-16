@@ -177,10 +177,9 @@ void dns_cache_entry_setup(dns_cache_entry *cache_entry, dns_etcd_entry *etcd_en
     cache_entry->entry_state = ENTRY_ENABLED;
 
 
-
     cache_entry->dns_packet_response_size = dns_packet_a_record_create(cache_entry,
-                                                                     etcd_entry->name,
-                                                                     etcd_entry->ip);
+                                                                       etcd_entry->name,
+                                                                       etcd_entry->ip);
 }
 
 

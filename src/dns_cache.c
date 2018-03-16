@@ -29,8 +29,11 @@
 #define _POSIX_C_SOURCE 200809L
 #define __unused
 #else
+
 #include <ntsid.h>
+
 #endif
+
 #include <stdint.h>
 
 #include <stdlib.h>

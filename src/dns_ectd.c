@@ -303,7 +303,7 @@ static dns_string *etcd_watcher_build_url(etcd_client *cli, etcd_watcher *watche
     url = dns_string_sprintf(dns_string_new_empty(),
                              "%s/%s%s?wait=true",
                              (dns_string *) dns_array_get(cli->addresses,
-                                                            cli->picked),
+                                                          cli->picked),
                              cli->keys_space,
                              watcher->key);
     if (watcher->index) {
@@ -1301,9 +1301,9 @@ void *etcd_cluster_request(etcd_client *cli,
 
     for (size_t i = 0; i < count; ++i) {
         dns_string *url = dns_string_sprintf(dns_string_new_empty(), "%s/%s",
-                                                dns_string_c_str((dns_string *) dns_array_get(cli->addresses,
-                                                                                                cli->picked)),
-                                                dns_string_c_str(req->uri));
+                                             dns_string_c_str((dns_string *) dns_array_get(cli->addresses,
+                                                                                           cli->picked)),
+                                             dns_string_c_str(req->uri));
 
         // TODO: This needs to be cleaned up!  Get rid of the evil void * from the calls.
         req->url = url;
@@ -1325,14 +1325,14 @@ void *etcd_cluster_request(etcd_client *cli,
                 break;
             }
         } else if (req->api_type == ETCD_KEYS) {
-            response = (etcd_response *)service_response;
+            response = (etcd_response *) service_response;
             if (response && response->err && response->err->etcd_code == error_send_request_failed) {
                 if (i == count - 1) {
                     // Note we
                     break;
                 }
                 etcd_response_free(response);
-                response=NULL;
+                response = NULL;
             } else {
                 // got response, return
                 return response;

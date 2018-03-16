@@ -67,7 +67,6 @@ void *dns_packet_question_skip(dns_packet *packet) {
 }
 
 
-
 dns_string *dns_question_host(dns_question_handle question) {
     if (question == NULL) {
         return NULL;

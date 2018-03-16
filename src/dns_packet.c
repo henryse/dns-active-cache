@@ -199,7 +199,8 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
         dns_string_sprintf(log_output, "  Identification number(id): %d\n", header->id);
         dns_string_sprintf(log_output, "  Recursion desired(recursion_desired): %d\n", header->recursion_desired);
         dns_string_sprintf(log_output, "  Truncated message(truncated_message): %d\n", header->truncated_message);
-        dns_string_sprintf(log_output, "  Authoritative answer(authoritative_answer): %d\n", header->authoritative_answer);
+        dns_string_sprintf(log_output, "  Authoritative answer(authoritative_answer): %d\n",
+                           header->authoritative_answer);
         dns_string_sprintf(log_output, "  Purpose of message(operation_code): %d\n", header->operation_code);
         dns_string_sprintf(log_output, "  Query/response flag(query_response_flag): %d\n", header->query_response_flag);
         dns_string_sprintf(log_output, "  Response code(response_code): %d\n", header->response_code);
@@ -243,7 +244,8 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
         if (authority_count) {
             dns_string_sprintf(log_output, "  Authority : \n");
             for (uint16_t authority_index = 0; authority_index < authority_count; authority_index++) {
-                dns_resource_log(context, log_output, packet, dns_packet_authority_get(context, packet, authority_index));
+                dns_resource_log(context, log_output, packet,
+                                 dns_packet_authority_get(context, packet, authority_index));
             }
         }
 

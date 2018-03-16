@@ -90,7 +90,8 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
 
 uint32_t dns_packet_record_ttl_get(transaction_context *context, dns_packet *packet, record_type_t record_type);
 
-void dns_packet_record_ttl_set(transaction_context *context, dns_packet *packet, record_type_t record_type, uint32_t new_ttl);
+void dns_packet_record_ttl_set(transaction_context *context, dns_packet *packet, record_type_t record_type,
+                               uint32_t new_ttl);
 
 const char *dns_record_type_string(uint16_t record_type);
 

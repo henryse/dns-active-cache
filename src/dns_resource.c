@@ -107,16 +107,16 @@ dns_resource_header *dns_resource_header_get(dns_resource_handle resource) {
     return record_header;
 }
 
-uint32_t dns_resource_data_len(dns_resource_handle resource){
-    if (resource == NULL){
+uint32_t dns_resource_data_len(dns_resource_handle resource) {
+    if (resource == NULL) {
         return 0;
     }
 
     return ntohs(dns_resource_header_get(resource)->record_data_len);
 }
 
-dns_string *dns_resource_host(  dns_packet *packet,
-                                dns_resource_handle resource) {
+dns_string *dns_resource_host(dns_packet *packet,
+                              dns_resource_handle resource) {
     unsigned char *string = (unsigned char *) resource;
 
     if (dns_resource_name_is_pointer(resource)) {
@@ -132,15 +132,14 @@ dns_string *dns_resource_host(  dns_packet *packet,
 
 dns_string *dns_resource_data_string(transaction_context *context,
                                      dns_packet *packet,
-                                     dns_resource_handle resource){
+                                     dns_resource_handle resource) {
     dns_string *string = NULL;
 
     if (resource != NULL && packet != NULL) {
         string = dns_string_new_empty();
 
         switch (dns_resource_record_type(context, resource)) {
-            case RECORD_A:
-            {
+            case RECORD_A: {
                 struct sockaddr_in sa;
                 char str[INET_ADDRSTRLEN];
                 sa.sin_addr.s_addr = dns_resource_data_uint32(context, resource);
@@ -158,8 +157,7 @@ dns_string *dns_resource_data_string(transaction_context *context,
                 break;
             case RECORD_PTR:
                 break;
-            case RECORD_MX:
-            {
+            case RECORD_MX: {
                 uint16_t value = dns_resource_data_uint16(context, resource);
                 dns_string_sprintf(string, "%d", value);
             }
@@ -178,13 +176,12 @@ dns_string *dns_resource_data_string(transaction_context *context,
     return string;
 }
 
-uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_handle resource){
+uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_handle resource) {
     uint16_t value = 0;
 
     switch (dns_resource_record_type(context, resource)) {
-        case RECORD_MX:
-            ASSERT(context, dns_resource_data_len(resource) == 2);
-            value = ntohs(*(uint16_t *)&dns_resource_header_get(resource)->record_data);
+        case RECORD_MX: ASSERT(context, dns_resource_data_len(resource) == 2);
+            value = ntohs(*(uint16_t *) &dns_resource_header_get(resource)->record_data);
             break;
         default:
             DEBUG_LOG(context, "Invalid dns_resource_data_uint16");
@@ -194,17 +191,17 @@ uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_han
     return value;
 }
 
-uint32_t dns_resource_data_uint32(transaction_context *context, dns_resource_handle resource){
+uint32_t dns_resource_data_uint32(transaction_context *context, dns_resource_handle resource) {
     uint32_t value = 0;
 
     ASSERT(context, dns_resource_data_len(resource) == 4);
     switch (dns_resource_record_type(context, resource)) {
         case RECORD_A:
-            value = ntohl(*(uint32_t *)&dns_resource_header_get(resource)->record_data);
+            value = ntohl(*(uint32_t *) &dns_resource_header_get(resource)->record_data);
             break;
         case RECORD_SOA:
             // TODO: need to do a check on SOA to see if this is a 32 bit value.
-            value = ntohl(*(uint32_t *)&dns_resource_header_get(resource)->record_data);
+            value = ntohl(*(uint32_t *) &dns_resource_header_get(resource)->record_data);
             break;
         default:
             DEBUG_LOG(context, "Invalid dns_resource_data_uint32");
@@ -214,22 +211,22 @@ uint32_t dns_resource_data_uint32(transaction_context *context, dns_resource_han
     return value;
 }
 
-record_type_t dns_resource_record_type(transaction_context *context, dns_resource_handle resource){
-    if (resource == NULL){
+record_type_t dns_resource_record_type(transaction_context *context, dns_resource_handle resource) {
+    if (resource == NULL) {
         return RECORD_INVALID;
     }
 
     record_type_t type = ntohs(dns_resource_header_get(resource)->record_type);
 
-    if (context){
+    if (context) {
         ASSERT(context, type > 0);
     }
 
     return type;
 }
 
-class_type_t dns_resource_class_type(transaction_context *context, dns_resource_handle resource){
-    if (resource == NULL){
+class_type_t dns_resource_class_type(transaction_context *context, dns_resource_handle resource) {
+    if (resource == NULL) {
         return CLASS_INVALID;
     }
 
@@ -242,22 +239,22 @@ class_type_t dns_resource_class_type(transaction_context *context, dns_resource_
     return class;
 }
 
-uint32_t dns_resource_ttl(transaction_context *context, dns_resource_handle resource){
-    if (resource == NULL){
+uint32_t dns_resource_ttl(transaction_context *context, dns_resource_handle resource) {
+    if (resource == NULL) {
         return 0;
     }
 
     uint32_t ttl = ntohl(dns_resource_header_get(resource)->record_ttl);
 
-    if (context){
+    if (context) {
         ASSERT(context, ttl > 0);
     }
 
     return ttl;
 }
 
-uint32_t dns_resource_ttl_set(transaction_context *context, dns_resource_handle resource, uint32_t new_ttl){
-    if (resource == NULL){
+uint32_t dns_resource_ttl_set(transaction_context *context, dns_resource_handle resource, uint32_t new_ttl) {
+    if (resource == NULL) {
         return 0;
     }
 
@@ -275,7 +272,7 @@ dns_resource_handle dns_resource_next(dns_resource_handle resource) {
         dns_resource_header *record_header = dns_resource_header_get(resource);
 
         if (record_header) {
-            next_resource = (dns_resource_handle) ((uint8_t *)record_header
+            next_resource = (dns_resource_handle) ((uint8_t *) record_header
                                                    + sizeof(dns_resource_header)
                                                    + ntohs(record_header->record_data_len));
         }
@@ -292,8 +289,8 @@ dns_resource_handle dns_packet_resource_index(dns_packet *packet, uint16_t index
 
     if (packet) {
         uint32_t resource_count = ntohs(packet->header.authority_count) +
-                                      ntohs(packet->header.answer_count) +
-                                      ntohs(packet->header.information_count);
+                                  ntohs(packet->header.answer_count) +
+                                  ntohs(packet->header.information_count);
 
         if (index < resource_count) {
             resource = (dns_resource_handle) dns_packet_question_skip(packet);
@@ -335,7 +332,7 @@ dns_resource_handle dns_packet_answer_get(transaction_context *context,
                                           uint16_t index) {
     dns_resource_handle resource = NULL;
 
-    if (packet){
+    if (packet) {
         uint16_t answer_count = ntohs(packet->header.answer_count);
 
         ASSERT(context, index < answer_count);
@@ -353,14 +350,14 @@ dns_resource_handle dns_packet_authority_get(transaction_context *context,
                                              uint16_t index) {
     dns_resource_handle resource = NULL;
 
-    if (packet){
+    if (packet) {
         uint16_t authority_count = ntohs(packet->header.authority_count);
 
         ASSERT(context, index < authority_count);
 
         if (index < authority_count) {
             uint16_t resource_index = ntohs(packet->header.answer_count)
-                                          +index;
+                                      + index;
 
             resource = dns_packet_resource_index(packet, resource_index);
         }
@@ -381,8 +378,8 @@ dns_resource_handle dns_packet_information_get(transaction_context *context,
 
         if (index < information_count) {
             uint16_t resource_index = ntohs(packet->header.answer_count) +
-                                            ntohs(packet->header.authority_count)
-                                            + index;
+                                      ntohs(packet->header.authority_count)
+                                      + index;
             resource = dns_packet_resource_index(packet, resource_index);
         }
     }
