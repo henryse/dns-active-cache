@@ -222,7 +222,7 @@ void log_message(int log_level,
 
         create_output_header(output, message_type, function, file, line, context);
 
-        char *str;
+        char *str = NULL;
         va_list arg_list;
 
         va_start(arg_list, template);

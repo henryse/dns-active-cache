@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-COUNTER=1
+COUNTER=1024
 until [ ${COUNTER} -lt 0 ]; do
     dig @localhost -p 5300 www.bing.com
     dig @localhost -p 5300 www.hotwire.com

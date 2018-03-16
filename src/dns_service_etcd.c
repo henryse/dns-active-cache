@@ -281,6 +281,7 @@ int dns_service_etcd(transaction_context *context) {
         g_cache = dns_etcd_cache_allocate();
 
         dns_etcd_populate(context, g_cache);
+        dns_string_array_destroy(addresses);
     } else {
         INFO_LOG(context, "ETCD service not defined, disabled etcd lookup.");
     }
