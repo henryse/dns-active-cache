@@ -41,7 +41,7 @@
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
 
-// Converts names from: 3www7hotwire3com format to www.hotwire.com
+// Converts names from: 3www6google3com format to www.google.com
 //
 void dns_string_to_host(const unsigned char *string, dns_string *host) {
 
@@ -344,6 +344,11 @@ const char *dns_record_type_string(uint16_t record_type) {
     }
 
     return "UNKNOWN";
+}
+
+size_t dns_packet_size(dns_packet *packet){
+
+    return 0;
 }
 
 #pragma clang diagnostic pop

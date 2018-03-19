@@ -27,10 +27,6 @@
 
 #include "dns_etcd_json_parser.h"
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCDFAInspection"
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-
 enum ETCD_API_TYPE {
     ETCD_KEYS,
     ETCD_MEMBERS
@@ -187,10 +183,10 @@ void etcd_client_sync_cluster(etcd_client *cli) {
 
 void etcd_setup_user(etcd_client *cli, const char *user, const char *password) {
     if (user != NULL) {
-        cli->settings.user = dns_string_new_c_string(strlen(user), user);
+        cli->settings.user = dns_string_new_c(strlen(user), user);
     }
     if (password != NULL) {
-        cli->settings.password = dns_string_new_c_string(strlen(password), password);
+        cli->settings.password = dns_string_new_c(strlen(password), password);
     }
 }
 
@@ -217,7 +213,7 @@ etcd_watcher *etcd_watcher_create(etcd_client *cli,
                                   void *user_data) {
     etcd_watcher *watcher = memory_alloc(sizeof(etcd_watcher));
     watcher->cli = cli;
-    watcher->key = dns_string_new_c_string(strlen(key), key);
+    watcher->key = dns_string_new_c(strlen(key), key);
     watcher->index = index;
     watcher->recursive = recursive;
     watcher->once = once;
@@ -386,7 +382,7 @@ int etcd_stop_watcher(etcd_client *cli, etcd_watcher *watcher) {
     //
     // The watcher object would be freed by etcd_reap_watchers
     // Watchers may hang forever if it would be never triggered after set once to 1
-    // FIXME: Cancel the blocking watcher
+    // TODO: Cancel the blocking watcher
     //
     UNUSED(cli);
     watcher->callback = NULL;
@@ -428,7 +424,7 @@ static int etcd_reap_watchers(etcd_client *cli, CURLM *mcurl) {
                 } else {
                     resp->err = memory_alloc(sizeof(etcd_error));
                     resp->err->etcd_code = error_cluster_failed;
-                    resp->err->message = dns_string_new_c_string(32, "etcd_reap_watchers: all cluster servers failed.");
+                    resp->err->message = dns_string_new_c(64, "etcd_reap_watchers: all cluster servers failed.");
                 }
             }
             if (watcher->callback) {
@@ -467,9 +463,7 @@ static int etcd_reap_watchers(etcd_client *cli, CURLM *mcurl) {
     return added;
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
-#pragma ide diagnostic ignored "OCDFAInspection"
+bool g_etcd_multi_watch_continue = true;
 
 int etcd_multi_watch(etcd_client *cli, dns_array *watchers) {
     int maxfd = 0, left = 0, added = 0;
@@ -494,7 +488,7 @@ int etcd_multi_watch(etcd_client *cli, dns_array *watchers) {
     long back_off = 100;          // 100ms
     long back_off_max = 1000;     // 1 sec
 
-    for (;;) {
+    while (g_etcd_multi_watch_continue) {
         curl_multi_perform(curlm, &left);
         if (left) {
             FD_ZERO(&r);
@@ -545,10 +539,10 @@ int etcd_multi_watch(etcd_client *cli, dns_array *watchers) {
     }
 
     curl_multi_cleanup(curlm);
+    pthread_exit(NULL);
+
     return count;
 }
-
-#pragma clang diagnostic pop
 
 static void *etcd_multi_watch_wrapper(void *args[]) {
     etcd_client *cli = args[0];
@@ -570,21 +564,17 @@ etcd_watch_id etcd_multi_watch_async(etcd_client *cli, dns_array *watchers) {
 
 int etcd_multi_watch_async_stop(etcd_client *cli, etcd_watch_id wid) {
     (void) cli;
-    // Cancel causes the thread exit immediately, so the resouce has been
-    // allocated won't be freed. The memory leak is OK because the process
-    // is going to exit.
-    // TODO fix the memory leaks
-    //
-    pthread_cancel(wid);
+    g_etcd_multi_watch_continue = false;
+
     pthread_join(wid, 0);
     return 0;
 }
 
 etcd_response *etcd_get(etcd_client *cli, const char *key) {
-    return etcd_lsdir(cli, key, 0, 0);
+    return etcd_directory(cli, key, 0, 0);
 }
 
-etcd_response *etcd_lsdir(etcd_client *cli, const char *key, int sort, int recursive) {
+etcd_response *etcd_directory(etcd_client *cli, const char *key, int sort, int recursive) {
     etcd_request req;
     memory_clear(&req, sizeof(etcd_request));
 
@@ -630,7 +620,7 @@ etcd_response *etcd_set(etcd_client *cli, const char *key,
     return resp;
 }
 
-etcd_response *etcd_mkdir(etcd_client *cli, const char *key, uint64_t ttl) {
+etcd_response *etcd_make_directory(etcd_client *cli, const char *key, uint64_t ttl) {
 
     etcd_request req;
     memory_clear(&req, sizeof(etcd_request));
@@ -969,50 +959,105 @@ void etcd_error_release(etcd_error *err) {
     }
 }
 
-static void etcd_node_print(etcd_response_node *node) {
+static void etcd_node_log(dns_string *log_output, etcd_response_node *node) {
     if (node) {
-        printf("Node TTL: %lu\n", (unsigned long) node->ttl);
-        printf("Node ModifiedIndex: %lu\n", (unsigned long) node->modified_index);
-        printf("Node CreatedIndex: %lu\n", (unsigned long) node->created_index);
-        printf("Node Key: %s\n", (char *) node->key);
-        printf("Node Value: %s\n", (char *) node->value);
-        printf("Node Dir: %d\n", node->dir);
-        printf("\n");
+        dns_string_sprintf(log_output, "\tNode TTL: %lu\n", (unsigned long) node->ttl);
+        dns_string_sprintf(log_output, "\tNode ModifiedIndex: %lu\n", (unsigned long) node->modified_index);
+        dns_string_sprintf(log_output, "\tNode CreatedIndex: %lu\n", (unsigned long) node->created_index);
+        dns_string_sprintf(log_output, "\tNode Key: %s\n", (char *) node->key);
+        dns_string_sprintf(log_output, "\tNode Value: %s\n", (char *) node->value);
+        dns_string_sprintf(log_output, "\tNode Dir: %d\n", node->dir);
+        dns_string_sprintf(log_output, "\n");
         if (node->nodes) {
             int count = (int) dns_array_size(node->nodes);
             for (int i = 0; i < count; ++i) {
                 etcd_response_node *n = dns_array_get(node->nodes, (size_t) i);
-                etcd_node_print(n);
+                etcd_node_log(log_output, n);
             }
         }
     }
 }
 
-void etcd_response_print(etcd_response *resp) {
-    if (resp->err) {
-        printf("Error Code:%d\n", resp->err->etcd_code);
-        printf("Error Message:%s\n", dns_string_c_str(resp->err->message));
-        printf("Error Cause:%s\n", dns_string_c_str(resp->err->cause));
+void etcd_response_log(transaction_context *context, etcd_response *resp) {
+
+    if (resp == NULL){
         return;
     }
-    printf("Etcd Action:%s\n", etcd_event_action[resp->action]);
-    printf("Etcd Index:%lu\n", (unsigned long) resp->etcd_index);
-    printf("Raft Index:%lu\n", (unsigned long) resp->raft_index);
-    printf("Raft Term:%lu\n", (unsigned long) resp->raft_term);
-    if (resp->node) {
-        printf("-------------Node------------\n");
-        etcd_node_print(resp->node);
+
+    dns_string *log_output = dns_string_new_empty();
+
+    dns_string_sprintf(log_output, "\nETCD Response:\n");
+    if (resp->err) {
+        dns_string_sprintf(log_output, "\tError Code:%d\n", resp->err->etcd_code);
+        dns_string_sprintf(log_output, "\tError Message:%s\n", dns_string_c_str(resp->err->message));
+        dns_string_sprintf(log_output, "\tError Cause:%s\n", dns_string_c_str(resp->err->cause));
+    } else {
+        dns_string_sprintf(log_output, "\tEtcd Action:%s\n", etcd_event_action[resp->action]);
+        dns_string_sprintf(log_output, "\tEtcd Index:%lu\n", (unsigned long) resp->etcd_index);
+        dns_string_sprintf(log_output, "\tRaft Index:%lu\n", (unsigned long) resp->raft_index);
+        dns_string_sprintf(log_output, "\tRaft Term:%lu\n", (unsigned long) resp->raft_term);
+        if (resp->node) {
+            dns_string_sprintf(log_output, "\t-------------Node------------\n");
+            etcd_node_log(log_output, resp->node);
+        }
+        if (resp->prev_node) {
+            dns_string_sprintf(log_output, "\t-----------prevNode------------\n");
+            etcd_node_log(log_output, resp->prev_node);
+        }
     }
-    if (resp->prev_node) {
-        printf("-----------prevNode------------\n");
-        etcd_node_print(resp->prev_node);
+
+    DEBUG_LOG(context, dns_string_c_str(log_output));
+    dns_string_free(log_output, true);
+}
+
+void etcd_request_log(transaction_context *context, etcd_request *req){
+
+    if(req == NULL){
+        return;
     }
+
+    dns_string *log_output = dns_string_new_empty();
+
+    dns_string_sprintf(log_output, "\nETCD Request:\n");
+
+    dns_string_sprintf(log_output, "\tHTTP Method: %s\n" , http_method[req->method]);
+    dns_string_sprintf(log_output, "\tAPI Type: %s\n" , etcd_event_action[req->api_type]);
+    dns_string_sprintf(log_output, "\tURI: %s\n" , dns_string_c_str(req->uri));
+    dns_string_sprintf(log_output, "\tURL: %s\n" , dns_string_c_str(req->url));
+    dns_string_sprintf(log_output, "\tData: %s\n" , dns_string_c_str(req->data));
+
+    DEBUG_LOG(context, dns_string_c_str(log_output));
+    dns_string_free(log_output, true);
+}
+
+void etcd_parse_response_log(transaction_context *context,
+                             char *ptr,
+                             size_t size,
+                             size_t nmemb) {
+    dns_string *log_output = dns_string_new_empty();
+
+    dns_string_sprintf(log_output, "\nParse HTTP Response:\n");
+
+    dns_string_sprintf(log_output, "\tsize %d:\n", size);
+    dns_string_sprintf(log_output, "\tnmemb %d:\n", nmemb);
+
+    dns_string *data = dns_string_new_c(size * nmemb, ptr);
+
+    dns_string_sprintf(log_output, "\tData %s:\n", dns_string_c_str(data));
+
+    DEBUG_LOG(context, dns_string_c_str(log_output));
+
+    dns_string_free(data, true);
+    dns_string_free(log_output, true);
 }
 
 size_t etcd_parse_response(char *ptr,
                            size_t size,
                            size_t nmemb,
                            void *user_data) {
+
+    etcd_parse_response_log(NULL, ptr, size, nmemb);
+
     etcd_response *resp = NULL;
     dns_array *addrs = NULL;
 
@@ -1159,8 +1204,8 @@ size_t etcd_parse_response(char *ptr,
                 if (resp->err == NULL && parser->api_type == ETCD_KEYS) {
                     resp->err = memory_alloc(sizeof(etcd_error));
                     resp->err->etcd_code = error_response_parsed_failed;
-                    resp->err->message = dns_string_new_c_string(64, "not a json response");
-                    resp->err->cause = dns_string_new_c_string(len, ptr);
+                    resp->err->message = dns_string_new_c(64, "not a json response");
+                    resp->err->cause = dns_string_new_c(len, ptr);
                 }
                 continue;
             }
@@ -1196,8 +1241,8 @@ size_t etcd_parse_response(char *ptr,
                 if (parser->api_type == ETCD_KEYS && resp->err == NULL) {
                     resp->err = memory_alloc(sizeof(etcd_error));
                     resp->err->etcd_code = error_response_parsed_failed;
-                    resp->err->message = dns_string_new_c_string(32, "http response is invalid json format");
-                    resp->err->cause = dns_string_new_c_string(len, ptr);
+                    resp->err->message = dns_string_new_c(64, "http response is invalid json format");
+                    resp->err->cause = dns_string_new_c(len, ptr);
                 }
                 return 0;
             }
@@ -1210,8 +1255,12 @@ size_t etcd_parse_response(char *ptr,
     return len;
 }
 
-void *etcd_send_request(CURL *curl,
+void *etcd_send_request(transaction_context *context,
+                        CURL *curl,
                         etcd_request *req) {
+
+    etcd_request_log(context, req);
+
     etcd_response_parser parser;
     memory_clear(&parser, sizeof(parser));
 
@@ -1264,6 +1313,7 @@ void *etcd_send_request(CURL *curl,
 
     if (curl_response != CURLE_OK) {
         // TODO: Need Do something here..
+        ERROR_LOG(NULL, "CURL Failed!");
     }
 
     curl_response = curl_easy_perform(curl);
@@ -1284,8 +1334,8 @@ void *etcd_send_request(CURL *curl,
         if (resp->err == NULL) {
             resp->err = memory_alloc(sizeof(etcd_error));
             resp->err->etcd_code = error_send_request_failed;
-            resp->err->message = dns_string_new_c_string(32, curl_easy_strerror(curl_response));
-            resp->err->cause = (req->url);
+            resp->err->message = dns_string_new_c(64, curl_easy_strerror(curl_response));
+            resp->err->cause = dns_string_new_str(req->url);
         }
         return resp;
     }
@@ -1304,11 +1354,9 @@ void *etcd_cluster_request(etcd_client *cli,
                                              dns_string_c_str((dns_string *) dns_array_get(cli->addresses,
                                                                                            cli->picked)),
                                              dns_string_c_str(req->uri));
-
-        // TODO: This needs to be cleaned up!  Get rid of the evil void * from the calls.
         req->url = url;
         req->cli = cli;
-        void *service_response = etcd_send_request(cli->curl, req);
+        void *service_response = etcd_send_request(NULL, cli->curl, req);
         dns_string_free(url, true);
 
         if (req->api_type == ETCD_MEMBERS) {
@@ -1326,6 +1374,8 @@ void *etcd_cluster_request(etcd_client *cli,
             }
         } else if (req->api_type == ETCD_KEYS) {
             response = (etcd_response *) service_response;
+            etcd_response_log(NULL, response);
+
             if (response && response->err && response->err->etcd_code == error_send_request_failed) {
                 if (i == count - 1) {
                     // Note we
@@ -1344,22 +1394,31 @@ void *etcd_cluster_request(etcd_client *cli,
 
     // the whole cluster failed
     //
-    if (req->api_type == ETCD_MEMBERS) return NULL;
+    if (req->api_type == ETCD_MEMBERS) {
+        etcd_response_log(NULL, response);
+        return NULL;
+    }
+
     if (response) {
         etcd_error *err = NULL;
 
+
         if (response->err) {
             err = response->err; // remember last error
-        }
-        response->err = memory_alloc(sizeof(etcd_error));
-        response->err->etcd_code = error_cluster_failed;
-        response->err->message = dns_string_new_c_string(32, "etcd_cluster_request: all cluster servers failed.");
-        if (err) {
+            response->err = memory_alloc(sizeof(etcd_error));
+            response->err->message = dns_string_new_empty();
+            dns_string_sprintf(response->err->message, "etcd_cluster_request: all cluster servers failed: %s", dns_string_c_str(err->message));
             etcd_error_release(err);
+        } else {
+            response->err = memory_alloc(sizeof(etcd_error));
+            response->err->message = dns_string_new_c(256, "etcd_cluster_request: all cluster servers failed");
         }
+
+        response->err->etcd_code = error_cluster_failed;
         response->err->cause = dns_string_new_str(req->uri);
+
+        etcd_response_log(NULL, response);
     }
+
     return response;
 }
-
-#pragma clang diagnostic pop

@@ -48,4 +48,10 @@ dns_question_handle dns_question_next(dns_question_handle question);
 
 size_t dns_packet_question_size(transaction_context *context, dns_packet *packet);
 
+dns_question_handle dns_question_name_set(dns_packet *packet, const char *host_name);
+
+void dns_question_type_set(dns_question_handle question, record_type_t type);
+
+void dns_question_class_set(dns_question_handle question, class_type_t class);
+
 #endif //DNS_ACTIVE_CACHE_DNS_QUESTION_H

@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include "dns_array.h"
 #include "dns_string.h"
+#include "dns_utils.h"
 
 typedef pthread_t etcd_watch_id;
 
@@ -169,17 +170,17 @@ void etcd_setup_tls(etcd_client *cli, const char *CA,
 // etcd_get get the value of a key*/
 etcd_response *etcd_get(etcd_client *cli, const char *key);
 
-// etcd_lsdir list the nodes under a directory*/
-etcd_response *etcd_lsdir(etcd_client *cli, const char *key, int sort, int recursive);
+// etcd_directory list the nodes under a directory*/
+etcd_response *etcd_directory(etcd_client *cli, const char *key, int sort, int recursive);
 
 // etcd_set set the value of a key*/
 etcd_response *etcd_set(etcd_client *cli, const char *key,
                         const char *value, uint64_t ttl);
 
-// etcd_mkdir create a directory, it will fail if the key has exist*/
-etcd_response *etcd_mkdir(etcd_client *cli, const char *key, uint64_t ttl);
+// etcd_make_directory create a directory, it will fail if the key has exist*/
+etcd_response *etcd_make_directory(etcd_client *cli, const char *key, uint64_t ttl);
 
-// etcd_mkdir create a directory whether it exist or not*/
+// etcd_make_directory create a directory whether it exist or not*/
 etcd_response *etcd_setdir(etcd_client *cli, const char *key, uint64_t ttl);
 
 // etcd_updatedir update the ttl of a directory*/
@@ -241,7 +242,7 @@ int etcd_multi_watch_async_stop(etcd_client *cli, etcd_watch_id wid);
 // etcd_stop_watcher stop a watcher which has been setup*/
 int etcd_stop_watcher(etcd_client *cli, etcd_watcher *watcher);
 
-void etcd_response_print(etcd_response *resp);
+void etcd_response_log(transaction_context *context, etcd_response *resp);
 
 etcd_response *etcd_response_allocate();
 

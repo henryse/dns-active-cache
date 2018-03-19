@@ -235,27 +235,6 @@ void log_message(int log_level,
             free(str);
         }
 
-        if (output && dns_get_daemon_process_id() == 0) {
-            switch (log_level) {
-                case LOG_EMERG:
-                case LOG_ALERT:
-                case LOG_CRIT:
-                case LOG_ERR:
-                case LOG_WARNING:
-                    fprintf(stderr, "%s\n", dns_string_c_str(output));
-                    fflush(stderr);
-                    break;
-
-                case LOG_NOTICE:
-                case LOG_INFO:
-                case LOG_DEBUG:
-                default:
-                    fprintf(stdout, "%s\n", dns_string_c_str(output));
-                    fflush(stdout);
-                    break;
-            }
-        }
-
         syslog(log_level, "%s", dns_string_c_str(output));
 
         dns_string_free(output, true);

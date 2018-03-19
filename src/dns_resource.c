@@ -388,145 +388,44 @@ dns_resource_handle dns_packet_information_get(transaction_context *context,
 }
 
 
-//
-//dns_resource_header *dns_resource_header_get(dns_resource_header *resource_record) {
-//    dns_resource_header *record_data = NULL;
-//
-//    if (resource_record) {
-//
-//        unsigned char *ptr = (unsigned char *) resource_record;
-//        if (dns_resource_name_is_pointer(resource_record)) {
-//            // Skip over pointer...
-//            ptr += sizeof(uint16_t);
-//        } else {
-//            // Skip over name...
-//            while (*ptr) {
-//                ptr += (*ptr + 1);
-//            }
-//
-//            ptr++;
-//        }
-//
-//        record_data = (dns_resource_header *) ptr;
-//    }
-//
-//    return record_data;
-//}
-//
-//dns_resource_header *dns_resource_next(dns_resource_header *resource_record) {
-//    dns_resource_header *next_resource = NULL;
-//
-//    if (resource_record) {
-//
-//        dns_resource_header *record_data = dns_resource_header_get(resource_record);
-//
-//        if (record_data) {
-//            next_resource = (dns_resource_header *) ((char *) record_data + sizeof(dns_resource_header) +
-//                                              ntohs(record_data->record_data_len));
-//        }
-//    }
-//
-//    return next_resource;
-//}
-//
-//unsigned char *dns_resource_data_get(dns_resource_header *resource_record) {
-//
-//    if (resource_record) {
-//
-//        unsigned char *ptr = (unsigned char *) resource_record;
-//        if (dns_resource_name_is_pointer(resource_record)) {
-//            // Skip over pointer...
-//            ptr += sizeof(uint16_t);
-//        } else {
-//
-//            // Skip over name...
-//            while (*ptr) {
-//                ptr += (*ptr + 1);
-//            }
-//
-//            ptr++;
-//        }
-//        return &ptr[sizeof(dns_resource_header)];
-//    }
-//
-//    return NULL;
-//}
-//
-//dns_resource_header *dns_packet_resource_index(dns_packet *packet, uint32_t index) {
-//
-//    dns_resource_header *resource_record = NULL;
-//
-//    if (packet) {
-//        uint32_t information_count = ntohs(packet->header.authority_count) +
-//                                      ntohs(packet->header.answer_count) +
-//                                      ntohs(packet->header.information_count);
-//
-//        if (index < information_count) {
-//            // Find the resource
-//            //
-//            resource_record = (dns_resource_header *)  dns_packet_question_skip(packet);
-//            for (unsigned count = 0; count < index; count++) {
-//                resource_record = dns_resource_next(resource_record);
-//            }
-//        }
-//    }
-//
-//    return resource_record;
-//}
-//
-//dns_resource_header *dns_packet_answer_get(dns_packet *packet, uint32_t index) {
-//    dns_resource_header *resource_record = NULL;
-//
-//    if (index <= ntohs(packet->header.answer_count)) {
-//        resource_record = dns_packet_resource_index(packet, index);
-//    }
-//
-//    return resource_record;
-//}
-//
-//
-//dns_resource_header *dns_packet_authority_get(dns_packet *packet, uint32_t index) {
-//    dns_resource_header *resource_record = NULL;
-//
-//    uint16_t authority_count = ntohs(packet->header.authority_count);
-//    if (index <= authority_count) {
-//        resource_record = dns_packet_resource_index(packet, index + ntohs(packet->header.answer_count));
-//    }
-//
-//    return resource_record;
-//}
-//
-//void dns_packet_resource_to_host(dns_packet *packet, dns_resource_header *resource_record,
-//                                 dns_string *host_name) {
-//    unsigned char *offset = (unsigned char *) resource_record;
-//
-//    if (dns_resource_name_is_pointer(resource_record)) {
-//        offset = (unsigned char *) packet + dns_resource_pointer_offset(resource_record);
-//    }
-//
-//    dns_packet_convert_to_host(packet, (const unsigned char *) offset, host_name);
-//}
-//
-//void dns_resource_log(dns_string *log_output,
-//                      dns_packet *packet,
-//                      dns_resource_header *resource_record) {
-//    if (resource_record) {
-//        dns_string *host_name = dns_string_new(256);
-//
-//        dns_packet_resource_to_host(packet, resource_record, host_name);
-//        if (dns_string_length(host_name) == 0) {
-//            dns_packet_convert_to_host(packet, (const unsigned char *) packet->body, host_name);
-//        }
-//        dns_resource_header *record_data = dns_resource_header_get(resource_record);
-//        if (record_data) {
-//            dns_string_sprintf(log_output, "    name: %s, type: 0x%X, class: 0x%X, ttl: %d, data length: %d",
-//                               dns_string_c_str(host_name),
-//                               ntohs(record_data->record_type),
-//                               ntohs(record_data->record_class),
-//                               ntohs(record_data->record_ttl),
-//                               ntohs(record_data->record_data_len));
-//        }
-//
-//        dns_string_free(host_name, true);
-//    }
-//}
+dns_resource_handle dns_resource_answer_append(transaction_context *context, dns_packet *packet){
+    dns_resource_handle resource = NULL;
+
+    // How much data do we have?
+    //
+    uint16_t total = ntohs(packet->header.answer_count) +
+                     ntohs(packet->header.authority_count) +
+                     ntohs(packet->header.information_count);
+
+    // Find end of the packet.
+    //
+    dns_resource_handle last_resource = dns_packet_resource_index(packet, total);
+
+    INFO_LOG(context, "Appending and answer");
+    return resource;
+}
+
+void dns_resource_name_set(transaction_context *context,
+                           dns_resource_handle resource,
+                           const char* name){
+
+}
+
+void dns_resource_type_set(transaction_context *context,
+                           dns_resource_handle resource,
+                           record_type_t record_type){
+
+}
+
+void dns_resource_class_set(transaction_context *context,
+                           dns_resource_handle resource,
+                           class_type_t class_type){
+
+}
+
+void dns_resource_data_set(transaction_context *context,
+                           dns_resource_handle resource,
+                           uint16_t record_data_len,
+                           void *record_data){
+
+}

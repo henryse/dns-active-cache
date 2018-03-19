@@ -799,8 +799,8 @@ void dns_cache_stop() {
 }
 
 size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
-                                  dns_string  __unused *host_name,
-                                  dns_string __unused *ip) {
+                                  dns_string *host_name,
+                                  dns_string *ip) {
     //                                1  1  1  1  1  1
     //  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
     // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -825,29 +825,40 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
     if (cache_entry) {
         dns_packet *packet = &cache_entry->dns_packet_response;
 
+        packet->header.id = 0;      // TODO: Need to compute
+        packet->header.recursion_desired = 0;
+        packet->header.truncated_message = 0;
+        packet->header.authoritative_answer = 1;
+        packet->header.operation_code = 0;
         packet->header.query_response_flag = 1;
+        packet->header.response_code = 0;
+        packet->header.checking_disabled = 0;
         packet->header.authenticated_data = 0;
+        packet->header.z_reserved = 0;
         packet->header.recursion_available = 1;
+
+        packet->header.question_count = htons(1);
         packet->header.answer_count = htons(1);
+        packet->header.information_count = 0;
+        packet->header.authority_count =  htons(1);
 
-        // Write the answer
-        //
-//        dns_resource_handle resource = (dns_resource_handle) dns_packet_question_skip(packet);
+        dns_question_handle question = dns_question_name_set(packet, dns_string_c_str(host_name));
+        dns_question_type_set(question, RECORD_A);
+        dns_question_class_set(question, CLASS_IN);
 
-//        memory_clear(resource, sizeof(dns_resource));
-//
-//        resource->record_type = htons(RECORD_A);
-//        resource->record_class = htons(CLASS_IN);
-//        resource->record_ttl = htonl(30);      // TODO: Need to find a way to "configure" this.
-//        resource->record_data_len = htons(4);
-//
-//        // RDATA Ptr
-//        void *resource_data = ((void *)resource) + sizeof(dns_resource);
-//
-//        // Store IP Address.
-//        inet_pton(AF_INET, dns_string_c_str(ip), resource_data);
-//
-//        return resource_data - (void *)packet + sizeof(uint32_t);
+        dns_resource_handle resource = dns_packet_question_skip(packet);
+
+        resource = dns_resource_answer_append(NULL, resource);
+
+        dns_resource_name_set(NULL, resource, dns_string_c_str(host_name));
+        dns_resource_type_set(NULL, resource, RECORD_A);
+        dns_resource_class_set(NULL, resource, CLASS_IN);
+        dns_resource_ttl_set(NULL, resource, 30);
+        uint32_t ip_address = 0;
+        inet_pton(AF_INET, dns_string_c_str(ip), &ip_address);
+        dns_resource_data_set(NULL, resource, 4, &ip_address);
+
+        return dns_packet_size(packet);
     }
 
     return 0;

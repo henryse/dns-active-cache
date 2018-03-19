@@ -44,7 +44,9 @@ dns_string *dns_string_new(size_t size);
 
 dns_string *dns_string_new_empty();
 
-dns_string *dns_string_new_c_string(size_t size, const char *string);
+dns_string *dns_string_new_c(size_t size, const char *string);
+
+dns_string *dns_string_new_fixed(size_t size, const char *string);
 
 dns_string *dns_string_new_str(dns_string *source);
 

@@ -150,3 +150,23 @@ size_t dns_packet_question_size(transaction_context *context, dns_packet *packet
 
     return 0;
 }
+
+dns_question_handle dns_question_name_set(dns_packet *packet, const char *host_name){
+    dns_question_handle question = NULL;
+
+
+
+    return question;
+}
+
+void dns_question_type_set(dns_question_handle question, record_type_t type){
+    if (question){
+        dns_question_header_get(question)->question_type = type;
+    }
+}
+
+void dns_question_class_set(dns_question_handle question, class_type_t class){
+    if (question){
+        dns_question_header_get(question)->question_class = class;
+    }
+}

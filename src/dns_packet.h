@@ -38,7 +38,7 @@
 //DNS header structure
 
 typedef struct __attribute__((packed)) dns_header_t {
-    uint16_t id;                          // identification number
+    uint16_t id;                                // identification number
     unsigned char recursion_desired :1;         // recursion desired
     unsigned char truncated_message :1;         // truncated message
     unsigned char authoritative_answer :1;      // authoritative answer
@@ -49,10 +49,10 @@ typedef struct __attribute__((packed)) dns_header_t {
     unsigned char authenticated_data :1;        // authenticated data
     unsigned char z_reserved :1;                // its z! reserved
     unsigned char recursion_available :1;       // recursion available
-    uint16_t question_count;              // number of question entries
-    uint16_t answer_count;                // number of answer entries
-    uint16_t authority_count;             // number of authority entries
-    uint16_t information_count;           // number of information entries
+    uint16_t question_count;                    // number of question entries
+    uint16_t answer_count;                      // number of answer entries
+    uint16_t authority_count;                   // number of authority entries
+    uint16_t information_count;                 // number of information entries
 } dns_header;
 
 #define DNS_HEADER_SIZE 12
@@ -96,6 +96,8 @@ void dns_packet_record_ttl_set(transaction_context *context, dns_packet *packet,
 const char *dns_record_type_string(uint16_t record_type);
 
 void dns_string_to_host(const unsigned char *string, dns_string *host);
+
+size_t dns_packet_size(dns_packet *packet);
 
 #endif //DNS_PACKET_READ
 #pragma clang diagnostic pop

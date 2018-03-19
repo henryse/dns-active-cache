@@ -167,7 +167,7 @@ void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
             }
         }
     } else {
-        INFO_LOG(context, "no nodes found");
+        ERROR_LOG(context, "ETCD service: no nodes found");
     }
 
     etcd_response_free(response);
@@ -175,7 +175,6 @@ void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
 
 void dns_cache_entry_setup(dns_cache_entry *cache_entry, dns_etcd_entry *etcd_entry) {
     cache_entry->entry_state = ENTRY_ENABLED;
-
 
     cache_entry->dns_packet_response_size = dns_packet_a_record_create(cache_entry,
                                                                        etcd_entry->name,
@@ -273,7 +272,7 @@ int dns_service_etcd(transaction_context *context) {
 
         INFO_LOG(context, "ETCD service defined, using: %s", dns_get_etcd());
 
-        dns_string *etcd_url = dns_string_new_c_string(strlen(dns_get_etcd()), dns_get_etcd());
+        dns_string *etcd_url = dns_string_new_c(strlen(dns_get_etcd()), dns_get_etcd());
         dns_array_append(addresses, (void *) etcd_url);
         etcd_client_init(&g_cli, addresses);
 
@@ -281,7 +280,6 @@ int dns_service_etcd(transaction_context *context) {
         g_cache = dns_etcd_cache_allocate();
 
         dns_etcd_populate(context, g_cache);
-        dns_string_array_destroy(addresses);
     } else {
         INFO_LOG(context, "ETCD service not defined, disabled etcd lookup.");
     }

@@ -55,10 +55,16 @@ dns_string *dns_string_new_empty() {
     return dns_string_new(16);
 }
 
-dns_string *dns_string_new_c_string(size_t size, const char *string) {
+dns_string *dns_string_new_c(size_t size, const char *string) {
     size_t computed_size = max(size, strlen(string));
     dns_string *new_string = dns_string_new(computed_size);
     dns_string_append_str_length(new_string, string, computed_size);
+    return new_string;
+}
+
+dns_string *dns_string_new_fixed(size_t size, const char *string) {
+    dns_string *new_string = dns_string_new(size);
+    dns_string_append_str_length(new_string, string, size);
     return new_string;
 }
 
@@ -294,7 +300,7 @@ dns_string_array *dns_string_split_length(dns_string *target, const char *separa
     //
     size_t item_count = 0;
     while (pch != NULL && item_count < token_count) {
-        dns_array_append(string_array, dns_string_new_c_string(strlen(pch), pch));
+        dns_array_append(string_array, dns_string_new_c(strlen(pch), pch));
         pch = strtok(NULL, separator);
         item_count++;
     }
