@@ -43,6 +43,8 @@ uint32_t dns_resource_ttl(transaction_context *context, dns_resource_handle reso
 
 uint32_t dns_resource_ttl_set(transaction_context *context, dns_resource_handle resource, uint32_t new_ttl);
 
+dns_resource_handle dns_packet_resource_index(dns_packet *packet, uint16_t index);
+
 void dns_resource_log(transaction_context *context,
                       dns_string *log_output,
                       dns_packet *packet,
@@ -60,19 +62,18 @@ uint32_t dns_resource_data_uint32(transaction_context *context, dns_resource_han
 
 uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_handle resource);
 
-dns_resource_handle dns_resource_answer_append(transaction_context *context, dns_packet *packet);
+void dns_resource_authority_append( transaction_context *context, dns_packet *packet);
 
-void dns_resource_name_set(transaction_context *context,
-                           dns_resource_handle resource,
-                           const char* name);
+void dns_resource_answer_append(transaction_context *context,
+                                dns_packet *packet,
+                                dns_string *host_name,
+                                dns_string *ip);
 
-void dns_resource_type_set(transaction_context *context,
-                           dns_resource_handle resource,
-                           record_type_t record_type);
+void dns_resource_name_set(transaction_context *context, dns_resource_handle resource, const char* name);
 
-void dns_resource_class_set(transaction_context *context,
-                            dns_resource_handle resource,
-                            class_type_t class_type);
+void dns_resource_type_set(transaction_context *context, dns_resource_handle resource, record_type_t record_type);
+
+void dns_resource_class_set(transaction_context *context, dns_resource_handle resource, class_type_t class_type);
 
 void dns_resource_data_set(transaction_context *context,
                            dns_resource_handle resource,

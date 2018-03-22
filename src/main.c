@@ -219,6 +219,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
                     {"maxttl",    optional_argument, 0, 'm'},
                     {"daemon",    optional_argument, 0, 'D'},
                     {"host_name", optional_argument, 0, 'h'},
+                    {"host_ip",   optional_argument, 0, 'i'},
                     {"help",      optional_argument, 0, '?'},
                     {0, 0,                           0, 0}
             };
@@ -227,7 +228,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
     int c = 0;
 
     do {
-        c = getopt_long(argc, argv, "?p:r:t:e:v:d:b:o:m:", long_options, &option_index);
+        c = getopt_long(argc, argv, "?p:r:t:e:E:v:d:b:o:m:i:", long_options, &option_index);
 
         switch (c) {
             case -1:
@@ -311,6 +312,14 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
                 INFO_LOG(context, "Host Name %s", optarg);
             }
                 break;
+            case 'i': {
+                char *host_ip = malloc_string(strlen(optarg));
+                strncpy(host_ip, optarg, strlen(optarg));
+                dns_set_host_ip(host_ip);
+
+                INFO_LOG(context, "Host IP Address %s", optarg);
+            }
+                break;
             case '?':
             default:
                 usage("dns_active_cache");
@@ -320,7 +329,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
 
 
     if (debug_get_port() == dns_get_port()) {
-        ERROR_LOG(context, "Debug Port %hu must be differnt from DNS port %hu", debug_get_port(), dns_get_port());
+        ERROR_LOG(context, "Debug Port %hu must be different from DNS port %hu", debug_get_port(), dns_get_port());
         return false;
     }
 

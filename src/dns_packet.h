@@ -88,14 +88,20 @@ typedef uint16_t class_type_t;
 
 void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...);
 
-uint32_t dns_packet_record_ttl_get(transaction_context *context, dns_packet *packet, record_type_t record_type);
+uint32_t dns_packet_record_ttl_get(transaction_context *context,
+                                   dns_packet *packet,
+                                   record_type_t record_type);
 
-void dns_packet_record_ttl_set(transaction_context *context, dns_packet *packet, record_type_t record_type,
+void dns_packet_record_ttl_set(transaction_context *context,
+                               dns_packet *packet,
+                               record_type_t record_type,
                                uint32_t new_ttl);
 
 const char *dns_record_type_string(uint16_t record_type);
 
 void dns_string_to_host(const unsigned char *string, dns_string *host);
+
+void dns_host_to_string(const char *host, char *string);
 
 size_t dns_packet_size(dns_packet *packet);
 

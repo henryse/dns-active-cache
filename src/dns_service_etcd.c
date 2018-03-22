@@ -173,16 +173,17 @@ void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
     etcd_response_free(response);
 }
 
-void dns_cache_entry_setup(dns_cache_entry *cache_entry, dns_etcd_entry *etcd_entry) {
+void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dns_etcd_entry *etcd_entry) {
     cache_entry->entry_state = ENTRY_ENABLED;
 
-    cache_entry->dns_packet_response_size = dns_packet_a_record_create(cache_entry,
+    cache_entry->dns_packet_response_size = dns_packet_a_record_create(request,
+                                                                       cache_entry,
                                                                        etcd_entry->name,
                                                                        etcd_entry->ip);
 }
 
 
-bool dns_etcd_search(dns_string *request_host_name, dns_cache_entry *cache_entry) {
+bool dns_etcd_search(dns_packet *request, dns_string *request_host_name, dns_cache_entry *cache_entry) {
 
     dns_etcd_cache *cache = dns_etcd_cache_hold(g_cache);
     bool found = false;
@@ -194,7 +195,7 @@ bool dns_etcd_search(dns_string *request_host_name, dns_cache_entry *cache_entry
             dns_etcd_entry *etcd_entry = dns_array_get(cache->dns_etcd_entries, index);
 
             if (dns_string_strcmp(request_host_name, etcd_entry->name) == 0) {
-                dns_cache_entry_setup(cache_entry, etcd_entry);
+                dns_cache_entry_setup(request, cache_entry, etcd_entry);
                 found = true;
                 break;
             }
@@ -229,7 +230,7 @@ dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request)
                 if (question) {
                     dns_string *request_host_name = dns_question_host(question);
 
-                    dns_etcd_search(request_host_name, &cache_entry);
+                    dns_etcd_search(request, request_host_name, &cache_entry);
 
                     dns_string_free(request_host_name, true);
                 }
@@ -266,7 +267,12 @@ int dns_service_etcd(transaction_context *context) {
         dns_array *addresses = dns_array_create(1);
 
         if (dns_get_host_name() == NULL) {
-            ERROR_LOG(context, "No Host Name defined, without we can use: %s.", dns_get_etcd());
+            ERROR_LOG(context, "No Host Name defined, without we can not use: %s.", dns_get_etcd());
+            return SO_ERROR;
+        }
+
+        if (dns_get_host_ip() == NULL) {
+            ERROR_LOG(context, "No Host IP defined, without we can not use: %s.", dns_get_etcd());
             return SO_ERROR;
         }
 

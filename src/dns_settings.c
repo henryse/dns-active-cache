@@ -45,6 +45,7 @@ char *g_resolvers_file = NULL;
 char **g_resolvers = NULL;
 const char *g_etcd_server = NULL;
 const char *g_host_name = NULL;
+const char *g_host_ip = NULL;
 size_t g_resolvers_count = 0;
 uint32_t g_cache_timestamp_next = 0;
 uint32_t g_max_ttl = UINT_MAX / 2;
@@ -239,6 +240,14 @@ void dns_set_host_name(const char *host_name) {
     g_host_name = host_name;
 }
 
-const char *dns_get_host_name() {
+const char *dns_get_host_name(){
     return g_host_name;
+}
+
+const char *dns_get_host_ip() {
+    return g_host_ip;
+}
+
+void dns_set_host_ip(const char *host_ip) {
+    g_host_ip = host_ip;
 }

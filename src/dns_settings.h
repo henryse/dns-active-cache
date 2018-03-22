@@ -107,5 +107,9 @@ void dns_set_host_name(const char *host_name);
 
 const char *dns_get_host_name();
 
+void dns_set_host_ip(const char *host_name);
+
+const char *dns_get_host_ip();
+
 #endif //DNS_CACHE_DNS_SETTINGS_H
 

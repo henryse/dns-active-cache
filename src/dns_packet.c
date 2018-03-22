@@ -33,6 +33,7 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include "dns_packet.h"
 #include "dns_settings.h"
 #include "dns_question.h"
@@ -40,6 +41,32 @@
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
+
+void dns_host_to_string(const char *host, char *string) {
+    if (host && string){
+        char *host_copy = alloca(strlen(host) + 1);
+        memory_clear(host_copy, strlen(host) + 1);
+
+        strncpy(host_copy, host, strlen(host));
+
+        const char delimiter[2] = ".";
+        char *token;
+
+        token = strtok(host_copy, delimiter);
+
+        while( token != NULL ) {
+            size_t length = strlen(token);
+
+            *string= (unsigned char) length;
+            string++;
+
+            strncpy(string, token, length);
+            string+=length;
+
+            token = strtok(NULL, delimiter);
+        }
+    }
+}
 
 // Converts names from: 3www6google3com format to www.google.com
 //
@@ -196,22 +223,51 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
         uint16_t information_count = ntohs(packet->header.information_count);
         uint16_t question_count = ntohs(packet->header.question_count);
 
-        dns_string_sprintf(log_output, "  Identification number(id): %d\n", header->id);
-        dns_string_sprintf(log_output, "  Recursion desired(recursion_desired): %d\n", header->recursion_desired);
-        dns_string_sprintf(log_output, "  Truncated message(truncated_message): %d\n", header->truncated_message);
-        dns_string_sprintf(log_output, "  Authoritative answer(authoritative_answer): %d\n",
+        dns_string_sprintf(log_output,
+                           "  Identification number(id): %d\n",
+                           header->id);
+        dns_string_sprintf(log_output,
+                           "  Recursion desired(recursion_desired): %d\n",
+                           header->recursion_desired);
+        dns_string_sprintf(log_output,
+                           "  Truncated message(truncated_message): %d\n",
+                           header->truncated_message);
+        dns_string_sprintf(log_output,
+                           "  Authoritative answer(authoritative_answer): %d\n",
                            header->authoritative_answer);
-        dns_string_sprintf(log_output, "  Purpose of message(operation_code): %d\n", header->operation_code);
-        dns_string_sprintf(log_output, "  Query/response flag(query_response_flag): %d\n", header->query_response_flag);
-        dns_string_sprintf(log_output, "  Response code(response_code): %d\n", header->response_code);
-        dns_string_sprintf(log_output, "  Checking disabled(checking_disabled): %d\n", header->checking_disabled);
-        dns_string_sprintf(log_output, "  Authenticated data(authenticated_data): %d\n", header->authenticated_data);
-        dns_string_sprintf(log_output, "  Z Reserved(z_reserved): %d\n", header->z_reserved);
-        dns_string_sprintf(log_output, "  Recursion available(recursion_available): %d\n", header->recursion_available);
-        dns_string_sprintf(log_output, "  %d Questions(question_count).\n", question_count);
-        dns_string_sprintf(log_output, "  %d Answers(answer_count).\n", answer_count);
-        dns_string_sprintf(log_output, "  %d Authoritative Servers(authority_count).\n", authority_count);
-        dns_string_sprintf(log_output, "  %d Additional records(information_count).\n", information_count);
+        dns_string_sprintf(log_output,
+                           "  Purpose of message(operation_code): %d\n",
+                           header->operation_code);
+        dns_string_sprintf(log_output,
+                           "  Query/response flag(query_response_flag): %d\n",
+                           header->query_response_flag);
+        dns_string_sprintf(log_output,
+                           "  Response code(response_code): %d\n",
+                           header->response_code);
+        dns_string_sprintf(log_output,
+                           "  Checking disabled(checking_disabled): %d\n",
+                           header->checking_disabled);
+        dns_string_sprintf(log_output,
+                           "  Authenticated data(authenticated_data): %d\n",
+                           header->authenticated_data);
+        dns_string_sprintf(log_output,
+                           "  Z Reserved(z_reserved): %d\n",
+                           header->z_reserved);
+        dns_string_sprintf(log_output,
+                           "  Recursion available(recursion_available): %d\n",
+                           header->recursion_available);
+        dns_string_sprintf(log_output,
+                           "  %d Questions(question_count).\n",
+                           question_count);
+        dns_string_sprintf(log_output,
+                           "  %d Answers(answer_count).\n",
+                           answer_count);
+        dns_string_sprintf(log_output,
+                           "  %d Authoritative Servers(authority_count).\n",
+                           authority_count);
+        dns_string_sprintf(log_output,
+                           "  %d Additional records(information_count).\n",
+                           information_count);
 
         if (question_count) {
             dns_string_sprintf(log_output, "  Questions : \n");
@@ -347,8 +403,25 @@ const char *dns_record_type_string(uint16_t record_type) {
 }
 
 size_t dns_packet_size(dns_packet *packet){
+    size_t size = 0;
 
-    return 0;
+    if(packet){
+        size += sizeof(dns_header);
+
+        uint16_t resource_count = ntohs(packet->header.authority_count) +
+                                  ntohs(packet->header.answer_count) +
+                                  ntohs(packet->header.information_count);
+
+        dns_resource_handle resource = (dns_resource_handle) dns_packet_question_skip(packet);
+
+        for (uint16_t index = 0; index < resource_count; index++) {
+            resource = dns_resource_next(resource);
+        }
+
+        size += (char *)resource - (char *)&packet->body;
+    }
+
+    return size;
 }
 
 #pragma clang diagnostic pop

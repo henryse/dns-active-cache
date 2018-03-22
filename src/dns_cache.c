@@ -798,7 +798,8 @@ void dns_cache_stop() {
     free(g_records);
 }
 
-size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
+size_t dns_packet_a_record_create(dns_packet *request,
+                                  dns_cache_entry *cache_entry,
                                   dns_string *host_name,
                                   dns_string *ip) {
     //                                1  1  1  1  1  1
@@ -824,8 +825,9 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
 
     if (cache_entry) {
         dns_packet *packet = &cache_entry->dns_packet_response;
+        memory_clear(packet, sizeof(dns_packet));
 
-        packet->header.id = 0;      // TODO: Need to compute
+        packet->header.id = request->header.id;
         packet->header.recursion_desired = 0;
         packet->header.truncated_message = 0;
         packet->header.authoritative_answer = 1;
@@ -846,17 +848,11 @@ size_t dns_packet_a_record_create(dns_cache_entry *cache_entry,
         dns_question_type_set(question, RECORD_A);
         dns_question_class_set(question, CLASS_IN);
 
-        dns_resource_handle resource = dns_packet_question_skip(packet);
+        dns_resource_answer_append(NULL, packet, host_name, ip);
 
-        resource = dns_resource_answer_append(NULL, resource);
+        dns_resource_authority_append(NULL, packet);
 
-        dns_resource_name_set(NULL, resource, dns_string_c_str(host_name));
-        dns_resource_type_set(NULL, resource, RECORD_A);
-        dns_resource_class_set(NULL, resource, CLASS_IN);
-        dns_resource_ttl_set(NULL, resource, 30);
-        uint32_t ip_address = 0;
-        inet_pton(AF_INET, dns_string_c_str(ip), &ip_address);
-        dns_resource_data_set(NULL, resource, 4, &ip_address);
+        dns_packet_log(NULL, packet, "Cached Packet");
 
         return dns_packet_size(packet);
     }

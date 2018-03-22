@@ -25,9 +25,11 @@
 **********************************************************************/
 
 #include <arpa/inet.h>
+#include <string.h>
 #include "dns_packet.h"
 #include "dns_resource.h"
 #include "dns_question.h"
+#include "dns_settings.h"
 
 //Constant sized fields of the resource record structure
 typedef struct __attribute__((packed)) dns_resource_t {
@@ -41,6 +43,8 @@ typedef struct __attribute__((packed)) dns_resource_t {
     uint16_t record_data_len;     // The length of RR specific data in octets, for example, 27
     char record_data[];
 } dns_resource_header;
+
+void dns_resource_name_ptr_set(transaction_context *context, dns_packet *packet, dns_resource_handle resource);
 
 bool dns_resource_name_is_pointer(dns_resource_handle resource) {
     if (NULL == resource)
@@ -387,45 +391,115 @@ dns_resource_handle dns_packet_information_get(transaction_context *context,
     return resource;
 }
 
+void dns_resource_set_header(transaction_context *context,
+                    dns_resource_handle resource,
+                    const char *host_ip,
+                    uint32_t ttl){
 
-dns_resource_handle dns_resource_answer_append(transaction_context *context, dns_packet *packet){
-    dns_resource_handle resource = NULL;
+    ASSERT(context, host_ip && resource);
 
-    // How much data do we have?
+    if (host_ip && resource){
+        dns_resource_type_set(context, resource, RECORD_A);
+        dns_resource_class_set(context, resource, CLASS_IN);
+        dns_resource_ttl_set(context, resource, ttl);
+        uint32_t ip_address = 0;
+        inet_pton(AF_INET, host_ip, &ip_address);
+        dns_resource_data_set(context, resource, 4, &ip_address);
+    }
+}
+
+void dns_resource_authority_append( transaction_context *context, dns_packet *packet){
+    ASSERT(context, packet);
+
+    // We should not have an answer, yet!
     //
-    uint16_t total = ntohs(packet->header.answer_count) +
-                     ntohs(packet->header.authority_count) +
-                     ntohs(packet->header.information_count);
+    if (packet){
 
-    // Find end of the packet.
-    //
-    dns_resource_handle last_resource = dns_packet_resource_index(packet, total);
+        ASSERT(context, ntohs(packet->header.authority_count) == 0 );
 
-    INFO_LOG(context, "Appending and answer");
-    return resource;
+        dns_resource_handle resource = dns_packet_authority_get(context, packet, 0);
+
+        packet->header.authority_count = htons(1);
+
+        dns_resource_name_set(context, resource, dns_get_host_name());
+
+        dns_resource_set_header(context, resource, dns_get_host_ip(), 30);
+    }
+}
+
+void dns_resource_name_ptr_set(transaction_context *context, dns_packet *packet, dns_resource_handle resource) {
+    ASSERT(context, packet && resource)
+
+    if (packet && resource){
+        uint16_t size = (uint16_t) ((const char *)&packet->body - (const char *)packet);
+        uint16_t *offset = (uint16_t *)resource;
+        *offset = htons((uint16_t) (size | 0xC000));
+    }
+}
+
+void dns_resource_answer_append(transaction_context *context,
+                                dns_packet *packet,
+                                dns_string *host_name,
+                                dns_string *ip){
+
+    ASSERT(context, packet && ip && host_name);
+
+    if (packet && ip && host_name) {
+        ASSERT(context, ntohs(packet->header.answer_count) == 0 );
+
+        packet->header.authority_count = htons(1);
+
+        dns_resource_handle resource = (dns_resource_handle) dns_packet_question_skip(packet);
+
+        dns_question_host((dns_question_handle)&packet->body);
+
+        dns_resource_name_ptr_set(context, packet, resource);
+
+        dns_resource_set_header(context, resource, dns_string_c_str(ip), 30);
+    }
 }
 
 void dns_resource_name_set(transaction_context *context,
                            dns_resource_handle resource,
                            const char* name){
+    ASSERT(context, resource != NULL);
 
+    if (resource && name) {
+        dns_host_to_string(name, (char *) resource);
+    }
 }
 
 void dns_resource_type_set(transaction_context *context,
                            dns_resource_handle resource,
                            record_type_t record_type){
+    ASSERT(context, resource != NULL);
 
+    if (resource) {
+        dns_resource_header *header = dns_resource_header_get(resource);
+        header->record_type = htons(record_type);
+    }
 }
 
 void dns_resource_class_set(transaction_context *context,
                            dns_resource_handle resource,
                            class_type_t class_type){
+    ASSERT(context, resource != NULL);
 
+    if (resource) {
+        dns_resource_header *header = dns_resource_header_get(resource);
+        header->record_class = htons(class_type);
+    }
 }
 
 void dns_resource_data_set(transaction_context *context,
                            dns_resource_handle resource,
                            uint16_t record_data_len,
                            void *record_data){
+    ASSERT(context, record_data != NULL && resource != NULL);
 
+    if (resource){
+        dns_resource_header *header = dns_resource_header_get(resource);
+        header->record_data_len = htons(record_data_len);
+        memcpy(header->record_data, record_data, record_data_len);
+    }
 }
