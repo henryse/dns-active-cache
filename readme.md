@@ -5,13 +5,17 @@ DNS Active Cache
 This is a simple active local [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) caching service, 
 it **NOT** intended to be used as a desktop [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) cache.
   
-The issue we are trying to address has to do with [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) and
+The purpose of this service is meant to address any of the following:
+
+* The issue we are trying to address has to do with [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) and
 for services that are sensitive to DNS lookup times.   Specifically this is aimed at using [NGINX](https://www.nginx.com) as reverse proxy.
 
 Because ELBs are rebalanced using IP Addresses, services under heavy load can get backed up waiting for a timed out
 DNS entry to be refreshed.  This can be especially effective for DNS style load 
 balancing which requires services to constantly query upstream DNS servers to discover what IP address they need
 to send requests to.  We were able to reduce our DNS requests to sub millisecond response times by having a local smart cache.
+
+* MicroServices that can be isolated from the DNS but still needing local DNS lookups.
  
 Most servers only talk to a couple of upstream servers, so this service will allow you to configure how 
 many **cache entries** you need(see **Configuration** below).

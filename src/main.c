@@ -90,6 +90,8 @@ void usage(const char *program) {
             "     2. If a valid DNS entry is found, it will then store the entry into the local cache, see entries parameter.\n\n"
             "     3. A separate thread there after will keep refreshing the local DNS entries local cache.\n\n"
             "Thus after the first request, all future requests will be cached locally.\n");
+    fprintf(stdout, "     log            General logging messages. default: %s\n",
+            dns_get_log_mode() ? "true" : "false");
     fprintf(stdout, "     port           port to listen on, the default is %d\n", dns_get_port());
     fprintf(stdout, "     resolvers      resolvers file containing a list of name-servers. default: %s\n",
             dns_get_resolvers_file());
@@ -99,16 +101,19 @@ void usage(const char *program) {
             "     interval       How often should the service scan the cache to find timed out entries. default: %ds\n",
             dns_get_cache_polling_interval());
     fprintf(stdout, "     entries        Max cache entries. default: %d\n", dns_get_cache_entries());
+    fprintf(stdout, "     etcd           ETCD path, for example: --etcd=http://192.168.1.129:2379, if this is not "
+                    " set then ETCD support is not used.\n");
     fprintf(stdout, "     debug          Simple DEBUG port to dump diagnostics, support HTTP GET, [host]:[port], "
             "if zero then disabled.  default: %hu\n", debug_get_port());
-    fprintf(stdout, "     log            General logging messages. default: %s\n",
-            dns_get_log_mode() ? "true" : "false");
     fprintf(stdout, "     optimize       Optimize the use of ports by reusing them. default: %s\n",
             dns_get_optimize_mode() ? "true" : "false");
-    fprintf(stdout,
-            "     maxttl         Max TTL in seconds for DNS entries, if an upstream server returns a value high then "
-                    "maxttl, the TTL will be set to maxttl.  default:  %ds\n", dns_get_max_ttl());
+    fprintf(stdout, "     maxttl         Max TTL in seconds for DNS entries, if an upstream server returns a value "
+                    "high then maxttl, the TTL will be set to maxttl.  default:  %ds\n", dns_get_max_ttl());
     fprintf(stdout, "     daemon         Run as a daemon.  default: %s\n", dns_get_run_as_daemon() ? "true" : "false");
+    fprintf(stdout, "     host_name      Required for ETCD: host name to used as the base name for services "
+                    " and is used as the DNS authority."
+                    "\n");
+    fprintf(stdout, "     host_ip        Required for ETCD: host ip used for identifying what the local hosted services listed in ETCD\n");
     fprintf(stdout, "     help           Get this help message\n");
 }
 
