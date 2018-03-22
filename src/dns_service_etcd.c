@@ -1,4 +1,4 @@
-#include <ntsid.h>/**********************************************************************
+/**********************************************************************
 //    Copyright (c) 2018 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -23,6 +23,7 @@
 //    OTHER DEALINGS IN THE SOFTWARE.
 //
 **********************************************************************/
+#include <ntsid.h>
 #include <memory.h>
 #include "dns_service_etcd.h"
 #include "dns_etcd.h"
@@ -30,7 +31,6 @@
 #include "dns_question.h"
 
 etcd_client g_cli;
-
 
 typedef struct dns_etcd_entry_t {
     dns_string *name;

@@ -428,7 +428,7 @@ void dns_resource_authority_append( transaction_context *context, dns_packet *pa
 }
 
 void dns_resource_name_ptr_set(transaction_context *context, dns_packet *packet, dns_resource_handle resource) {
-    ASSERT(context, packet && resource)
+    ASSERT(context, packet && resource);
 
     if (packet && resource){
         uint16_t size = (uint16_t) ((const char *)&packet->body - (const char *)packet);
@@ -450,8 +450,6 @@ void dns_resource_answer_append(transaction_context *context,
         packet->header.authority_count = htons(1);
 
         dns_resource_handle resource = (dns_resource_handle) dns_packet_question_skip(packet);
-
-        dns_question_host((dns_question_handle)&packet->body);
 
         dns_resource_name_ptr_set(context, packet, resource);
 
