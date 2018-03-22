@@ -27,6 +27,9 @@
 
 #include "dns_etcd_json_parser.h"
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCDFAInspection"
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 enum ETCD_API_TYPE {
     ETCD_KEYS,
     ETCD_MEMBERS
@@ -1378,7 +1381,6 @@ void *etcd_cluster_request(etcd_client *cli,
 
             if (response && response->err && response->err->etcd_code == error_send_request_failed) {
                 if (i == count - 1) {
-                    // Note we
                     break;
                 }
                 etcd_response_free(response);
@@ -1422,3 +1424,4 @@ void *etcd_cluster_request(etcd_client *cli,
 
     return response;
 }
+#pragma clang diagnostic pop
