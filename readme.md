@@ -177,11 +177,23 @@ You can have as many as you like, the program will scan them in order from first
 
 ## Common Development Settings
 
-Running dns_active_cache you can use the following parameters when debugging:
+Running dns_active_cache you can use the following parameters when exposing http status port:
 
-        --debug=8080
+        --http=8080
         --port=5300
         --resolvers=/Users/[your user dir]/dns_cache/conf/resolv.dns_cache
+
+
+ETCD common development settings:
+
+        --port=5300
+        --http=8080
+        --resolvers=resolv.dns_cache
+        --etcd=http://192.168.1.129:2379
+        --host_name=applegate.farm
+        --host_ip=192.168.1.129
+
+Note: the ip addresses above are your "local" ip addresses.
 
 You can test the above with something like:
 
