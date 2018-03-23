@@ -1,6 +1,10 @@
 DNS Active Cache
 ====
 
+## NOTE
+Currently working on adding etcd support.  Old Caching functionality still works.  If you enable ETCD support only 
+A Records are currently supported, looking into SRV record support once I integrate it into our micro service architecture.
+
 ## Introduction
 This is a simple active local [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) caching service, 
 it **NOT** intended to be used as a desktop [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) cache.
