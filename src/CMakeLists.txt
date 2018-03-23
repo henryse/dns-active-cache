@@ -33,10 +33,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_C_FLAGS "-std=gnu99")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_C_FLAGS "-std=gnu99 -pthread -luuid -lrt")
-endif()
+endif ()
 
-configure_file( version_config.h.in ${CMAKE_BINARY_DIR}/generated/version_config.h )
-include_directories( ${CMAKE_BINARY_DIR}/generated/ ) # Make sure it can be included...
+configure_file(version_config.h.in ${CMAKE_BINARY_DIR}/generated/version_config.h)
+include_directories(${CMAKE_BINARY_DIR}/generated/) # Make sure it can be included...
 
 set(SOURCE_FILES
         main.c
@@ -51,7 +51,9 @@ set(SOURCE_FILES
         dns_settings.h
         dns_string.c
         dns_string.h
-        version_config.h dns_debug.c dns_debug.h)
+        version_config.h
+        dns_debug.c
+        dns_debug.h)
 
 find_package(Threads)
 

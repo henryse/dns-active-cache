@@ -71,7 +71,7 @@ unsigned int dns_get_timestamp_now() {
 
     // time stamp in seconds
     //
-    return (unsigned int)(time_now.tv_sec + (time_now.tv_nsec / 1000000000));
+    return (unsigned int) (time_now.tv_sec + (time_now.tv_nsec / 1000000000));
 }
 
 void dns_cache_record_hold(context_t *context, dns_cache_record_t *dns_cache_record) {
@@ -195,15 +195,13 @@ void dns_cache_http_answers(dns_cache_record_t *record, dns_string_ptr response)
 
                         if (ntohs(record_header->record_type) == RECORD_CNAME) {
                             dns_convert_to_host(dns_packet, dns_get_resource_data(answer), resource_information);
-                        }
-                        else if (ntohs(record_header->record_type) == RECORD_A) {
+                        } else if (ntohs(record_header->record_type) == RECORD_A) {
                             long *ptr_address = (long *) dns_get_resource_data(answer);
                             struct sockaddr_in address;
                             address.sin_addr.s_addr = (in_addr_t) (*ptr_address);
                             dns_string_reset(resource_information);
                             dns_string_sprintf(resource_information, "%s", inet_ntoa(address.sin_addr));
-                        }
-                        else {
+                        } else {
                             dns_string_reset(resource_information);
                             dns_string_sprintf(resource_information, "Not implemented for %s",
                                                dns_get_record_type_string(record_header->record_type));
@@ -437,7 +435,7 @@ dns_cache_entry_t dns_cache_find(context_t *context, dns_packet_t *dns_packet_to
             dns_packet_t *dns_packet = &dns_cache_entry_found.dns_packet_response;
             unsigned int current_ttl = dns_packet_record_ttl_get(dns_packet, RECORD_A);
 
-            if (current_ttl > dns_get_max_ttl()){
+            if (current_ttl > dns_get_max_ttl()) {
                 dns_packet_record_ttl_set(dns_packet, RECORD_A, dns_get_max_ttl());
             }
 
@@ -475,8 +473,7 @@ void dns_cache_record_remove(context_t *context, dns_cache_record_t *dns_cache_r
             // kill the head.
             //
             g_head = dns_cache_record->next;
-        }
-        else {
+        } else {
 
             // Remove from the list
             //
@@ -586,8 +583,7 @@ dns_cache_record_t *dns_cache_insert_internal(context_t *context, dns_packet_t *
             // All done!
             //
             dns_cache_record_release(context, cache_record);
-        }
-        else {
+        } else {
             ERROR_LOG(context,
                       "Cache table is full, currently size is %d, please use --entries= to enlarge it.",
                       dns_get_cache_entries());
@@ -667,8 +663,7 @@ void *dns_cache_refresh_thread(void __unused *arg) {
                         continue;
                     }
                 }
-            }
-            else {
+            } else {
                 timestamp_next = min(dns_cache_record->expired_time_stamp, timestamp_next);
             }
             dns_cache_record = dns_get_next_record(&context, dns_cache_record);
@@ -708,11 +703,9 @@ int dns_cache_init(context_t *context) {
     if (dns_get_cache_entries() <= 16) {
         ERROR_LOG(context, "Sorry we need at least 16 cache entries, you have select %d, "
                 "please use --entries= to enlarge it.", dns_get_cache_entries());
-    }
-    else if (dns_get_resolvers() == NULL || dns_get_resolvers_count() == 0) {
+    } else if (dns_get_resolvers() == NULL || dns_get_resolvers_count() == 0) {
         ERROR_LOG(context, "We need someone to call, no resolvers file found.  See --resolvers= to select a file.");
-    }
-    else {
+    } else {
         size_t byte_count = sizeof(dns_cache_entry_t) * (dns_get_cache_entries() + 1);
         g_records = malloc(byte_count);
 
@@ -722,8 +715,7 @@ int dns_cache_init(context_t *context) {
             g_head = NULL;
 
             result = pthread_create(&g_dns_cache_thread_id, NULL, &dns_cache_refresh_thread, NULL);
-        }
-        else {
+        } else {
             ERROR_LOG(context,
                       "Ouch! We ran out of memory!  This is either an issue with the machine or a bug in the service");
         }

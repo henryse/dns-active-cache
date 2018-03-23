@@ -40,7 +40,7 @@
 
 //DNS header structure
 
-typedef struct dns_header_struct {
+typedef struct __attribute__((packed)) dns_header_struct {
     unsigned short id;                          // identification number
     unsigned char recursion_desired :1;         // recursion desired
     unsigned char truncated_message :1;         // truncated message
@@ -61,13 +61,13 @@ typedef struct dns_header_struct {
 #define DNS_HEADER_SIZE 12
 #define DNS_PACKET_SIZE 1024
 
-typedef struct dns_packet_struct {
+typedef struct __attribute__((packed)) dns_packet_struct {
     dns_header_t header;                              // DNS HEADER (see above)
     char body[DNS_PACKET_SIZE - DNS_HEADER_SIZE];   // Question and answers can be found in the body
 } dns_packet_t;
 
 //Constant sized fields of query structure
-typedef struct question_type_struct {
+typedef struct __attribute__((packed)) question_type_struct {
     unsigned short question_type;
     unsigned short question_class;
 } question_type_t;
@@ -89,7 +89,7 @@ typedef void *question_t;
 typedef unsigned short record_type_t;
 
 //Constant sized fields of the resource record structure
-typedef struct dns_resource_header_struct {
+typedef struct __attribute__((packed)) dns_resource_header_struct {
     unsigned short record_type;         // The RR type, for example, RECORD_A or RECORD_AAAA (see above)
     unsigned short record_class;        // A 16 bit value which defines the protocol family or an
     // instance of the protocol. The normal value is IN = Internet protocol

@@ -84,8 +84,7 @@ void dns_convert_to_host(dns_packet_t *dns_packet, unsigned char *dns_host_strin
                         }
 
                         next_position = position;
-                    }
-                    else {
+                    } else {
                         position++;
                         next_position = next_position + c + 1;
                     }
@@ -247,8 +246,7 @@ dns_resource_header_t *dns_resource_header_get(resource_resource_t *resource_rec
         if (dns_resource_name_is_pointer(resource_record)) {
             // Skip over pointer...
             ptr += sizeof(unsigned short);
-        }
-        else {
+        } else {
             // Skip over name...
             while (*ptr) {
                 ptr += (*ptr + 1);
@@ -287,8 +285,7 @@ unsigned char *dns_get_resource_data(resource_resource_t *resource_record) {
         if (dns_resource_name_is_pointer(resource_record)) {
             // Skip over pointer...
             ptr += sizeof(unsigned short);
-        }
-        else {
+        } else {
 
             // Skip over name...
             while (*ptr) {
