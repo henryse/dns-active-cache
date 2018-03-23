@@ -54,8 +54,6 @@ int dns_cache_init(transaction_context *context);
 
 void dns_cache_stop();
 
-void dns_cache_html_log(transaction_context *context, dns_string *response);
-
 void dns_cache_json_log(transaction_context *context, dns_string *response);
 
 bool dns_cache_health_check(transaction_context *context);

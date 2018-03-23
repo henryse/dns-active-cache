@@ -348,64 +348,6 @@ void dns_cache_json_log(transaction_context *context, dns_string *response) {
     dns_string_sprintf(response, "}");
 }
 
-void dns_cache_html_log(transaction_context *context, dns_string *response) {
-    dns_cache_record *record = dns_get_head(context);
-
-    uint32_t timestamp_now = dns_get_timestamp_now();
-
-    dns_string_sprintf(response, "<P>Cache Sleep Time(timestamp next, now: %d, %d): <B>%d</B><P>",
-                       dns_get_cache_timestamp_next(),
-                       timestamp_now,
-                       dns_get_cache_timestamp_next() - timestamp_now);
-
-    dns_string_sprintf(response,
-                       "<style type=\"text/css\">table.dnsdata {background-color:transparent;border-collapse:collapse;width:100%%;}"
-                               "table.dnsdata th, table.dnsdata td {text-align:center;border:1px solid black;padding:5px;}"
-                               "table.dnsdata th {background-color:AntiqueWhite;}"
-                               "table.dnsdata td:first-child {width:20%%;}"
-                               "</style>"
-                               "<table class=\"dnsdata\">");
-
-    dns_string_sprintf(response,
-                       "<tr><th>Question</th><th>Time Stamp</th><th>Time Remaining (seconds)</th><th>Reference Count</th><th>Entry State</th><th>Answers</th></tr>");
-
-    if (record) {
-        while (record) {
-
-            dns_packet *packet = &record->cache_entry.dns_packet_response;
-
-            for (unsigned question_index = 0;
-                 question_index < ntohs(packet->header.question_count);
-                 question_index++) {
-
-                dns_question_handle *question = dns_packet_question_index(packet, question_index);
-
-                if (question) {
-                    dns_string *host_name = dns_question_host(question);
-
-                    dns_string_sprintf(response,
-                                       "<tr><td>%s</td><td>%u</td><td>%u</td><td>%u</td><td>%s</td><td>",
-                                       dns_string_c_str(host_name),
-                                       record->expired_time_stamp,
-                                       record->expired_time_stamp - timestamp_now,
-                                       record->reference_count,
-                                       dns_cache_http_entry_state(record->cache_entry.entry_state));
-
-                    dns_cache_log_answers(context, record, response);
-
-                    dns_string_sprintf(response, "</td></tr>");
-
-                    dns_string_free(host_name, true);
-                }
-            }
-
-            record = dns_get_next_record(context, record);
-        }
-
-    }
-    dns_string_sprintf(response, "</table>");
-}
-
 int dns_cache_get_socket(transaction_context *context) {
 
     if (!g_dns_cache_socket) {

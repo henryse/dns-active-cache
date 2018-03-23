@@ -33,7 +33,7 @@ bool dns_set_calling_socket_options(transaction_context *context, int dns_socket
 
 bool dns_get_debug_mode();
 
-void dns_set_debug_mode(bool debug_mode);
+void dns_set_http_mode(bool debug_mode);
 
 uint32_t dns_get_max_ttl();
 
@@ -55,9 +55,9 @@ uint16_t dns_get_port();
 
 void dns_set_port(uint16_t port);
 
-uint16_t debug_get_port();
+uint16_t dns_http_get_port();
 
-void debug_set_port(uint16_t port);
+void dns_http_set_port(uint16_t port);
 
 uint32_t dns_get_socket_timeout();
 

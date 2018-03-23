@@ -82,31 +82,6 @@ size_t http_read_line(int socket, dns_string *buffer) {
     return dns_string_length(buffer);
 }
 
-void http_output_debug_page(transaction_context *context, dns_string *response) {
-
-    dns_string *response_body = dns_string_new(1024);
-
-    dns_string_sprintf(response_body, "<HTML><TITLE>DNS Active Cache </TITLE>\r\n");
-    dns_string_sprintf(response_body, "<BODY><CENTER><B>DNS Active Cache Stats</B></CENTER><BR>\r\n");
-    dns_string_sprintf(response_body, "\r\n");
-
-    dns_cache_html_log(context, response_body);
-
-    dns_string_sprintf(response_body, "\r\n");
-
-    dns_string_sprintf(response_body, "</BODY></HTML>\r\n");
-    dns_string_sprintf(response_body, "\r\n");
-
-    dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
-    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
-    dns_string_sprintf(response, "Content-Type: text/html\r\n");
-    dns_string_sprintf(response, "Connection: close\r\n");
-    dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
-    dns_string_sprintf(response, "\r\n%s", dns_string_c_str(response_body));
-
-    dns_string_free(response_body, true);
-}
-
 void http_output_status_page(transaction_context *context, dns_string *response) {
 
     dns_string *response_body = dns_string_new(1024);
@@ -218,10 +193,6 @@ void http_output_response(transaction_context *context, dns_string *request_path
         // Just output stats.
         //
         http_output_status_page(context, response);
-    } else if (request_path && 0 == strncmp(dns_string_c_str(request_path), "/debug", strlen("/debug"))) {
-        // Just output stats.
-        //
-        http_output_debug_page(context, response);
     } else {
         http_not_found(response);
     }
@@ -248,7 +219,7 @@ int debug_startup_connection(transaction_context *context) {
 
     char port_string[16];   // needs to fit a short
     memory_clear(port_string, sizeof port_string);
-    snprintf(port_string, sizeof port_string, "%d", debug_get_port());
+    snprintf(port_string, sizeof port_string, "%d", dns_http_get_port());
 
     struct addrinfo *response = NULL;
     getaddrinfo(NULL, port_string, &hints, &response);
@@ -257,7 +228,7 @@ int debug_startup_connection(transaction_context *context) {
 
     if (socket_fd == -1) {
         ERROR_LOG(context, "Unable to create socket, this is either a network issue where the port %"
-                " is already in use or a bug in the service.", debug_get_port());
+                " is already in use or a bug in the service.", dns_http_get_port());
     } else {
         // The setsockopt() function is used to allow the local address to
         // be reused when the server is restarted before the required wait
@@ -363,13 +334,13 @@ void *debug_thread(void __unused *arg) {
 
     transaction_context context = create_context();
 
-    INFO_LOG(&context, "Starting debug thread on port %hu", debug_get_port());
+    INFO_LOG(&context, "Starting debug thread on port %hu", dns_http_get_port());
 
-    if (debug_get_port()) {
+    if (dns_http_get_port()) {
         int socket_fd = debug_startup_connection(&context);
 
         if (-1 != socket_fd) {
-            INFO_LOG(&context, "[INFO] DNS Active Cache has taking the stage on port %d", debug_get_port());
+            INFO_LOG(&context, "[INFO] DNS Active Cache has taking the stage on port %d", dns_http_get_port());
 
             while (dns_service_running()) {
                 dns_string *request_buffer = dns_string_new(1024);
@@ -406,7 +377,7 @@ void *debug_thread(void __unused *arg) {
 
             close(socket_fd);
         } else {
-            ERROR_LOG(&context, "[ERROR] DNS Active Cache was unable to take the stage on port %d", debug_get_port());
+            ERROR_LOG(&context, "[ERROR] DNS Active Cache was unable to take the stage on port %d", dns_http_get_port());
         }
     }
 

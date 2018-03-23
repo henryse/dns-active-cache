@@ -37,7 +37,7 @@ bool g_log_mode = true;
 bool g_bypass_mode = false;
 bool g_optimize_mode = false;
 uint16_t g_port = 53;
-uint16_t g_debug_port = 0;
+uint16_t g_http_port = 0;
 uint32_t g_socket_timeout_sec = 5;
 uint32_t g_cache_entries = 64;
 uint32_t g_cache_polling_interval_seconds = 16;
@@ -100,12 +100,12 @@ void dns_set_port(uint16_t port) {
     g_port = port;
 }
 
-uint16_t debug_get_port() {
-    return g_debug_port;
+uint16_t dns_http_get_port() {
+    return g_http_port;
 }
 
-void debug_set_port(uint16_t port) {
-    g_debug_port = port;
+void dns_http_set_port(uint16_t port) {
+    g_http_port = port;
 }
 
 uint32_t dns_get_socket_timeout() {
@@ -128,7 +128,7 @@ bool dns_get_debug_mode() {
     return g_debug_mode;
 }
 
-void dns_set_debug_mode(bool debug_mode) {
+void dns_set_http_mode(bool debug_mode) {
     g_debug_mode = debug_mode;
 }
 

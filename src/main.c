@@ -103,8 +103,8 @@ void usage(const char *program) {
     fprintf(stdout, "     entries        Max cache entries. default: %d\n", dns_get_cache_entries());
     fprintf(stdout, "     etcd           ETCD path, for example: --etcd=http://192.168.1.129:2379, if this is not "
                     " set then ETCD support is not used.\n");
-    fprintf(stdout, "     debug          Simple DEBUG port to dump diagnostics, support HTTP GET, [host]:[port], "
-            "if zero then disabled.  default: %hu\n", debug_get_port());
+    fprintf(stdout, "     http           Simple HTTP port to dump diagnostics, support HTTP GET, [host]:[port], "
+            "if zero then disabled.  default: %hu\n", dns_http_get_port());
     fprintf(stdout, "     optimize       Optimize the use of ports by reusing them. default: %s\n",
             dns_get_optimize_mode() ? "true" : "false");
     fprintf(stdout, "     maxttl         Max TTL in seconds for DNS entries, if an upstream server returns a value "
@@ -218,7 +218,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
                     {"interval",  optional_argument, 0, 'v'},
                     {"entries",   optional_argument, 0, 'e'},
                     {"etcd",      optional_argument, 0, 'E'},
-                    {"debug",     optional_argument, 0, 'd'},
+                    {"http",      optional_argument, 0, 'H'},
                     {"bypass",    optional_argument, 0, 'b'},
                     {"optimize",  optional_argument, 0, 'o'},
                     {"maxttl",    optional_argument, 0, 'm'},
@@ -283,9 +283,9 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
             }
                 break;
 
-            case 'd':
-                debug_set_port((uint16_t) atol(optarg)); // NOLINT
-                dns_set_debug_mode(debug_get_port() != 0);
+            case 'H':
+                dns_http_set_port((uint16_t) atol(optarg)); // NOLINT
+                dns_set_http_mode(dns_http_get_port() != 0);
                 INFO_LOG(context, "Enable debug mode at port", optarg);
                 break;
 
@@ -333,8 +333,8 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
     } while (c != -1);
 
 
-    if (debug_get_port() == dns_get_port()) {
-        ERROR_LOG(context, "Debug Port %hu must be different from DNS port %hu", debug_get_port(), dns_get_port());
+    if (dns_http_get_port() == dns_get_port()) {
+        ERROR_LOG(context, "Debug Port %hu must be different from DNS port %hu", dns_http_get_port(), dns_get_port());
         return false;
     }
 

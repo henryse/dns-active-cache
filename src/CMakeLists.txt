@@ -58,8 +58,8 @@ set(SOURCE_FILES
         dns_string.c
         dns_string.h
         version_config.h
-        dns_debug.c
-        dns_debug.h
+        dns_http.c
+        dns_http.h
         dns_etcd.h
         dns_array.h
         dns_array.c

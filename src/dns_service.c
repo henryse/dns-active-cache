@@ -35,7 +35,7 @@
 
 #include "dns_service.h"
 #include "dns_settings.h"
-#include "dns_debug.h"
+#include "dns_http.h"
 #include "dns_service_etcd.h"
 #include "dns_question.h"
 
