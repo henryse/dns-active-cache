@@ -37,9 +37,11 @@ dns_array *dns_array_create(size_t cap) {
     return ca;
 }
 
-void dns_array_release(dns_array *ca) {
+void dns_array_free(dns_array *ca, bool free_elements) {
     if (ca) {
-        dns_array_destroy(ca);
+        if (free_elements){
+            dns_array_destroy(ca);
+        }
         free(ca);
     }
 }

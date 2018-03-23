@@ -29,6 +29,7 @@
 #define DNS_ACTIVE_CACHE_DNS_ARRAY_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef struct dns_array_t {
     void **elem;
@@ -41,7 +42,7 @@ size_t dns_array_size(dns_array *ca);
 
 dns_array *dns_array_create(size_t cap);
 
-void dns_array_release(dns_array *ca);
+void dns_array_free(dns_array *ca, bool free_elements);
 
 int dns_array_init(dns_array *ca, size_t cap);
 

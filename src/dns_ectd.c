@@ -131,7 +131,7 @@ etcd_client *etcd_client_create(dns_array *addresses) {
 
 void etcd_client_destroy(etcd_client *cli) {
     etcd_addresses_release(cli->addresses);
-    dns_array_release(cli->addresses);
+    dns_array_free(cli->addresses, true);
     cli->addresses = NULL;
 
     dns_string_free(cli->settings.user, 0);
@@ -179,7 +179,7 @@ void etcd_client_sync_cluster(etcd_client *cli) {
         return;
     }
     etcd_addresses_release(cli->addresses);
-    dns_array_release(cli->addresses);
+    dns_array_free(cli->addresses, true);
     cli->addresses = dns_array_shuffle(addrs);
     cli->picked = rand() % (dns_array_size(cli->addresses)); // NOLINT
 }
@@ -910,7 +910,7 @@ void etcd_node_release(etcd_response_node *node) {
             etcd_response_node *n = dns_array_get(node->nodes, i);
             etcd_node_release(n);
         }
-        dns_array_release(node->nodes);
+        dns_array_free(node->nodes, true);
     }
     if (node->key) {
         dns_string_free(node->key, true);
@@ -1370,7 +1370,7 @@ void *etcd_cluster_request(etcd_client *cli,
             }
             // Empty or error ? retry
             if (addrs) {
-                dns_array_release(addrs);
+                dns_array_free(addrs, true);
             }
             if (i == count - 1) {
                 break;

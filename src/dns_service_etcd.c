@@ -36,7 +36,7 @@ typedef struct dns_etcd_entry_t {
     dns_string *name;
     dns_string *ip;
     dns_string *value;
-    uint16_t __unused port;
+    uint16_t  port;
 } dns_etcd_entry;
 
 dns_etcd_cache *g_cache;
@@ -181,7 +181,6 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
                                                                        etcd_entry->name,
                                                                        etcd_entry->ip);
 }
-
 
 bool dns_etcd_search(dns_packet *request, dns_string *request_host_name, dns_cache_entry *cache_entry) {
 
