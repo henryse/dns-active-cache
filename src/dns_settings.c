@@ -209,7 +209,6 @@ void dns_set_daemon_process_id(pid_t daemon_process_id) {
     g_daemon_process_id = daemon_process_id;
 }
 
-
 void dns_set_cache_timestamp_next(unsigned int count) {
     g_cache_timestamp_next = count;
 }
@@ -221,7 +220,6 @@ unsigned int dns_get_cache_timestamp_next() {
 const char *get_active_cache_version() {
     return ACTIVE_DNS_CACHE_VERSION;
 }
-
 
 int get_dns_resolve_retry_count() {
     return 3;

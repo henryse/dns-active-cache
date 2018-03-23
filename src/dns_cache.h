@@ -53,7 +53,9 @@ int dns_cache_init(context_t *context);
 
 void dns_cache_stop();
 
-void dns_cache_http_log(context_t *context, dns_string_ptr response);
+void dns_cache_html_log(context_t *context, dns_string_ptr response);
+
+void dns_cache_json_log(context_t *context, dns_string_ptr response);
 
 bool dns_cache_health_check(context_t *context);
 

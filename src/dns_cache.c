@@ -24,11 +24,15 @@
 //
 **********************************************************************/
 
-#include <sys/cdefs.h>
 
 #ifndef __MACH__
+#include <sys/cdefs.h>
 #define _POSIX_C_SOURCE 200809L
 #define __unused
+#else
+
+#include <ntsid.h>
+
 #endif
 
 #include <stdlib.h>
@@ -46,14 +50,17 @@
 // of this area, copies of the dns_cache_entry can be
 // returned to the caller but never this structure.
 //
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCDFAInspection"
 typedef struct dns_cache_record_struct {
-    struct dns_cache_record_struct *next;   // Next record in the list.
-    unsigned int reference_count;           // Reference count for the record.
-    unsigned int expired_time_stamp;        // Timestamp to expire record
-    unsigned int created_time_stamp;        // Timestamp record was created
+    struct dns_cache_record_struct *next;       // Next record in the list.
+    unsigned int reference_count;               // Reference count for the record.
+    unsigned int expired_time_stamp;            // Timestamp to expire record
+    unsigned int __unused created_time_stamp;   // Timestamp record was created
 
-    dns_cache_entry_t dns_cache_entry;      // Entry to return the caller.
+    dns_cache_entry_t dns_cache_entry;          // Entry to return the caller.
 } dns_cache_record_t;
+#pragma clang diagnostic pop
 
 dns_cache_record_t *g_head = NULL;
 dns_cache_record_t *g_records = NULL;
@@ -175,8 +182,11 @@ void dns_cache_log(context_t *context) {
     }
 }
 
-void dns_cache_http_answers(dns_cache_record_t *record, dns_string_ptr response) {
+void dns_cache_log_answers(dns_cache_record_t *record, dns_string_ptr response) {
 
+    dns_string_sprintf(response, "\"answers\":[");
+
+    bool found_answer = false;
     if (record && record->dns_cache_entry.dns_packet_response_size) {
         dns_packet_t *dns_packet = &record->dns_cache_entry.dns_packet_response;
 
@@ -189,13 +199,19 @@ void dns_cache_http_answers(dns_cache_record_t *record, dns_string_ptr response)
                 resource_resource_t *answer = dns_packet_get_answer(dns_packet, answer_index);
 
                 if (answer) {
-                    dns_resource_to_host(dns_packet, answer, host_name);
                     dns_resource_header_t *record_header = dns_resource_header_get(answer);
                     if (record_header) {
-
                         if (ntohs(record_header->record_type) == RECORD_CNAME) {
+                            dns_resource_to_host(dns_packet, answer, host_name);
                             dns_convert_to_host(dns_packet, dns_get_resource_data(answer), resource_information);
                         } else if (ntohs(record_header->record_type) == RECORD_A) {
+                            dns_resource_to_host(dns_packet, answer, host_name);
+                            long *ptr_address = (long *) dns_get_resource_data(answer);
+                            struct sockaddr_in address;
+                            address.sin_addr.s_addr = (in_addr_t) (*ptr_address);
+                            dns_string_reset(resource_information);
+                            dns_string_sprintf(resource_information, "%s", inet_ntoa(address.sin_addr));
+                        } else if (ntohs(record_header->record_type) == RECORD_NS) {
                             long *ptr_address = (long *) dns_get_resource_data(answer);
                             struct sockaddr_in address;
                             address.sin_addr.s_addr = (in_addr_t) (*ptr_address);
@@ -207,10 +223,11 @@ void dns_cache_http_answers(dns_cache_record_t *record, dns_string_ptr response)
                                                dns_get_record_type_string(record_header->record_type));
                         }
 
-                        dns_string_sprintf(response, "<P>%s, %s, %s</P>",
+                        dns_string_sprintf(response, "\"%s, %s, %s\",",
                                            dns_string_c_string(host_name),
                                            dns_get_record_type_string(record_header->record_type),
                                            dns_string_c_string(resource_information));
+                        found_answer = true;
                     }
                 }
             }
@@ -219,6 +236,11 @@ void dns_cache_http_answers(dns_cache_record_t *record, dns_string_ptr response)
         dns_string_delete(resource_information, true);
         dns_string_delete(host_name, true);
     }
+    if (found_answer) {
+        // remove the comma....
+        dns_string_trim(response, 1);
+    }
+    dns_string_sprintf(response, "]");
 }
 
 char *dns_cache_http_entry_state(entry_state_t entry_state) {
@@ -275,7 +297,68 @@ bool dns_cache_health_check(context_t *context) {
     return true;
 }
 
-void dns_cache_http_log(context_t *context, dns_string_ptr response) {
+void dns_cache_json_log(context_t *context, dns_string_ptr response) {
+    dns_cache_record_t *record = dns_get_head(context);
+
+    unsigned int timestamp_now = dns_get_timestamp_now();
+
+    dns_string_sprintf(response, "{");
+
+    dns_string_sprintf(response, "\"cache_timestamp_next\":\"%d\",", dns_get_cache_timestamp_next());
+    dns_string_sprintf(response, "\"timestamp_now\":\"%d\",", timestamp_now);
+    dns_string_sprintf(response, "\"cache_timestamp_sleep\":\"%d\",", dns_get_cache_timestamp_next() - timestamp_now);
+
+    dns_string_sprintf(response, "\"records\": [");
+
+    if (record) {
+
+        dns_string_ptr host_name = dns_string_new(256);
+
+        while (record) {
+
+            dns_packet_t *packet = &record->dns_cache_entry.dns_packet_response;
+
+            unsigned question_count = ntohs(packet->header.question_count);
+
+            for (unsigned question_index = 0;
+                 question_index < question_count;
+                 question_index++) {
+
+                question_t *question = dns_packet_get_question(packet, question_index);
+
+                if (question) {
+
+                    dns_question_to_host(packet, question, host_name);
+                    dns_string_sprintf(response, "{");
+                    dns_string_sprintf(response, "\"question\":\"%s\",", dns_string_c_string(host_name));
+                    dns_string_sprintf(response, "\"time_stamp\":\"%u\",", record->expired_time_stamp);
+                    dns_string_sprintf(response, "\"time_remaining\":\"%u\",",
+                                       record->expired_time_stamp - timestamp_now);
+                    dns_string_sprintf(response, "\"reference_count\":\"%u\",",
+                                       record->reference_count - timestamp_now);
+                    dns_string_sprintf(response, "\"entry_state\":\"%s\",",
+                                       dns_cache_http_entry_state(record->dns_cache_entry.entry_state));
+
+                    dns_cache_log_answers(record, response);
+
+                    dns_string_sprintf(response, "}");
+
+                    dns_string_sprintf(response, ",");
+                }
+            }
+
+            record = dns_get_next_record(context, record);
+        }
+
+        dns_string_delete(host_name, true);
+        dns_string_trim(response, 1);
+    }
+    // Need to remove the last comma...
+    dns_string_sprintf(response, "]");
+    dns_string_sprintf(response, "}");
+}
+
+void dns_cache_html_log(context_t *context, dns_string_ptr response) {
     dns_cache_record_t *record = dns_get_head(context);
 
     unsigned int timestamp_now = dns_get_timestamp_now();
@@ -320,7 +403,7 @@ void dns_cache_http_log(context_t *context, dns_string_ptr response) {
                                        record->reference_count,
                                        dns_cache_http_entry_state(record->dns_cache_entry.entry_state));
 
-                    dns_cache_http_answers(record, response);
+                    dns_cache_log_answers(record, response);
 
                     dns_string_sprintf(response, "</td></tr>");
                 }
@@ -629,7 +712,7 @@ void *dns_cache_refresh_thread(void __unused *arg) {
 
                 // Reset the header so it is now a question and not an answer
                 //
-                dns_packet.header.id = (unsigned short) (rand() % 0x3FFF);
+                dns_packet.header.id = (unsigned short) (rand() % 0x3FFF); // NOLINT
                 dns_packet.header.answer_count = 0;
                 dns_packet.header.resource_count = 0;
                 dns_packet.header.authority_count = 0;

@@ -98,7 +98,9 @@ void usage(const char *program) {
             "     interval       How often should the service scan the cache to find timed out entries. default: %ds\n",
             dns_get_cache_polling_interval());
     fprintf(stdout, "     entries        Max cache entries. default: %d\n", dns_get_cache_entries());
-    fprintf(stdout, "     debug          Debug output.  default: %s\n", dns_get_debug_mode() ? "true" : "false");
+    fprintf(stdout, "     debug          Simple DEBUG port to dump diagnostics, support HTTP GET, [host]:[port], "
+            "if zero then disabled.  default: %hu\n", debug_get_port());
+
     fprintf(stdout, "     log            General logging messages. default: %s\n",
             dns_get_log_mode() ? "true" : "false");
     fprintf(stdout, "     optimize       Optimize the use of ports by reusing them. default: %s\n",
@@ -106,9 +108,6 @@ void usage(const char *program) {
     fprintf(stdout,
             "     maxttl         Max TTL in seconds for DNS entries, if an upstream server returns a value high then "
                     "maxttl, the TTL will be set to maxttl.  default:  %ds\n", dns_get_max_ttl());
-    fprintf(stdout, "     dbgport        Simple DEBUG port to dump diagnostics, support HTTP GET, [host]:[port], "
-            "if zero then disabled.  default: %hu\n", debug_get_port());
-
     fprintf(stdout, "     daemon         Run as a daemon.  default: %s\n", dns_get_run_as_daemon() ? "true" : "false");
     fprintf(stdout, "     help           Get this help message\n");
 }
@@ -217,7 +216,6 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                     {"bypass",    optional_argument, 0, 'b'},
                     {"optimize",  optional_argument, 0, 'o'},
                     {"maxttl",    optional_argument, 0, 'm'},
-                    {"dbgport",   optional_argument, 0, 'g'},
                     {"daemon",    optional_argument, 0, 'D'},
                     {"help",      optional_argument, 0, '?'},
                     {0, 0,                           0, 0}
@@ -269,8 +267,9 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
                 break;
 
             case 'd':
-                dns_set_debug_mode(strcmp(optarg, "true") == 0);
-                INFO_LOG(context, "Enable debug mode %s", optarg);
+                debug_set_port((unsigned short) atol(optarg));
+                dns_set_debug_mode(debug_get_port() != 0);
+                INFO_LOG(context, "Enable debug mode at port", optarg);
                 break;
 
             case 'b':
@@ -286,11 +285,6 @@ bool parse_arguments(context_t *context, int argc, char *argv[]) {
             case 'm':
                 dns_set_max_ttl((unsigned int) atol(optarg));
                 INFO_LOG(context, "DNS Max TTL %s", optarg);
-                break;
-
-            case 'g':
-                debug_set_port((unsigned short) atol(optarg));
-                INFO_LOG(context, "Debug Port %s", optarg);
                 break;
 
             case 'D':

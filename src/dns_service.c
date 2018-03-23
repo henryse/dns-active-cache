@@ -388,18 +388,11 @@ int dns_service_start(context_t *context) {
 
     if (dns_get_resolvers() != NULL) {
 
-        int debug_socket_fd = 0;
-        if (debug_get_port()) {
-            debug_service_start();
-        }
+        debug_service_start();
 
         int socket_fd = startup_connection(context, dns_get_port());
         if (socket_fd != -1) {
             dns_service_loop(socket_fd);
-        }
-
-        if (debug_get_port()) {
-            close(debug_socket_fd);
         }
 
         close(socket_fd);

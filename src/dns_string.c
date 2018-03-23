@@ -72,7 +72,7 @@ void dns_string_delete(dns_string_ptr dns_string, bool free_string) {
     }
 }
 
-bool string_buffer_resize(dns_string_ptr dns_string, const size_t new_size) {
+bool string_buffer_realloc(dns_string_ptr dns_string, const size_t new_size) {
 
     if (NULL == dns_string) {
         return false;
@@ -92,10 +92,22 @@ bool string_buffer_resize(dns_string_ptr dns_string, const size_t new_size) {
 }
 
 int string_buffer_double_size(dns_string_ptr dns_string) {
-    return string_buffer_resize(dns_string, dns_string->size * 2);
+    return string_buffer_realloc(dns_string, dns_string->size * 2);
 }
 
-void dns_string_append_char(dns_string_ptr dns_string, const char ch) {
+void dns_string_trim(dns_string_ptr dns_string, size_t length) {
+    if (NULL == dns_string) {
+        return;
+    }
+
+    if (length >= dns_string->position) {
+        dns_string->position = 0;
+    } else {
+        dns_string->position = dns_string->position - length;
+    }
+}
+
+void dns_string_append_char(dns_string_ptr dns_string, char ch) {
     if (NULL == dns_string) {
         return;
     }
@@ -125,7 +137,7 @@ void dns_string_append_str_length(dns_string_ptr dns_string, const char *src, si
         do {
             new_size = new_size * 2;
         } while (new_size < (dns_string->size + chars_required));
-        string_buffer_resize(dns_string, new_size);
+        string_buffer_realloc(dns_string, new_size);
     }
 
     memcpy(dns_string->c_string + dns_string->position, src, length);
