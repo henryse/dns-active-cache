@@ -91,8 +91,13 @@ The following command line parameters are supported:
          timeout        Network time out in seconds, the default is 5s
          interval       How often should the service scan the cache to find timed out entries. Default: 5s     
          entries        Max cache entries, default is 64
-         debug          Set the port to listen on for exposing an HTTP status endpoint, defualt is 0 == disabled.
-         maxttl         Set the max ttl for all A Records.      
+         http           Set the port to listen on for exposing an HTTP status endpoint, defualt is 0 == disabled.
+         maxttl         Set the max ttl for all A Records. 
+         
+         etcd           ETCD path, for example: --etcd=http://192.168.1.129:2379, if this is not set then ETCD support is not used.
+         host_ip        Only used if etcd is enabled. Used for DSN IP resolution when ETCD is enabled.
+         host_name      Only used if etcd is enabled. Used for host name when resolving ETCD based addresses.
+               
          help           Get this help message
   
 ### --port
@@ -110,7 +115,7 @@ How often should the service scan the cache to find timed out entries.  Once thi
 ### --entries
 How many DNS entries you will have, this should be large enough such that it can hold number of upstream servers + 2.  Default is 64
 
-### --debug
+### --http
 Port to listen on to enable HTTP diagnostic endpoint, this is an HTTP/HTML page that tells you the current status of the DNS entries in the cache.
 
 ### --help
@@ -121,25 +126,16 @@ Allows you to specify the maximum TTL in seconds for all A records, this overrid
 
 #### status 
 
-    http://[server name]:dbgport/status
+    http://[server name]:http_port/status
 
 Will return an JSON document showing the current cached items, their state, timeout and order of precedence.
 * You should never see duplicate names, you might get luck to catch the rare case, but when you refresh the page the
 duplicate should vanish
 * DNS Active Cache scans from the top item down when looking for matches.
 
-#### debug 
-
-    http://[server name]:dbgport/status
-
-Will return an HTML page showing the current cached items, their state, timeout and order of precedence.
-* You should never see duplicate names, you might get luck to catch the rare case, but when you refresh the page the
-duplicate should vanish
-* DNS Active Cache scans from the top item down when looking for matches.
-
 #### buildinfo
 
-    http://[server name]:dbgport/buildinfo
+    http://[server name]:http_port/buildinfo
 
 Will return a JSON document describing the current version of DNS Active Cache, for example:
 
@@ -147,7 +143,7 @@ Will return a JSON document describing the current version of DNS Active Cache, 
 
 #### health
 
-    http://[server name]:dbgport/health
+    http://[server name]:http_port/health
 
 Will return a JSON document describing if the service is healthy by performing a couple of tasks, these include:
 * Are the relevant background threads still running
