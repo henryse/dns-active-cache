@@ -120,7 +120,7 @@ How often should the service scan the cache to find timed out entries.  Once thi
 How many DNS entries you will have, this should be large enough such that it can hold number of upstream servers + 2.  Default is 64
 
 ### --http
-Port to listen on to enable HTTP diagnostic endpoint, this is an HTTP/HTML page that tells you the current status of the DNS entries in the cache.
+Port to listen on to enable HTTP diagnostic endpoint, this is an HTTP/JSON page that tells you the current status of the DNS entries in the cache.
 
 ### --help
 Display the help options as well as what the defaults are for the setting above.
