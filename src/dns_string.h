@@ -72,11 +72,11 @@ size_t dns_string_length(dns_string *target);
 
 dns_string_array *dns_string_split_length(dns_string *target, const char *separator, size_t *count);
 
-dns_string_array *dns_string_array_new(size_t size);
+dns_string_array *dns_string_array_malloc(size_t size);
 
 void dns_string_array_destroy(dns_string_array *string_array);
 
-void dns_string_array_delete(dns_string_array *string_array);
+void dns_string_array_free(dns_string_array *string_array);
 
 void dns_string_tolower(dns_string *target);
 

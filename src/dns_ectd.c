@@ -94,10 +94,10 @@ void etcd_client_init(etcd_client *cli, dns_array *addresses) {
     for (i = 0; i < dns_array_size(addresses); ++i) {
         addr = dns_array_get(addresses, i);
         if (strncmp(dns_string_c_str(addr), "http", 4) != 0) {
-            dns_array_append(addrs,
-                             dns_string_sprintf(dns_string_new_empty(), "http://%s", dns_string_c_str(addr)));
+            dns_array_push(addrs,
+                           dns_string_sprintf(dns_string_new_empty(), "http://%s", dns_string_c_str(addr)));
         } else {
-            dns_array_append(addrs, dns_string_new_str(addr));
+            dns_array_push(addrs, dns_string_new_str(addr));
         }
     }
 
@@ -131,7 +131,7 @@ etcd_client *etcd_client_create(dns_array *addresses) {
 
 void etcd_client_destroy(etcd_client *cli) {
     etcd_addresses_release(cli->addresses);
-    dns_array_free(cli->addresses, true);
+    dns_array_free(cli->addresses);
     cli->addresses = NULL;
 
     dns_string_free(cli->settings.user, 0);
@@ -144,7 +144,7 @@ void etcd_client_destroy(etcd_client *cli) {
     cli->curl = NULL;
 
     curl_global_cleanup();
-    dns_array_destroy(&cli->watchers);
+    dns_array_elements_free(&cli->watchers);
 }
 
 void etcd_client_release(etcd_client *cli) {
@@ -179,7 +179,7 @@ void etcd_client_sync_cluster(etcd_client *cli) {
         return;
     }
     etcd_addresses_release(cli->addresses);
-    dns_array_free(cli->addresses, true);
+    dns_array_free(cli->addresses);
     cli->addresses = dns_array_shuffle(addrs);
     cli->picked = rand() % (dns_array_size(cli->addresses)); // NOLINT
 }
@@ -356,7 +356,7 @@ int etcd_add_watcher(dns_array *watchers, etcd_watcher *watcher) {
     // watcher->array_index is used to reset to the original hole if the watcher was deleted before.
     //
     if (watcher->array_index == -1) {
-        dns_array_append(watchers, watcher);
+        dns_array_push(watchers, watcher);
         watcher->array_index = (int) (dns_array_size(watchers) - 1);
     } else {
         w = dns_array_get(watchers, (size_t) watcher->array_index);
@@ -910,7 +910,7 @@ void etcd_node_release(etcd_response_node *node) {
             etcd_response_node *n = dns_array_get(node->nodes, i);
             etcd_node_release(n);
         }
-        dns_array_free(node->nodes, true);
+        dns_array_free(node->nodes);
     }
     if (node->key) {
         dns_string_free(node->key, true);
@@ -1184,7 +1184,7 @@ size_t etcd_parse_response(char *ptr,
             dns_string_array *kvs = dns_string_split_length(parser->buf, ":", &count);
             dns_string_reset(parser->buf);
             if (count < 2) {
-                dns_string_array_delete(kvs);
+                dns_string_array_free(kvs);
                 continue;
             }
 
@@ -1197,7 +1197,7 @@ size_t etcd_parse_response(char *ptr,
             } else if (strncmp(dns_string_c_str(key), "X-Raft-Term", sizeof("X-Raft-Term") - 1) == 0) {
                 resp->raft_term = (uint64_t) atoi(dns_string_c_str(val)); // NOLINT
             }
-            dns_string_array_delete(kvs);
+            dns_string_array_free(kvs);
             continue;
         }
         if (parser->st == blank_line_st) {
@@ -1370,7 +1370,7 @@ void *etcd_cluster_request(etcd_client *cli,
             }
             // Empty or error ? retry
             if (addrs) {
-                dns_array_free(addrs, true);
+                dns_array_free(addrs);
             }
             if (i == count - 1) {
                 break;

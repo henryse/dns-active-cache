@@ -252,7 +252,7 @@ size_t dns_string_length(dns_string *target) {
 
 }
 
-dns_string_array *dns_string_array_new(size_t size) {
+dns_string_array *dns_string_array_malloc(size_t size) {
     return dns_array_create(size);
 }
 
@@ -263,10 +263,10 @@ void dns_string_array_destroy(dns_string_array *string_array) {
         dns_string_free(dns_array_get(string_array, index), true);
         dns_array_set(string_array, index, NULL);
     }
-    dns_array_destroy(string_array);
+    dns_array_elements_free(string_array);
 }
 
-void dns_string_array_delete(dns_string_array *string_array) {
+void dns_string_array_free(dns_string_array *string_array) {
 
     if (string_array) {
         dns_string_array_destroy(string_array);
@@ -288,7 +288,7 @@ dns_string_array *dns_string_split_length(dns_string *target, const char *separa
 
     // Allocate the array to return.
     //
-    dns_string_array *string_array = dns_string_array_new(token_count);
+    dns_string_array *string_array = dns_string_array_malloc(token_count);
 
     // Create a temp location for strtok to use.
     //
@@ -300,7 +300,7 @@ dns_string_array *dns_string_split_length(dns_string *target, const char *separa
     //
     size_t item_count = 0;
     while (pch != NULL && item_count < token_count) {
-        dns_array_append(string_array, dns_string_new_c(strlen(pch), pch));
+        dns_array_push(string_array, dns_string_new_c(strlen(pch), pch));
         pch = strtok(NULL, separator);
         item_count++;
     }

@@ -37,26 +37,26 @@ typedef struct dns_array_t {
     size_t cap;
 } dns_array;
 
-size_t dns_array_size(dns_array *ca);
+size_t dns_array_size(dns_array *array);
 // size_t etcd_array_cap(dns_array *ca);
 
 dns_array *dns_array_create(size_t cap);
 
-void dns_array_free(dns_array *ca, bool free_elements);
+void dns_array_free(dns_array *array);
 
-int dns_array_init(dns_array *ca, size_t cap);
+int dns_array_init(dns_array *array, size_t cap);
 
-int dns_array_destroy(dns_array *ca);
+int dns_array_elements_free(dns_array *array);
 
-int dns_array_append(dns_array *ca, void *p);
+int dns_array_push(dns_array *array, void *p);
 
-void *dns_array_get(dns_array *ca, size_t index);
+void *dns_array_get(dns_array *array, size_t index);
 
-int dns_array_set(dns_array *ca, size_t index, void *p);
+int dns_array_set(dns_array *array, size_t index, void *p);
 
-void *dns_array_top(dns_array *ca);
+void *dns_array_top(dns_array *array);
 
-void *dns_array_pop(dns_array *ca);
+void *dns_array_pop(dns_array *array);
 
 dns_array *dns_array_shuffle(dns_array *cards);
 

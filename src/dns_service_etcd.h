@@ -32,7 +32,7 @@
 
 typedef struct dns_etcd_cache_t {
     int refcount;
-    dns_array *dns_etcd_entries;
+    dns_array *dns_etcd_cache_records;
 } dns_etcd_cache;
 
 dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request);

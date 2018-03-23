@@ -144,9 +144,9 @@ static int yajl_parse_start_map_cb(void *ctx) {
         node = dns_array_top(&c->node_stack);
         if (etcd_string_eq(key, "nodes")) {
             child = memory_alloc(sizeof(etcd_response_node));
-            dns_array_append(node->nodes, child);
-            dns_array_append(&c->node_stack, child);
-            dns_array_append(&c->key_stack, dns_string_new_c(sizeof("noname"), "noname"));
+            dns_array_push(node->nodes, child);
+            dns_array_push(&c->node_stack, child);
+            dns_array_push(&c->key_stack, dns_string_new_c(sizeof("noname"), "noname"));
         }
         return 1;
     }
@@ -164,14 +164,14 @@ static int yajl_parse_map_key_cb(void *ctx, const unsigned char *key, size_t len
 
     dns_string *name = dns_string_new_fixed(len, (const char *) key);
     dns_string_tolower(name);
-    dns_array_append(&c->key_stack, name);
+    dns_array_push(&c->key_stack, name);
 
     if (etcd_string_eq(name, "node")) {
         resp->node = memory_alloc(sizeof(etcd_response_node));
-        dns_array_append(&c->node_stack, resp->node);
+        dns_array_push(&c->node_stack, resp->node);
     } else if (etcd_string_eq(name, "prevnode")) {
         resp->prev_node = memory_alloc(sizeof(etcd_response_node));
-        dns_array_append(&c->node_stack, resp->prev_node);
+        dns_array_push(&c->node_stack, resp->prev_node);
     }
     return 1;
 }
@@ -285,7 +285,7 @@ static int yajl_err_parse_map_key_cb(void *ctx, const unsigned char *key, size_t
     yajl_parser_context *c = ctx;
     dns_string *name = dns_string_new_c(len, (const char *) key);
     dns_string_tolower(name);
-    dns_array_append(&c->key_stack, name);
+    dns_array_push(&c->key_stack, name);
     return 1;
 }
 
@@ -313,7 +313,7 @@ static int yajl_sync_parse_string_cb(void *ctx, const unsigned char *val, size_t
     dns_array *array = c->user_data;
     dns_string *key = dns_array_top(&c->key_stack);
     if (key && etcd_string_eq(key, "clientURLs")) {
-        dns_array_append(array, dns_string_new_c(len, (const char *) val));
+        dns_array_push(array, dns_string_new_c(len, (const char *) val));
     }
     return 1;
 }
@@ -330,7 +330,7 @@ static int yajl_sync_parse_map_key_cb(void *ctx, const unsigned char *key, size_
     yajl_parser_context *c = ctx;
     dns_string *name = dns_string_new_c(len, (const char *) key);
     if (etcd_string_eq(name, "clientURLs")) {
-        dns_array_append(&c->key_stack, name);
+        dns_array_push(&c->key_stack, name);
     } else {
         dns_string_free(name, true);
     }

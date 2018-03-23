@@ -37,85 +37,83 @@ dns_array *dns_array_create(size_t cap) {
     return ca;
 }
 
-void dns_array_free(dns_array *ca, bool free_elements) {
-    if (ca) {
-        if (free_elements){
-            dns_array_destroy(ca);
-        }
-        free(ca);
+void dns_array_free(dns_array *array) {
+    if (array) {
+        dns_array_elements_free(array);
+        free(array);
     }
 }
 
-int dns_array_init(dns_array *ca, size_t cap) {
-    ca->count = 0;
-    ca->cap = cap;
-    ca->elem = NULL;
+int dns_array_elements_free(dns_array *array) {
+    if (array->elem != NULL && array->cap != 0) {
+        free(array->elem);
+        array->elem = NULL;
+    }
+    array->count = 0;
+    array->cap = 0;
+    return 0;
+}
 
-    ca->elem = malloc(sizeof(void *) * ca->cap);
-    if (ca->elem == NULL) {
+int dns_array_init(dns_array *array, size_t cap) {
+    array->count = 0;
+    array->cap = cap;
+    array->elem = NULL;
+
+    array->elem = memory_alloc(sizeof(void *) * array->cap);
+    if (array->elem == NULL) {
         return -1;
     }
     return 0;
 }
 
-int dns_array_set(dns_array *ca, size_t index, void *p) {
-    if (index > ca->count) {
+int dns_array_set(dns_array *array, size_t index, void *p) {
+    if (index > array->count) {
         return -1;
     }
-    ca->elem[index] = p;
+    array->elem[index] = p;
     return 0;
 }
 
-int dns_array_append(dns_array *ca, void *p) {
+int dns_array_push(dns_array *array, void *p) {
     size_t left;
 
-    left = ca->cap - ca->count;
+    left = array->cap - array->count;
     /* The array is full, resize it by power 2*/
     if (left == 0) {
-        ca->cap = ca->cap * 2;
-        ca->elem = realloc(ca->elem, sizeof(void *) * ca->cap);
-        if (ca->elem == NULL) {
+        array->cap = array->cap * 2;
+        array->elem = realloc(array->elem, sizeof(void *) * array->cap);
+        if (array->elem == NULL) {
             return -1;
         }
     }
 
-    ca->elem[ca->count] = p;
-    ca->count++;
+    array->elem[array->count] = p;
+    array->count++;
     return 0;
 }
 
-void *dns_array_top(dns_array *ca) {
-    return dns_array_get(ca, dns_array_size(ca) - 1);
+void *dns_array_top(dns_array *array) {
+    return dns_array_get(array, dns_array_size(array) - 1);
 }
 
-void *dns_array_pop(dns_array *ca) {
+void *dns_array_pop(dns_array *array) {
     void *e = NULL;
-    if (dns_array_size(ca) > 0) {
-        e = dns_array_get(ca, dns_array_size(ca) - 1);
-        --ca->count;
+    if (dns_array_size(array) > 0) {
+        e = dns_array_get(array, dns_array_size(array) - 1);
+        --array->count;
     }
     return e;
 }
 
-int dns_array_destroy(dns_array *ca) {
-    if (ca->elem != NULL && ca->cap != 0) {
-        free(ca->elem);
-        ca->elem = NULL;
-    }
-    ca->count = 0;
-    ca->cap = 0;
-    return 0;
-}
-
-void *dns_array_get(dns_array *ca, size_t index) {
-    if (index > ca->count) {
+void *dns_array_get(dns_array *array, size_t index) {
+    if (index > array->count) {
         return NULL;
     }
-    return ca->elem[index];
+    return array->elem[index];
 }
 
-size_t dns_array_size(dns_array *ca) {
-    return ca->count;
+size_t dns_array_size(dns_array *array) {
+    return array->count;
 }
 
 //size_t etcd_array_cap(dns_array *ca) {
