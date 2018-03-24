@@ -122,7 +122,21 @@ void dns_string_to_host(const unsigned char *string, dns_string *host) {
                         next_position = next_position + c + 1;
                     }
                 } else {
-                    position++;
+                    if ((c & 0xc0) == 0xc0) {
+                        if (position + 1 >= length) {
+                            ERROR_LOG(NULL, "Malformed DNS Packet");
+                            return;
+                        }
+
+                        position = ((size_t) (((c & 0x3f) << 8) + packet_body[position + 1])) - sizeof(dns_header);
+
+                        if (position >= length) {
+                            ERROR_LOG(NULL, "Malformed DNS Packet, jumped off the end.");
+                            return;
+                        }
+                    } else {
+                        position++;
+                    }
                 }
             }
 
@@ -164,28 +178,37 @@ void dns_string_to_host(const unsigned char *string, dns_string *host) {
                         position++;
                     }
                 } else {
-                    uint8_t c = packet_body[position];
-                    if (c >= '!' && c <= '~' && c != '\\') {
-                        dns_string_append_char(host, packet_body[position]);
-                        i++;
-                        position++;
+                    if ((packet_body[position] & 0xc0) == 0xc0) {
+                        position = ((size_t) (((packet_body[position] & 0x3f) << 8) + packet_body[position + 1])) -
+                                   sizeof(dns_header);
+                        next_position = position;
                     } else {
+                        uint8_t c = packet_body[position];
+                        if (c == 0) {
+                            // we are done!
+                            break;
+                        } else if (c >= '!' && c <= '~' && c != '\\') {
+                            dns_string_append_char(host, packet_body[position]);
+                            i++;
+                            position++;
+                        } else {
 
-                        dns_string_append_char(host, '\\');
-                        dns_string_append_char(host, 'x');
-                        char value = (const char) (c / 16 + 0x30);
-                        if (value > 0x39) {
-                            value += 0x27;
-                        }
-                        dns_string_append_char(host, value);
+                            dns_string_append_char(host, '\\');
+                            dns_string_append_char(host, 'x');
+                            char value = (const char) (c / 16 + 0x30);
+                            if (value > 0x39) {
+                                value += 0x27;
+                            }
+                            dns_string_append_char(host, value);
 
-                        value = (const char) (c % 16 + 0x30);
-                        if (value > 0x39) {
-                            value += 0x27;
+                            value = (const char) (c % 16 + 0x30);
+                            if (value > 0x39) {
+                                value += 0x27;
+                            }
+                            dns_string_append_char(host, value);
+                            i += 4;
+                            position++;
                         }
-                        dns_string_append_char(host, value);
-                        i += 4;
-                        position++;
                     }
                 }
             }

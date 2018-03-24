@@ -138,22 +138,31 @@ dns_string *dns_resource_data_string(transaction_context *context,
                                      dns_packet *packet,
                                      dns_resource_handle resource) {
     dns_string *string = NULL;
-
     if (resource != NULL && packet != NULL) {
-        string = dns_string_new_empty();
-
         switch (dns_resource_record_type(context, resource)) {
             case RECORD_A: {
                 struct sockaddr_in sa;
                 char str[INET_ADDRSTRLEN];
                 sa.sin_addr.s_addr = dns_resource_data_uint32(context, resource);
                 inet_ntop(AF_INET, &(sa.sin_addr), str, INET_ADDRSTRLEN);
+                string = dns_string_new(INET_ADDRSTRLEN);
                 dns_string_append_str(string, str);
             }
                 break;
             case RECORD_NS:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                string = dns_string_new((size_t) (ntohs(header->record_data_len) + 1));
+                dns_string_to_host((const unsigned char *) &header->record_data, string);
+            }
                 break;
             case RECORD_CNAME:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                string = dns_string_new((size_t) (ntohs(header->record_data_len) + 1));
+                dns_string_to_host((const unsigned char *) &header->record_data, string);
+                INFO_LOG(context, "DEBUG");
+            }
                 break;
             case RECORD_SOA:
                 break;
@@ -163,6 +172,7 @@ dns_string *dns_resource_data_string(transaction_context *context,
                 break;
             case RECORD_MX: {
                 uint16_t value = dns_resource_data_uint16(context, resource);
+                string = dns_string_new(64);
                 dns_string_sprintf(string, "%d", value);
             }
                 break;

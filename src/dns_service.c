@@ -36,7 +36,7 @@
 #include "dns_service.h"
 #include "dns_settings.h"
 #include "dns_http.h"
-#include "dns_service_etcd.h"
+#include "dns_etcd_cache.h"
 #include "dns_question.h"
 
 typedef struct dns_incoming_request_t {

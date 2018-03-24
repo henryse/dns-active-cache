@@ -64,7 +64,13 @@ set(SOURCE_FILES
         dns_array.h
         dns_array.c
         dns_ectd.c
-        dns_etcd_json_parser.h dns_service_etcd.c dns_service_etcd.h dns_question.c dns_question.h dns_resource.c dns_resource.h)
+        dns_etcd_json_parser.h
+        dns_etcd_cache.c
+        dns_etcd_cache.h
+        dns_question.c
+        dns_question.h
+        dns_resource.c
+        dns_resource.h)
 
 link_libraries(${CURL_LIBRARY} ${YAJL_LIBRARIES})
 

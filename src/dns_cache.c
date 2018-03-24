@@ -48,6 +48,7 @@
 #include "dns_settings.h"
 #include "dns_question.h"
 #include "dns_resource.h"
+#include "dns_etcd_cache.h"
 
 // Internal cache structure, it is never passed outside
 // of this area, copies of the cache_entry can be
@@ -185,7 +186,6 @@ void dns_cache_log_answers(transaction_context *context, dns_cache_record *recor
 
     dns_string_sprintf(response, "\"answers\":[");
 
-    bool found_answer = false;
     if (record && record->cache_entry.dns_packet_response_size) {
         dns_packet *packet = &record->cache_entry.dns_packet_response;
 
@@ -218,21 +218,18 @@ void dns_cache_log_answers(transaction_context *context, dns_cache_record *recor
                                            dns_record_type_string(dns_resource_record_type(context, answer)));
                     }
 
-                    dns_string_sprintf(response, "\"%s, %s, %s\",",
+                    dns_string_sprintf(response, "\"%s, %s\"",
                                        dns_string_c_str(host_name),
-                                       dns_record_type_string(dns_resource_record_type(context, answer)),
-                                       dns_string_c_str(resource_information));
-                    found_answer = true;
+                                       dns_record_type_string(dns_resource_record_type(context, answer)));
 
                     dns_string_free(resource_information, true);
                     dns_string_free(host_name, true);
+                    if (answer_index != answer_count - 1){
+                        dns_string_sprintf(response, ", ");
+                    }
                 }
             }
         }
-    }
-    if (found_answer) {
-        // remove the comma....
-        dns_string_trim(response, 1);
     }
     dns_string_sprintf(response, "]");
 }
@@ -344,7 +341,10 @@ void dns_cache_json_log(transaction_context *context, dns_string *response) {
         dns_string_trim(response, 1);
     }
     // Need to remove the last comma...
-    dns_string_sprintf(response, "]");
+    dns_string_sprintf(response, "],");
+
+    dns_etcd_cache_log(response);
+
     dns_string_sprintf(response, "}");
 }
 

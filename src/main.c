@@ -40,7 +40,7 @@
 #include "dns_service.h"
 #include "dns_cache.h"
 #include "dns_settings.h"
-#include "dns_service_etcd.h"
+#include "dns_etcd_cache.h"
 
 void shutdown_service() {
     transaction_context context = create_context();

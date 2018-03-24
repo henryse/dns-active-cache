@@ -25,7 +25,7 @@
 **********************************************************************/
 #include <ntsid.h>
 #include <memory.h>
-#include "dns_service_etcd.h"
+#include "dns_etcd_cache.h"
 #include "dns_etcd.h"
 #include "dns_settings.h"
 #include "dns_question.h"
@@ -385,4 +385,47 @@ int dns_service_etcd(transaction_context *context) {
     }
 
     return 0;
+}
+
+void dns_etcd_cache_log(dns_string *response){
+    dns_etcd_cache *cache = dns_etcd_cache_hold(g_cache);
+
+    if (cache){
+        size_t num_records = dns_array_size(cache->dns_etcd_cache_records);
+        dns_string_sprintf(response, "\"etcd\" : [");
+
+        for (size_t record_index = 0; record_index < num_records; record_index++) {
+            dns_etcd_cache_record *record = dns_array_get(cache->dns_etcd_cache_records, record_index);
+            if (record){
+                dns_string_sprintf(response, "{\"%s\" : [", dns_string_c_str(record->name));
+                size_t num_ips = dns_array_size(record->ips);
+                for (size_t ip_index = 0; ip_index < num_ips; ip_index++) {
+                    dns_etcd_cache_ip *ip = dns_array_get(record->ips, ip_index);
+
+                    dns_string_sprintf(response, "{ \"ip\" : \"%s\", \"ports\" : [", dns_string_c_str(ip->ip));
+
+                    size_t num_ports = dns_array_size(ip->ports);
+                    for (size_t port_index = 0; port_index < num_ports; port_index++){
+                        unsigned port = (unsigned)dns_array_get(ip->ports, port_index);
+                        dns_string_sprintf(response, "%d", port);
+                        if (port_index < num_ports - 1){
+                            dns_string_sprintf(response, ", ");
+                        }
+                    }
+                    dns_string_sprintf(response, "]}");
+                    if (ip_index < num_ips - 1){
+                        dns_string_sprintf(response, ", ");
+                    }
+                }
+                dns_string_sprintf(response, "]}");
+                if (record_index < num_records - 1){
+                    dns_string_sprintf(response, ", ");
+                }
+            }
+        }
+        dns_string_sprintf(response, "]");
+
+        dns_etcd_cache_release(cache);
+    }
+
 }

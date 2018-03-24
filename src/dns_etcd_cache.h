@@ -45,4 +45,6 @@ dns_etcd_cache *dns_etcd_cache_hold(dns_etcd_cache *cache);
 
 dns_etcd_cache *dns_etcd_cache_release(dns_etcd_cache *cache);
 
+void dns_etcd_cache_log(dns_string *response);
+
 #endif //DNS_ACTIVE_CACHE_SERVICE_ETCD_H
