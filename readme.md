@@ -12,6 +12,7 @@ Warning: ETCD support is not complete, still working on the following:
     3. SRV Records need to be implemeneted.
     4. Check question type in cache if it does not match, forward reqeust again
     5. Refactor how bypass works.
+    6. Document how to use with Registerator and make Dockerfile example
 
 ## Introduction
 This is a simple active local [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) caching service, 
