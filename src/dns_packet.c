@@ -134,6 +134,9 @@ void dns_string_to_host(const unsigned char *string, dns_string *host) {
                             ERROR_LOG(NULL, "Malformed DNS Packet, jumped off the end.");
                             return;
                         }
+                    } else if (c == 0) {
+                        // we are done!
+                        break;
                     } else {
                         position++;
                     }
