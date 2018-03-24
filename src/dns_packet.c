@@ -394,7 +394,7 @@ void dns_packet_record_ttl_set(transaction_context *context,
 
 
 const char *dns_record_type_string(uint16_t record_type) {
-    switch (ntohs(record_type)) {
+    switch (record_type) {
         case RECORD_A:
             return "A";
         case RECORD_NS:
