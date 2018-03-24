@@ -145,8 +145,7 @@ dns_string *dns_resource_data_string(transaction_context *context,
                 char str[INET_ADDRSTRLEN];
                 sa.sin_addr.s_addr = dns_resource_data_uint32(context, resource);
                 inet_ntop(AF_INET, &(sa.sin_addr), str, INET_ADDRSTRLEN);
-                string = dns_string_new(INET_ADDRSTRLEN);
-                dns_string_append_str(string, str);
+                string = dns_string_new_c(strlen(str), str);
             }
                 break;
             case RECORD_NS:
@@ -161,14 +160,25 @@ dns_string *dns_resource_data_string(transaction_context *context,
                 dns_resource_header *header = dns_resource_header_get(resource);
                 string = dns_string_new((size_t) (ntohs(header->record_data_len) + 1));
                 dns_string_to_host((const unsigned char *) &header->record_data, string);
-                INFO_LOG(context, "DEBUG");
             }
                 break;
             case RECORD_SOA:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                INFO_LOG(context, "RECORD_SOA");
+            }
                 break;
             case RECORD_WKS:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                INFO_LOG(context, "RECORD_WKS");
+            }
                 break;
             case RECORD_PTR:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                INFO_LOG(context, "RECORD_PTR");
+            }
                 break;
             case RECORD_MX: {
                 uint16_t value = dns_resource_data_uint16(context, resource);
@@ -177,10 +187,27 @@ dns_string *dns_resource_data_string(transaction_context *context,
             }
                 break;
             case RECORD_SRV:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                INFO_LOG(context, "RECORD_SRV");
+            }
                 break;
             case RECORD_A6:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                INFO_LOG(context, "RECORD_A6");
+            }
                 break;
             case RECORD_AAAA:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                INFO_LOG(context, "RECORD_AAAA");
+            }
+            case RECORD_HINFO:
+            {
+                dns_resource_header *header = dns_resource_header_get(resource);
+                INFO_LOG(context, "RECORD_HINFO");
+            }
                 break;
             default:
                 break;

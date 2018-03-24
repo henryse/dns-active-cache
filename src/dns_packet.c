@@ -418,6 +418,8 @@ const char *dns_record_type_string(uint16_t record_type) {
             return "A6";
         case RECORD_AAAA:
             return "AAAA";
+        case RECORD_HINFO:
+            return "HINFO";
         case RECORD_ANY:
             return "ANY";
         default:

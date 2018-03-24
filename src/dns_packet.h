@@ -73,6 +73,9 @@ typedef struct __attribute__((packed)) dns_packet_t {
 #define RECORD_MX 0x0F            /* '000F (15)	 Requests the MX record(s) for the domain name */
 #define RECORD_SRV 0x21           /* '0021 (33)	 Requests the SRV record(s) for the domain name */
 #define RECORD_AAAA 0x1C          /* '001C (28)  IPv6 Address record. An IPv6 address for a host. */
+#define RECORD_HINFO 0x0D         /* '000D (13)  Record intended to provide information about host CPU type and */
+                                  /*             operating system. It was intended to allow protocols to optimize */
+                                  /*             processing when communicating with similar peers */
 #define RECORD_A6 0x26            /* '0026 (38)	 Obsolete. AAAA is the recommended IPv6 address record. Historical status */
 #define RECORD_ANY 0xFF           /* '00FF (255) Requests ANY resource record (typically wants SOA, MX, NS and MX) */
 
