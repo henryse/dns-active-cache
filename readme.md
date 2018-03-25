@@ -15,6 +15,9 @@ Warning: ETCD support is not complete, still working on the following:
     6. Document how to use with Registerator and make Dockerfile example
 
 ## Introduction
+
+An invaluable guide in learning about DNS communications can be found at [zytrax](http://www.zytrax.com/books/dns/).  I could not have done this project without it.
+
 This is a simple active local [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) caching service, 
 it **NOT** intended to be used as a desktop [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) cache.
   
