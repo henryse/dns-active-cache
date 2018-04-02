@@ -41,7 +41,7 @@ typedef struct yajl_parser_context_t {
 } yajl_parser_context;
 #define UNUSED(v) (void)(v)
 
-bool etcd_string_eq(dns_string *string1, const char *string2){
+bool etcd_string_eq(dns_string *string1, const char *string2) {
     bool result = strncmp(dns_string_c_str(string1), string2, strlen(string2)) == 0;
     result = result && dns_string_length(string1) == strlen(string2);
     return result;

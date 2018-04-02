@@ -43,7 +43,7 @@
 #pragma ide diagnostic ignored "OCDFAInspection"
 
 void dns_host_to_string(const char *host, char *string) {
-    if (host && string){
+    if (host && string) {
         char *host_copy = alloca(strlen(host) + 1);
         memory_clear(host_copy, strlen(host) + 1);
 
@@ -54,14 +54,14 @@ void dns_host_to_string(const char *host, char *string) {
 
         token = strtok(host_copy, delimiter);
 
-        while( token != NULL ) {
+        while (token != NULL) {
             size_t length = strlen(token);
 
-            *string= (unsigned char) length;
+            *string = (unsigned char) length;
             string++;
 
             strncpy(string, token, length);
-            string+=length;
+            string += length;
 
             token = strtok(NULL, delimiter);
         }
@@ -237,7 +237,7 @@ void dns_packet_log(transaction_context *context, dns_packet *packet, const char
 
         if (!str) {
             ERROR_LOG(context, "Failed to allocate logging string, out of memory?"
-                    "  This is either a bug or an issue with the server.");
+                               "  This is either a bug or an issue with the server.");
             dns_string_free(log_output, true);
             return;
         }
@@ -431,10 +431,10 @@ const char *dns_record_type_string(uint16_t record_type) {
     return "UNKNOWN";
 }
 
-size_t dns_packet_size(dns_packet *packet){
+size_t dns_packet_size(dns_packet *packet) {
     size_t size = 0;
 
-    if(packet){
+    if (packet) {
         size += sizeof(dns_header);
 
         uint16_t resource_count = ntohs(packet->header.authority_count) +
@@ -447,7 +447,7 @@ size_t dns_packet_size(dns_packet *packet){
             resource = dns_resource_next(resource);
         }
 
-        size += (char *)resource - (char *)&packet->body;
+        size += (char *) resource - (char *) &packet->body;
     }
 
     return size;

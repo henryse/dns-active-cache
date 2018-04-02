@@ -39,13 +39,13 @@ etcd_client g_cli;
 
 typedef struct dns_etcd_cache_ip_t {
     dns_string *ip;
-    dns_array  *ports;
+    dns_array *ports;
 } dns_etcd_cache_ip;
 
 typedef struct dns_etcd_cache_record_t {
     dns_string *service;
     dns_string *protocol;
-    dns_array  *ips;
+    dns_array *ips;
 } dns_etcd_cache_record;
 
 dns_etcd_cache *g_cache;
@@ -60,16 +60,16 @@ dns_etcd_cache *dns_etcd_cache_allocate() {
 }
 
 void dns_etcd_record_free(dns_etcd_cache_record *record) {
-    if (record){
+    if (record) {
         dns_string_free(record->service, true);
         dns_string_free(record->protocol, true);
 
         size_t num_ips = dns_array_size(record->ips);
 
-        for (size_t i = 0; i < num_ips; i++){
-            dns_etcd_cache_ip* ip = dns_array_get(record->ips, i);
+        for (size_t i = 0; i < num_ips; i++) {
+            dns_etcd_cache_ip *ip = dns_array_get(record->ips, i);
 
-            if (ip){
+            if (ip) {
                 dns_string_free(ip->ip, true);
                 dns_array_free(ip->ports);
 
@@ -130,7 +130,7 @@ dns_etcd_cache_ip *dns_etcd_ip_find(dns_array *ips, const char *ip_address) {
 
     for (size_t i = 0; i < num_records; i++) {
         dns_etcd_cache_ip *ip = dns_array_get(ips, i);
-        if (strcmp(ip_address, dns_string_c_str(ip->ip)) == 0){
+        if (strcmp(ip_address, dns_string_c_str(ip->ip)) == 0) {
             return ip;
         }
     }
@@ -138,11 +138,11 @@ dns_etcd_cache_ip *dns_etcd_ip_find(dns_array *ips, const char *ip_address) {
     return NULL;
 }
 
-dns_etcd_cache_ip *dns_etcd_ip_find_create(dns_array *ips, dns_string *ip_address){
+dns_etcd_cache_ip *dns_etcd_ip_find_create(dns_array *ips, dns_string *ip_address) {
 
     dns_etcd_cache_ip *ip = dns_etcd_ip_find(ips, dns_string_c_str(ip_address));
 
-    if (ip){
+    if (ip) {
         return ip;
     }
 
@@ -154,14 +154,14 @@ dns_etcd_cache_ip *dns_etcd_ip_find_create(dns_array *ips, dns_string *ip_addres
     return ip;
 }
 
-void dns_etcd_ip_push(dns_etcd_cache_record *record, dns_string *value){
+void dns_etcd_ip_push(dns_etcd_cache_record *record, dns_string *value) {
     ASSERT(NULL, record && value);
 
-    if (record && value){
+    if (record && value) {
         size_t count = 0;
         dns_string_array *elements = dns_string_split_length(value, ":", &count);
 
-        if (count > 0){
+        if (count > 0) {
             ASSERT(NULL, count == 2);
 
             dns_string *ip_address = dns_array_get(elements, 0);
@@ -178,7 +178,7 @@ void dns_etcd_ip_push(dns_etcd_cache_record *record, dns_string *value){
     }
 }
 
-dns_etcd_cache_record *dns_etcd_cache_find_create(dns_array *records, dns_string *service, dns_string *protocol){
+dns_etcd_cache_record *dns_etcd_cache_find_create(dns_array *records, dns_string *service, dns_string *protocol) {
     ASSERT(NULL, records && service && protocol);
 
     if (records && service && protocol) {
@@ -216,8 +216,8 @@ void dns_etcd_record_push(transaction_context *context,
                                                   dns_get_host_name());
 
     dns_string *protocol_name = dns_string_sprintf(dns_string_new_empty(),
-                                                  "_http._tcp.%s",
-                                                  dns_get_host_name());
+                                                   "_http._tcp.%s",
+                                                   dns_get_host_name());
 
     dns_etcd_cache_record *record = dns_etcd_cache_find_create(records, service_name, protocol_name);
 
@@ -277,7 +277,7 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
 
     // If not then randomly select one from the list.
     //
-    if (NULL == ip){
+    if (NULL == ip) {
         dns_array_shuffle(records->ips);
         ip = dns_array_top(records->ips);
     }
@@ -286,13 +286,13 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
 
     record_type_t qtype = dns_question_type(question);
 
-    if (qtype == RECORD_A){
+    if (qtype == RECORD_A) {
         cache_entry->dns_packet_response_size = dns_packet_a_record_create(request,
                                                                            cache_entry,
                                                                            records->service,
                                                                            ip->ip);
-    } else if (qtype == RECORD_SRV){
-        dns_string *service_name = dns_string_sprintf(dns_string_new_empty(),"_http._tcp.%s", dns_get_host_name());
+    } else if (qtype == RECORD_SRV) {
+        dns_string *service_name = dns_string_sprintf(dns_string_new_empty(), "_http._tcp.%s", dns_get_host_name());
 
         cache_entry->dns_packet_response_size = dns_packet_srv_record_create(request,
                                                                              cache_entry,
@@ -319,13 +319,13 @@ bool dns_etcd_search(dns_packet *request, dns_string *request_host_name, dns_cac
 
             record_type_t qtype = dns_question_type(question);
 
-            if (qtype == RECORD_A){
+            if (qtype == RECORD_A) {
                 if (dns_string_strcmp(request_host_name, record->service) == 0) {
                     dns_cache_entry_setup(request, cache_entry, record);
                     found = true;
                     break;
                 }
-            } else if (qtype == RECORD_SRV){
+            } else if (qtype == RECORD_SRV) {
                 if (dns_string_strcmp(request_host_name, record->protocol) == 0) {
                     dns_cache_entry_setup(request, cache_entry, record);
                     found = true;
@@ -427,16 +427,16 @@ int dns_service_etcd(transaction_context *context) {
     return 0;
 }
 
-void dns_etcd_cache_log(dns_string *response){
+void dns_etcd_cache_log(dns_string *response) {
     dns_etcd_cache *cache = dns_etcd_cache_hold(g_cache);
 
-    if (cache){
+    if (cache) {
         size_t num_records = dns_array_size(cache->dns_etcd_cache_records);
         dns_string_sprintf(response, "\"etcd\" : [");
 
         for (size_t record_index = 0; record_index < num_records; record_index++) {
             dns_etcd_cache_record *record = dns_array_get(cache->dns_etcd_cache_records, record_index);
-            if (record){
+            if (record) {
                 dns_string_sprintf(response, "{\"protocol\": \"%s\",", dns_string_c_str(record->protocol));
                 dns_string_sprintf(response, "\"service\": \"%s\",", dns_string_c_str(record->service));
                 dns_string_sprintf(response, "\"ips\" : [");
@@ -447,20 +447,20 @@ void dns_etcd_cache_log(dns_string *response){
                     dns_string_sprintf(response, "{ \"ip\" : \"%s\", \"ports\" : [", dns_string_c_str(ip->ip));
 
                     size_t num_ports = dns_array_size(ip->ports);
-                    for (size_t port_index = 0; port_index < num_ports; port_index++){
-                        unsigned port = (unsigned)dns_array_get(ip->ports, port_index);
+                    for (size_t port_index = 0; port_index < num_ports; port_index++) {
+                        unsigned port = (unsigned) dns_array_get(ip->ports, port_index);
                         dns_string_sprintf(response, "%d", port);
-                        if (port_index < num_ports - 1){
+                        if (port_index < num_ports - 1) {
                             dns_string_sprintf(response, ", ");
                         }
                     }
                     dns_string_sprintf(response, "]}");
-                    if (ip_index < num_ips - 1){
+                    if (ip_index < num_ips - 1) {
                         dns_string_sprintf(response, ", ");
                     }
                 }
                 dns_string_sprintf(response, "]}");
-                if (record_index < num_records - 1){
+                if (record_index < num_records - 1) {
                     dns_string_sprintf(response, ", ");
                 }
             }

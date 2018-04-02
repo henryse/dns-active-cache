@@ -46,7 +46,7 @@ typedef struct __attribute__((packed)) dns_resource_t {
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-typedef struct  __attribute__((packed)) dns_resource_srv_t {
+typedef struct __attribute__((packed)) dns_resource_srv_t {
     uint16_t priority;
     uint16_t weight;
     uint16_t port;
@@ -161,34 +161,29 @@ dns_string *dns_resource_data_string(transaction_context *context,
                 string = dns_string_new_c(strlen(str), str);
             }
                 break;
-            case RECORD_NS:
-            {
+            case RECORD_NS: {
                 dns_resource_header *header = dns_resource_header_get(resource);
                 string = dns_string_new((size_t) (ntohs(header->record_data_len) + 1));
                 dns_string_to_host((const unsigned char *) &header->record_data, string);
             }
                 break;
-            case RECORD_CNAME:
-            {
+            case RECORD_CNAME: {
                 dns_resource_header *header = dns_resource_header_get(resource);
                 string = dns_string_new((size_t) (ntohs(header->record_data_len) + 1));
                 dns_string_to_host((const unsigned char *) &header->record_data, string);
             }
                 break;
-            case RECORD_SOA:
-            {
+            case RECORD_SOA: {
                 dns_resource_header  __unused *header = dns_resource_header_get(resource);
                 INFO_LOG(context, "RECORD_SOA");
             }
                 break;
-            case RECORD_WKS:
-            {
+            case RECORD_WKS: {
                 dns_resource_header  __unused *header = dns_resource_header_get(resource);
                 INFO_LOG(context, "RECORD_WKS");
             }
                 break;
-            case RECORD_PTR:
-            {
+            case RECORD_PTR: {
                 dns_resource_header  __unused *header = dns_resource_header_get(resource);
                 INFO_LOG(context, "RECORD_PTR");
             }
@@ -199,8 +194,7 @@ dns_string *dns_resource_data_string(transaction_context *context,
                 dns_string_sprintf(string, "%d", value);
             }
                 break;
-            case RECORD_SRV:
-            {
+            case RECORD_SRV: {
                 dns_resource_header *header = dns_resource_header_get(resource);
                 string = dns_string_new((size_t) (ntohs(header->record_data_len) + 1));
 
@@ -210,19 +204,16 @@ dns_string *dns_resource_data_string(transaction_context *context,
                 dns_string_to_host((const unsigned char *) &resource_srv->target, string);
             }
                 break;
-            case RECORD_A6:
-            {
+            case RECORD_A6: {
                 dns_resource_header  __unused *header = dns_resource_header_get(resource);
                 INFO_LOG(context, "RECORD_A6");
             }
                 break;
-            case RECORD_AAAA:
-            {
+            case RECORD_AAAA: {
                 dns_resource_header  __unused *header = dns_resource_header_get(resource);
                 INFO_LOG(context, "RECORD_AAAA");
             }
-            case RECORD_HINFO:
-            {
+            case RECORD_HINFO: {
                 dns_resource_header  __unused *header = dns_resource_header_get(resource);
                 INFO_LOG(context, "RECORD_HINFO");
             }
@@ -332,8 +323,8 @@ dns_resource_handle dns_resource_next(dns_resource_handle resource) {
 
         if (record_header) {
             next_resource = (dns_resource_handle) ((uint8_t *) record_header)
-                                                   + sizeof(dns_resource_header)
-                                                   + ntohs(record_header->record_data_len);
+                            + sizeof(dns_resource_header)
+                            + ntohs(record_header->record_data_len);
         }
     }
 
@@ -446,13 +437,13 @@ dns_resource_handle dns_packet_information_get(transaction_context *context,
 }
 
 void dns_resource_set_header(transaction_context *context,
-                    dns_resource_handle resource,
-                    const char *host_ip,
-                    uint32_t ttl){
+                             dns_resource_handle resource,
+                             const char *host_ip,
+                             uint32_t ttl) {
 
     ASSERT(context, host_ip && resource);
 
-    if (host_ip && resource){
+    if (host_ip && resource) {
         dns_resource_type_set(context, resource, RECORD_A);
         dns_resource_class_set(context, resource, CLASS_IN);
         dns_resource_ttl_set(context, resource, ttl);
@@ -462,14 +453,14 @@ void dns_resource_set_header(transaction_context *context,
     }
 }
 
-void dns_resource_authority_append( transaction_context *context, dns_packet *packet){
+void dns_resource_authority_append(transaction_context *context, dns_packet *packet) {
     ASSERT(context, packet);
 
     // We should not have an answer, yet!
     //
-    if (packet){
+    if (packet) {
 
-        ASSERT(context, ntohs(packet->header.authority_count) == 0 );
+        ASSERT(context, ntohs(packet->header.authority_count) == 0);
 
         packet->header.authority_count = htons(1);
 
@@ -487,11 +478,11 @@ void dns_resource_name_ptr_set(transaction_context *context,
                                const char *target) {
     ASSERT(context, packet && resource);
 
-    if (packet && resource){
-        uint16_t size = (uint16_t) (target - (const char *)packet);
+    if (packet && resource) {
+        uint16_t size = (uint16_t) (target - (const char *) packet);
 
 
-        uint16_t *target_offset = (uint16_t *)resource;
+        uint16_t *target_offset = (uint16_t *) resource;
         *target_offset = htons((uint16_t) (size | 0xC000));
     }
 }
@@ -499,12 +490,12 @@ void dns_resource_name_ptr_set(transaction_context *context,
 void dns_resource_answer_append(transaction_context *context,
                                 dns_packet *packet,
                                 dns_string *host_name,
-                                dns_string *ip){
+                                dns_string *ip) {
 
     ASSERT(context, packet && ip && host_name);
 
     if (packet && ip && host_name) {
-        ASSERT(context, ntohs(packet->header.answer_count) == 0 );
+        ASSERT(context, ntohs(packet->header.answer_count) == 0);
 
         packet->header.answer_count = htons(1);
 
@@ -518,7 +509,7 @@ void dns_resource_answer_append(transaction_context *context,
 
 void dns_resource_name_set(transaction_context *context,
                            dns_resource_handle resource,
-                           const char* name){
+                           const char *name) {
     ASSERT(context, resource != NULL);
 
     if (resource && name) {
@@ -528,7 +519,7 @@ void dns_resource_name_set(transaction_context *context,
 
 void dns_resource_type_set(transaction_context *context,
                            dns_resource_handle resource,
-                           record_type_t record_type){
+                           record_type_t record_type) {
     ASSERT(context, resource != NULL);
 
     if (resource) {
@@ -538,8 +529,8 @@ void dns_resource_type_set(transaction_context *context,
 }
 
 void dns_resource_class_set(transaction_context *context,
-                           dns_resource_handle resource,
-                           class_type_t class_type){
+                            dns_resource_handle resource,
+                            class_type_t class_type) {
     ASSERT(context, resource != NULL);
 
     if (resource) {
@@ -551,10 +542,10 @@ void dns_resource_class_set(transaction_context *context,
 void dns_resource_data_set(transaction_context *context,
                            dns_resource_handle resource,
                            uint16_t record_data_len,
-                           void *record_data){
+                           void *record_data) {
     ASSERT(context, record_data != NULL && resource != NULL);
 
-    if (resource){
+    if (resource) {
         dns_resource_header *header = dns_resource_header_get(resource);
         header->record_data_len = htons(record_data_len);
         memcpy(header->record_data, record_data, record_data_len);
@@ -566,21 +557,20 @@ void dns_resource_srv_append(transaction_context *context,
                              dns_string *service_name,
                              uint32_t ttl,
                              dns_array *ports,
-                             dns_string *target)
-{
-    ASSERT(context, packet != NULL && target != NULL && service_name!=NULL && ports != NULL);
+                             dns_string *target) {
+    ASSERT(context, packet != NULL && target != NULL && service_name != NULL && ports != NULL);
 
 
-    if (packet && target && service_name && ports){
+    if (packet && target && service_name && ports) {
         size_t num_ports = dns_array_size(ports);
 
         packet->header.answer_count = htons(num_ports);
 
-        if (num_ports > 0){
+        if (num_ports > 0) {
 
             dns_resource_handle resource = (dns_resource_handle) dns_packet_question_skip(packet);
 
-            const char *service_name_ptr = (const char *)resource;
+            const char *service_name_ptr = (const char *) resource;
 
             dns_resource_name_set(context, resource, dns_string_c_str(service_name));
             dns_resource_header *header = dns_resource_header_get(resource);
@@ -595,9 +585,9 @@ void dns_resource_srv_append(transaction_context *context,
             resource_srv->priority = htons(1);
             dns_host_to_string(dns_string_c_str(target), (char *) &resource_srv->target);
 
-            const char *target_ptr = (const char *)&resource_srv->target;
+            const char *target_ptr = (const char *) &resource_srv->target;
 
-            for (size_t index = 1; index < num_ports; index++){
+            for (size_t index = 1; index < num_ports; index++) {
                 resource = (dns_resource_handle) dns_packet_question_skip(packet);
                 resource = dns_resource_next(resource);
 
@@ -613,8 +603,8 @@ void dns_resource_srv_append(transaction_context *context,
                 resource_srv->weight = htons(1);
                 resource_srv->priority = htons(1);
 
-                uint16_t offset = (uint16_t) (target_ptr - (const char *)packet);
-                uint16_t *target_offset = (uint16_t *)&resource_srv->target;
+                uint16_t offset = (uint16_t) (target_ptr - (const char *) packet);
+                uint16_t *target_offset = (uint16_t *) &resource_srv->target;
                 offset = (uint16_t) (offset | 0xC000);
                 *target_offset = htons((uint16_t) offset);
             }

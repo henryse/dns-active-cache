@@ -75,7 +75,7 @@ int startup_connection(transaction_context *context, short port) {
 
     if (socket_fd == -1) {
         ERROR_LOG(context, "Unable to create socket, this is either a network issue where the port %d"
-                " is already in use or a bug in the service.", port);
+                           " is already in use or a bug in the service.", port);
     } else {
         // The setsockopt() function is used to allow the local address to
         // be reused when the server is restarted before the required wait
@@ -86,12 +86,12 @@ int startup_connection(transaction_context *context, short port) {
         if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR,
                        (char *) &option_one, sizeof(option_one)) < 0) {
             ERROR_LOG(context, "Setsockopt(SO_REUSEADDR) failed, this is either"
-                    " a network issue or a bug in the service.");
+                               " a network issue or a bug in the service.");
         }
 
         if (bind(socket_fd, response->ai_addr, response->ai_addrlen) < 0) {
             ERROR_LOG(context, "Bind failed on socket %d, this is either a network "
-                    "issue or a bug in the service", socket_fd);
+                               "issue or a bug in the service", socket_fd);
             close(socket_fd);
             socket_fd = -1;
         }
@@ -232,7 +232,7 @@ bool dns_resolve(transaction_context *context,
                        destination_size) <= 0) {
 
                 ERROR_LOG(context, "sendto() failed, this is either a networking issue or a bug in the service. "
-                        "Trying to connect to: %s", dns_get_resolvers()[index]);
+                                   "Trying to connect to: %s", dns_get_resolvers()[index]);
             } else {
                 dns_packet_log(context,
                                &dns_request,

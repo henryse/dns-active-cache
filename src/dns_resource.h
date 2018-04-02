@@ -62,14 +62,14 @@ uint32_t dns_resource_data_uint32(transaction_context *context, dns_resource_han
 
 uint16_t dns_resource_data_uint16(transaction_context *context, dns_resource_handle resource);
 
-void dns_resource_authority_append( transaction_context *context, dns_packet *packet);
+void dns_resource_authority_append(transaction_context *context, dns_packet *packet);
 
 void dns_resource_answer_append(transaction_context *context,
                                 dns_packet *packet,
                                 dns_string *host_name,
                                 dns_string *ip);
 
-void dns_resource_name_set(transaction_context *context, dns_resource_handle resource, const char* name);
+void dns_resource_name_set(transaction_context *context, dns_resource_handle resource, const char *name);
 
 void dns_resource_type_set(transaction_context *context, dns_resource_handle resource, record_type_t record_type);
 

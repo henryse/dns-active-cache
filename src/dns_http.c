@@ -228,7 +228,7 @@ int debug_startup_connection(transaction_context *context) {
 
     if (socket_fd == -1) {
         ERROR_LOG(context, "Unable to create socket, this is either a network issue where the port %"
-                " is already in use or a bug in the service.", dns_http_get_port());
+                           " is already in use or a bug in the service.", dns_http_get_port());
     } else {
         // The setsockopt() function is used to allow the local address to
         // be reused when the server is restarted before the required wait
@@ -238,12 +238,12 @@ int debug_startup_connection(transaction_context *context) {
         if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR,
                        (char *) &option_one, sizeof(option_one)) < 0) {
             ERROR_LOG(context, "Setsockopt(SO_REUSEADDR) failed, this is either"
-                    " a network issue or a bug in the service.");
+                               " a network issue or a bug in the service.");
         }
 
         if (bind(socket_fd, response->ai_addr, response->ai_addrlen) < 0) {
             ERROR_LOG(context, "Bind failed on socket %d, this is either a network "
-                    "issue or a bug in the service", socket_fd);
+                               "issue or a bug in the service", socket_fd);
             close(socket_fd);
             socket_fd = -1;
         }
@@ -377,7 +377,8 @@ void *debug_thread(void __unused *arg) {
 
             close(socket_fd);
         } else {
-            ERROR_LOG(&context, "[ERROR] DNS Active Cache was unable to take the stage on port %d", dns_http_get_port());
+            ERROR_LOG(&context, "[ERROR] DNS Active Cache was unable to take the stage on port %d",
+                      dns_http_get_port());
         }
     }
 

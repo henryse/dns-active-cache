@@ -223,7 +223,7 @@ void dns_cache_log_answers(transaction_context *context, dns_cache_record *recor
 
                     dns_string_free(resource_information, true);
                     dns_string_free(host_name, true);
-                    if (answer_index != answer_count - 1){
+                    if (answer_index != answer_count - 1) {
                         dns_string_sprintf(response, ", ");
                     }
                 }
@@ -464,7 +464,7 @@ void dns_cache_record_remove(transaction_context *context, dns_cache_record *cac
 
     if (g_head == NULL) {
         ERROR_LOG(context, "Fatal Error, the cache is empty and dns_cache_record_remove "
-                "is trying to remove a record that does not exist, please report this as a bug.");
+                           "is trying to remove a record that does not exist, please report this as a bug.");
         return;
     }
 
@@ -710,7 +710,7 @@ int dns_cache_init(transaction_context *context) {
 
     if (dns_get_cache_entries() <= 16) {
         ERROR_LOG(context, "Sorry we need at least 16 cache entries, you have select %d, "
-                "please use --entries= to enlarge it.", dns_get_cache_entries());
+                           "please use --entries= to enlarge it.", dns_get_cache_entries());
     } else if (dns_get_resolvers() == NULL || dns_get_resolvers_count() == 0) {
         ERROR_LOG(context, "We need someone to call, no resolvers file found.  See --resolvers= to select a file.");
     } else {
@@ -742,7 +742,7 @@ void dns_cache_stop() {
 void dns_packet_header_create(dns_packet *packet,
                               record_type_t record_type,
                               uint16_t id,
-                              dns_string *host_name){
+                              dns_string *host_name) {
 
     memory_clear(packet, sizeof(dns_packet));
 
@@ -815,7 +815,7 @@ size_t dns_packet_srv_record_create(dns_packet *request,
                                     dns_string *service_name,
                                     uint32_t ttl,
                                     dns_array *ports,
-                                    dns_string *target){
+                                    dns_string *target) {
     //                                1  1  1  1  1  1
     //  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
     // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+

@@ -78,18 +78,18 @@ void usage(const char *program) {
     fprintf(stdout, "Usage:     %s --port=PORT --resolvers=RESOLVERS --timeout_ms=TIMEOUT_IN_MS\n", program);
     fprintf(stdout, "Example:   %s --port=5300 --resolvers=/etc/resolv.dns_cache --timeout_ms=500 \n\n", program);
     fprintf(stdout, "DNS Active Cache is a high performance DNS cache intended for server environments.\n"
-            "This is a simple active local DNS caching service, it NOT intended to be used as a desktop DNS cache.\n"
-            "The issue we are trying to address has to do with Cloud Deployments(AWS).  The DNS style load balancing requires \n"
-            "services to constantly query upstream DNS servers to discover what IP address they need \n"
-            "to send requests to.  We were able to reduce our DNS requests to sub millisecond \n"
-            "requests by having a local smart cache.\n\n"
-            "Most servers only talk to a couple of upstream servers, so this service will allow you to configure \n"
-            "how many 'cache entries' you need(see 'Configuration' below).\n\n"
-            "This simple service will do the following:\n\n"
-            "     1. When a DNS request comes in it will try to call the DSN servers defined in 'resolv.dns_cache'.\n\n"
-            "     2. If a valid DNS entry is found, it will then store the entry into the local cache, see entries parameter.\n\n"
-            "     3. A separate thread there after will keep refreshing the local DNS entries local cache.\n\n"
-            "Thus after the first request, all future requests will be cached locally.\n");
+                    "This is a simple active local DNS caching service, it NOT intended to be used as a desktop DNS cache.\n"
+                    "The issue we are trying to address has to do with Cloud Deployments(AWS).  The DNS style load balancing requires \n"
+                    "services to constantly query upstream DNS servers to discover what IP address they need \n"
+                    "to send requests to.  We were able to reduce our DNS requests to sub millisecond \n"
+                    "requests by having a local smart cache.\n\n"
+                    "Most servers only talk to a couple of upstream servers, so this service will allow you to configure \n"
+                    "how many 'cache entries' you need(see 'Configuration' below).\n\n"
+                    "This simple service will do the following:\n\n"
+                    "     1. When a DNS request comes in it will try to call the DSN servers defined in 'resolv.dns_cache'.\n\n"
+                    "     2. If a valid DNS entry is found, it will then store the entry into the local cache, see entries parameter.\n\n"
+                    "     3. A separate thread there after will keep refreshing the local DNS entries local cache.\n\n"
+                    "Thus after the first request, all future requests will be cached locally.\n");
     fprintf(stdout, "     log            General logging messages. default: %s\n",
             dns_get_log_mode() ? "true" : "false");
     fprintf(stdout, "     port           port to listen on, the default is %d\n", dns_get_port());
@@ -104,7 +104,7 @@ void usage(const char *program) {
     fprintf(stdout, "     etcd           ETCD path, for example: --etcd=http://192.168.1.129:2379, if this is not "
                     " set then ETCD support is not used.\n");
     fprintf(stdout, "     http           Simple HTTP port to dump diagnostics, support HTTP GET, [host]:[port], "
-            "if zero then disabled.  default: %hu\n", dns_http_get_port());
+                    "if zero then disabled.  default: %hu\n", dns_http_get_port());
     fprintf(stdout, "     optimize       Optimize the use of ports by reusing them. default: %s\n",
             dns_get_optimize_mode() ? "true" : "false");
     fprintf(stdout, "     maxttl         Max TTL in seconds for DNS entries, if an upstream server returns a value "
@@ -113,7 +113,8 @@ void usage(const char *program) {
     fprintf(stdout, "     host_name      Required for ETCD: host name to used as the base name for services "
                     " and is used as the DNS authority."
                     "\n");
-    fprintf(stdout, "     host_ip        Required for ETCD: host ip used for identifying what the local hosted services listed in ETCD\n");
+    fprintf(stdout,
+            "     host_ip        Required for ETCD: host ip used for identifying what the local hosted services listed in ETCD\n");
     fprintf(stdout, "     help           Get this help message\n");
 }
 

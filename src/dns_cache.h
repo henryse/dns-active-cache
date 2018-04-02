@@ -61,7 +61,7 @@ bool dns_cache_health_check(transaction_context *context);
 size_t dns_packet_a_record_create(dns_packet *request,
                                   dns_cache_entry *cache_entry,
                                   dns_string *host_name,
-                                  dns_string  *ip);
+                                  dns_string *ip);
 
 size_t dns_packet_srv_record_create(dns_packet *request,
                                     dns_cache_entry *cache_entry,

@@ -983,7 +983,7 @@ static void etcd_node_log(dns_string *log_output, etcd_response_node *node) {
 
 void etcd_response_log(transaction_context *context, etcd_response *resp) {
 
-    if (resp == NULL){
+    if (resp == NULL) {
         return;
     }
 
@@ -1013,9 +1013,9 @@ void etcd_response_log(transaction_context *context, etcd_response *resp) {
     dns_string_free(log_output, true);
 }
 
-void etcd_request_log(transaction_context *context, etcd_request *req){
+void etcd_request_log(transaction_context *context, etcd_request *req) {
 
-    if(req == NULL){
+    if (req == NULL) {
         return;
     }
 
@@ -1023,11 +1023,11 @@ void etcd_request_log(transaction_context *context, etcd_request *req){
 
     dns_string_sprintf(log_output, "\nETCD Request:\n");
 
-    dns_string_sprintf(log_output, "\tHTTP Method: %s\n" , http_method[req->method]);
-    dns_string_sprintf(log_output, "\tAPI Type: %s\n" , etcd_event_action[req->api_type]);
-    dns_string_sprintf(log_output, "\tURI: %s\n" , dns_string_c_str(req->uri));
-    dns_string_sprintf(log_output, "\tURL: %s\n" , dns_string_c_str(req->url));
-    dns_string_sprintf(log_output, "\tData: %s\n" , dns_string_c_str(req->data));
+    dns_string_sprintf(log_output, "\tHTTP Method: %s\n", http_method[req->method]);
+    dns_string_sprintf(log_output, "\tAPI Type: %s\n", etcd_event_action[req->api_type]);
+    dns_string_sprintf(log_output, "\tURI: %s\n", dns_string_c_str(req->uri));
+    dns_string_sprintf(log_output, "\tURL: %s\n", dns_string_c_str(req->url));
+    dns_string_sprintf(log_output, "\tData: %s\n", dns_string_c_str(req->data));
 
     DEBUG_LOG(context, dns_string_c_str(log_output));
     dns_string_free(log_output, true);
@@ -1409,7 +1409,8 @@ void *etcd_cluster_request(etcd_client *cli,
             err = response->err; // remember last error
             response->err = memory_alloc(sizeof(etcd_error));
             response->err->message = dns_string_new_empty();
-            dns_string_sprintf(response->err->message, "etcd_cluster_request: all cluster servers failed: %s", dns_string_c_str(err->message));
+            dns_string_sprintf(response->err->message, "etcd_cluster_request: all cluster servers failed: %s",
+                               dns_string_c_str(err->message));
             etcd_error_release(err);
         } else {
             response->err = memory_alloc(sizeof(etcd_error));
@@ -1424,4 +1425,5 @@ void *etcd_cluster_request(etcd_client *cli,
 
     return response;
 }
+
 #pragma clang diagnostic pop

@@ -63,7 +63,7 @@ bool dns_set_calling_socket_options(transaction_context *context, int dns_socket
                    (char *) &timeout,
                    sizeof(timeout)) != 0) {
         ERROR_LOG(context, "setsockopt SO_RCVTIMEO failed, "
-                "this is either a networking issue or a bug in the service.");
+                           "this is either a networking issue or a bug in the service.");
         return false;
     }
     if (setsockopt(dns_socket,
@@ -73,7 +73,7 @@ bool dns_set_calling_socket_options(transaction_context *context, int dns_socket
                    sizeof(timeout)) != 0) {
 
         ERROR_LOG(context, "setsockopt SO_SNDTIMEO failed, "
-                "this is either a networking issue or a bug in the service.");
+                           "this is either a networking issue or a bug in the service.");
         return false;
     }
 
@@ -85,7 +85,7 @@ bool dns_set_calling_socket_options(transaction_context *context, int dns_socket
                    &option_one,
                    sizeof(option_one)) != 0) {
         ERROR_LOG(context, "setsockopt SO_REUSEADDR failed, "
-                "this is either a networking issue or a bug in the service.");
+                           "this is either a networking issue or a bug in the service.");
         return false;
     }
 
@@ -240,7 +240,7 @@ void dns_set_host_name(const char *host_name) {
     g_host_name = host_name;
 }
 
-const char *dns_get_host_name(){
+const char *dns_get_host_name() {
     return g_host_name;
 }
 
