@@ -364,7 +364,7 @@ void dns_resource_log(transaction_context *context,
 
         dns_string *data_string = dns_resource_data_string(context, packet, resource);
 
-        dns_string_sprintf(log_output, "    name: %s, type: 0x%X, class: 0x%X, ttl: %d, data length: %d, data: %s",
+        dns_string_sprintf(log_output, "    name: %s, type: 0x%X, class: 0x%X, ttl: %d, data length: %d, data: %s\n",
                            dns_string_c_str(host_name),
                            dns_resource_record_type(context, resource),
                            dns_resource_class_type(context, resource),
@@ -487,10 +487,10 @@ void dns_resource_name_ptr_set(transaction_context *context,
     }
 }
 
-void dns_resource_answer_append(transaction_context *context,
-                                dns_packet *packet,
-                                dns_string *host_name,
-                                dns_string *ip) {
+void dns_resource_answer_ip_append(transaction_context *context,
+                                   dns_packet *packet,
+                                   dns_string *host_name,
+                                   dns_string *ip) {
 
     ASSERT(context, packet && ip && host_name);
 
@@ -552,62 +552,39 @@ void dns_resource_data_set(transaction_context *context,
     }
 }
 
-void dns_resource_srv_append(transaction_context *context,
-                             dns_packet *packet,
-                             dns_string *service_name,
-                             uint32_t ttl,
-                             dns_array *ports,
-                             dns_string *target) {
+void dns_resource_answer_srv_append(transaction_context *context,
+                                    dns_packet *packet,
+                                    dns_string *service_name,
+                                    uint32_t ttl,
+                                    dns_array *ports,
+                                    dns_string *target) {
     ASSERT(context, packet != NULL && target != NULL && service_name != NULL && ports != NULL);
 
 
     if (packet && target && service_name && ports) {
         size_t num_ports = dns_array_size(ports);
 
-        packet->header.answer_count = htons(num_ports);
-
-        if (num_ports > 0) {
-
+        for (size_t index = 0; index < num_ports; index++) {
             dns_resource_handle resource = (dns_resource_handle) dns_packet_question_skip(packet);
 
-            const char *service_name_ptr = (const char *) resource;
+            if (packet->header.answer_count) {
+                resource = dns_resource_next(resource);
+            }
+
+            packet->header.answer_count = htons(ntohs(packet->header.answer_count) + 1);
 
             dns_resource_name_set(context, resource, dns_string_c_str(service_name));
             dns_resource_header *header = dns_resource_header_get(resource);
             header->record_type = htons(RECORD_SRV);
             header->record_class = htons(CLASS_IN);
             header->record_ttl = htonl(ttl);
-            header->record_data_len = htons(sizeof(dns_resource_srv) + dns_string_length(target) + 1);
+            header->record_data_len = htons(sizeof(dns_resource_srv) + dns_string_length(target) + 2);
 
             dns_resource_srv *resource_srv = (dns_resource_srv *) &header->record_data;
             resource_srv->port = htons((uint16_t) dns_array_get(ports, 0));
             resource_srv->weight = htons(1);
             resource_srv->priority = htons(1);
             dns_host_to_string(dns_string_c_str(target), (char *) &resource_srv->target);
-
-            const char *target_ptr = (const char *) &resource_srv->target;
-
-            for (size_t index = 1; index < num_ports; index++) {
-                resource = (dns_resource_handle) dns_packet_question_skip(packet);
-                resource = dns_resource_next(resource);
-
-                dns_resource_name_ptr_set(context, packet, resource, service_name_ptr);
-                header = dns_resource_header_get(resource);
-                header->record_type = htons(RECORD_SRV);
-                header->record_class = htons(CLASS_IN);
-                header->record_ttl = htonl(ttl);
-                header->record_data_len = htons(sizeof(dns_resource_srv) + sizeof(uint16_t));
-
-                resource_srv = (dns_resource_srv *) &header->record_data;
-                resource_srv->port = htons((uint16_t) dns_array_get(ports, index));
-                resource_srv->weight = htons(1);
-                resource_srv->priority = htons(1);
-
-                uint16_t offset = (uint16_t) (target_ptr - (const char *) packet);
-                uint16_t *target_offset = (uint16_t *) &resource_srv->target;
-                offset = (uint16_t) (offset | 0xC000);
-                *target_offset = htons((uint16_t) offset);
-            }
         }
     }
 }

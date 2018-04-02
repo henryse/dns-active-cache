@@ -798,7 +798,7 @@ size_t dns_packet_a_record_create(dns_packet *request,
 
         dns_packet_header_create(packet, RECORD_A, request->header.id, host_name);
 
-        dns_resource_answer_append(NULL, packet, host_name, ip);
+        dns_resource_answer_ip_append(NULL, packet, host_name, ip);
 
         dns_resource_authority_append(NULL, packet);
 
@@ -842,7 +842,7 @@ size_t dns_packet_srv_record_create(dns_packet *request,
 
         dns_packet_header_create(packet, RECORD_SRV, request->header.id, service_name);
 
-        dns_resource_srv_append(NULL, packet, service_name, ttl, ports, target);
+        dns_resource_answer_srv_append(NULL, packet, service_name, ttl, ports, target);
 
         dns_resource_authority_append(NULL, packet);
 

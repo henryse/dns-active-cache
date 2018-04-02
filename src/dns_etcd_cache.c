@@ -299,7 +299,7 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
                                                                              service_name,
                                                                              dns_get_max_ttl(),
                                                                              ip->ports,
-                                                                             records->protocol);
+                                                                             records->service);
         dns_string_free(service_name, true);
     }
 }
