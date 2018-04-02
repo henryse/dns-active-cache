@@ -93,8 +93,9 @@ void dns_string_to_host(const unsigned char *string, dns_string *host) {
             const unsigned char *packet_body = string;
 
             size_t next_position = position;
-            while (position < length && !(next_position == position && packet_body[position] == 0) &&
-                   steps < length * 2) {
+            while (position < length
+                   && !(next_position == position && packet_body[position] == 0)
+                   && steps < length * 2) {
                 unsigned char c = packet_body[position];
                 steps++;
                 if (next_position == position) {

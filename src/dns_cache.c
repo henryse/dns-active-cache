@@ -35,7 +35,6 @@
 #endif
 
 #include <stdint.h>
-
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
@@ -740,6 +739,35 @@ void dns_cache_stop() {
     free(g_records);
 }
 
+void dns_packet_header_create(dns_packet *packet,
+                              record_type_t record_type,
+                              uint16_t id,
+                              dns_string *host_name){
+
+    memory_clear(packet, sizeof(dns_packet));
+
+    packet->header.id = id;
+    packet->header.recursion_desired = 0;
+    packet->header.truncated_message = 0;
+    packet->header.authoritative_answer = 1;
+    packet->header.operation_code = 0;
+    packet->header.query_response_flag = 1;
+    packet->header.response_code = 0;
+    packet->header.checking_disabled = 0;
+    packet->header.authenticated_data = 0;
+    packet->header.z_reserved = 0;
+    packet->header.recursion_available = 1;
+
+    packet->header.question_count = htons(1);
+    packet->header.answer_count = 0;
+    packet->header.information_count = 0;
+    packet->header.authority_count = 0;
+
+    dns_question_handle question = dns_question_name_set(packet, dns_string_c_str(host_name));
+    dns_question_type_set(question, record_type);
+    dns_question_class_set(question, CLASS_IN);
+}
+
 size_t dns_packet_a_record_create(dns_packet *request,
                                   dns_cache_entry *cache_entry,
                                   dns_string *host_name,
@@ -767,34 +795,58 @@ size_t dns_packet_a_record_create(dns_packet *request,
 
     if (cache_entry) {
         dns_packet *packet = &cache_entry->dns_packet_response;
-        memory_clear(packet, sizeof(dns_packet));
 
-        packet->header.id = request->header.id;
-        packet->header.recursion_desired = 0;
-        packet->header.truncated_message = 0;
-        packet->header.authoritative_answer = 1;
-        packet->header.operation_code = 0;
-        packet->header.query_response_flag = 1;
-        packet->header.response_code = 0;
-        packet->header.checking_disabled = 0;
-        packet->header.authenticated_data = 0;
-        packet->header.z_reserved = 0;
-        packet->header.recursion_available = 1;
-
-        packet->header.question_count = htons(1);
-        packet->header.answer_count = htons(1);
-        packet->header.information_count = 0;
-        packet->header.authority_count =  htons(1);
-
-        dns_question_handle question = dns_question_name_set(packet, dns_string_c_str(host_name));
-        dns_question_type_set(question, RECORD_A);
-        dns_question_class_set(question, CLASS_IN);
+        dns_packet_header_create(packet, RECORD_A, request->header.id, host_name);
 
         dns_resource_answer_append(NULL, packet, host_name, ip);
 
         dns_resource_authority_append(NULL, packet);
 
-        dns_packet_log(NULL, packet, "Cached Packet");
+        dns_packet_log(NULL, packet, "dns_packet_a_record_create");
+
+        return dns_packet_size(packet);
+    }
+
+    return 0;
+}
+
+size_t dns_packet_srv_record_create(dns_packet *request,
+                                    dns_cache_entry *cache_entry,
+                                    dns_string *service_name,
+                                    uint32_t ttl,
+                                    dns_array *ports,
+                                    dns_string *target){
+    //                                1  1  1  1  1  1
+    //  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+    // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    // |                                               |
+    // /                                               /
+    // /                      NAME                     /
+    // |                                               |
+    // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    // |                      TYPE                     |
+    // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    // |                     CLASS                     |
+    // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    // |                      TTL                      |
+    // |                                               |
+    // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    // |                   RDLENGTH                    |
+    // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
+    // /                     RDATA                     /
+    // /                                               /
+    // +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+    if (cache_entry) {
+        dns_packet *packet = &cache_entry->dns_packet_response;
+
+        dns_packet_header_create(packet, RECORD_SRV, request->header.id, service_name);
+
+        dns_resource_srv_append(NULL, packet, service_name, ttl, ports, target);
+
+        dns_resource_authority_append(NULL, packet);
+
+        dns_packet_log(NULL, packet, "dns_packet_srv_record_create");
 
         return dns_packet_size(packet);
     }

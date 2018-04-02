@@ -80,4 +80,11 @@ void dns_resource_data_set(transaction_context *context,
                            uint16_t record_data_len,
                            void *record_data);
 
+void dns_resource_srv_append(transaction_context *context,
+                             dns_packet *packet,
+                             dns_string *service_name,
+                             uint32_t ttl,
+                             dns_array *ports,
+                             dns_string *target);
+
 #endif //DNS_ACTIVE_CACHE_DNS_RESOURCE_H
