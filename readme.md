@@ -8,8 +8,7 @@ A and SRV Records are currently supported.  **Warning**: ETCD support is not com
     1. Watcher threads need to be implemented
     2. Add support to /status for internal checks.
     3. Check question type in cache if it does not match, forward request again
-    4. Refactor how bypass works.
-    5. Document how to use with Registerator and make Dockerfile example
+    4. Document how to use with Registerator and make Dockerfile example
 
 ## Introduction
 

@@ -210,8 +210,8 @@ size_t etcd_parse_response(char *ptr, size_t size, size_t nmemb, void *user_data
 etcd_watcher *etcd_watcher_create(etcd_client *cli,
                                   const char *key,
                                   uint64_t index,
-                                  int recursive,
-                                  int once,
+                                  bool recursive,
+                                  bool once,
                                   etcd_watcher_callback callback,
                                   void *user_data) {
     etcd_watcher *watcher = memory_alloc(sizeof(etcd_watcher));
@@ -299,10 +299,11 @@ void etcd_watcher_reset(etcd_watcher *watcher) {
 
 static dns_string *etcd_watcher_build_url(etcd_client *cli, etcd_watcher *watcher) {
     dns_string *url = NULL;
+    dns_string *address = (dns_string *) dns_array_get(cli->addresses, cli->picked);
+
     url = dns_string_sprintf(dns_string_new_empty(),
                              "%s/%s%s?wait=true",
-                             (dns_string *) dns_array_get(cli->addresses,
-                                                          cli->picked),
+                             dns_string_c_str(address),
                              cli->keys_space,
                              watcher->key);
     if (watcher->index) {
@@ -346,7 +347,7 @@ int etcd_curl_setopt(CURL *curl, etcd_watcher *watcher) {
     return 1;
 }
 
-int etcd_add_watcher(dns_array *watchers, etcd_watcher *watcher) {
+int etcd_watcher_add(dns_array *watchers, etcd_watcher *watcher) {
     etcd_watcher *w = NULL;
 
     etcd_curl_setopt(watcher->curl, watcher);
@@ -368,7 +369,7 @@ int etcd_add_watcher(dns_array *watchers, etcd_watcher *watcher) {
     return 1;
 }
 
-int etcd_del_watcher(dns_array *watchers, etcd_watcher *watcher) {
+int etcd_watcher_del(dns_array *watchers, etcd_watcher *watcher) {
     if (watcher) {
         int index = watcher->array_index;
         if (index >= 0) {
@@ -379,21 +380,21 @@ int etcd_del_watcher(dns_array *watchers, etcd_watcher *watcher) {
     return 1;
 }
 
-int etcd_stop_watcher(etcd_client *cli, etcd_watcher *watcher) {
+int etcd_watcher_stop(etcd_client *cli, etcd_watcher *watcher) {
     // Clear the callback function pointer to ensure to stop notify the user
-    // Set once to 1 indicates that the watcher would stop after next trigger.
+    // Set once to true indicates that the watcher would stop after next trigger.
     //
-    // The watcher object would be freed by etcd_reap_watchers
-    // Watchers may hang forever if it would be never triggered after set once to 1
+    // The watcher object would be freed by etcd_watchers_reap
+    // Watchers may hang forever if it would be never triggered after set once to true
     // TODO: Cancel the blocking watcher
     //
     UNUSED(cli);
     watcher->callback = NULL;
-    watcher->once = 1;
+    watcher->once = true;
     return 1;
 }
 
-static int etcd_reap_watchers(etcd_client *cli, CURLM *mcurl) {
+static int etcd_watchers_reap(etcd_client *cli, CURLM *mcurl) {
     uint64_t index = 0;
     int added = 0, ignore = 0;
     CURLMsg *msg = NULL;
@@ -427,7 +428,7 @@ static int etcd_reap_watchers(etcd_client *cli, CURLM *mcurl) {
                 } else {
                     resp->err = memory_alloc(sizeof(etcd_error));
                     resp->err->etcd_code = error_cluster_failed;
-                    resp->err->message = dns_string_new_c(64, "etcd_reap_watchers: all cluster servers failed.");
+                    resp->err->message = dns_string_new_c(64, "etcd_watchers_reap: all cluster servers failed.");
                 }
             }
             if (watcher->callback) {
@@ -468,7 +469,7 @@ static int etcd_reap_watchers(etcd_client *cli, CURLM *mcurl) {
 
 bool g_etcd_multi_watch_continue = true;
 
-int etcd_multi_watch(etcd_client *cli, dns_array *watchers) {
+int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
     int maxfd = 0, left = 0, added = 0;
     long timeout = 0;
     etcd_watcher *watcher = NULL;
@@ -515,7 +516,7 @@ int etcd_multi_watch(etcd_client *cli, dns_array *watchers) {
 
             curl_multi_perform(curlm, &left);
         }
-        added = etcd_reap_watchers(cli, curlm);
+        added = etcd_watchers_reap(cli, curlm);
         if (added == 0 && left == 0) {
             // It will call curl_multi_perform immediately if:
             // 1. left is 0
@@ -551,11 +552,11 @@ static void *etcd_multi_watch_wrapper(void *args[]) {
     etcd_client *cli = args[0];
     dns_array *watchers = args[1];
     free(args);
-    etcd_multi_watch(cli, watchers);
+    etcd_watcher_multi(cli, watchers);
     return 0;
 }
 
-etcd_watch_id etcd_multi_watch_async(etcd_client *cli, dns_array *watchers) {
+etcd_watch_id etcd_watcher_multi_async(etcd_client *cli, dns_array *watchers) {
     void **args = NULL;
     args = calloc(2, sizeof(void *));
     args[0] = cli;
@@ -565,7 +566,7 @@ etcd_watch_id etcd_multi_watch_async(etcd_client *cli, dns_array *watchers) {
     return thread;
 }
 
-int etcd_multi_watch_async_stop(etcd_client *cli, etcd_watch_id wid) {
+int etcd_watcher_multi_async_stop(etcd_client *cli, etcd_watch_id wid) {
     (void) cli;
     g_etcd_multi_watch_continue = false;
 
@@ -644,7 +645,7 @@ etcd_response *etcd_make_directory(etcd_client *cli, const char *key, uint64_t t
     return resp;
 }
 
-etcd_response *etcd_setdir(etcd_client *cli, const char *key, uint64_t ttl) {
+etcd_response *etcd_dir_set(etcd_client *cli, const char *key, uint64_t ttl) {
     etcd_request req;
     memory_clear(&req, sizeof(etcd_request));
 
@@ -664,7 +665,7 @@ etcd_response *etcd_setdir(etcd_client *cli, const char *key, uint64_t ttl) {
     return resp;
 }
 
-etcd_response *etcd_updatedir(etcd_client *cli, const char *key, uint64_t ttl) {
+etcd_response *etcd_dir_update(etcd_client *cli, const char *key, uint64_t ttl) {
     etcd_request req;
     memory_clear(&req, sizeof(etcd_request));
 
@@ -782,7 +783,7 @@ etcd_response *etcd_delete(etcd_client *cli, const char *key) {
     return resp;
 }
 
-etcd_response *etcd_rmdir(etcd_client *cli, const char *key, int recursive) {
+etcd_response *etcd_dir_remove(etcd_client *cli, const char *key, int recursive) {
     etcd_request req;
     memory_clear(&req, sizeof(etcd_request));
 

@@ -127,31 +127,31 @@ typedef struct etcd_watcher_t {
     int array_index;            //  the index in array cli->watchers
 
     CURL *curl;
-    int once;
-    int recursive;
+    bool once;
+    bool recursive;
     uint64_t index;
     dns_string *key;
     void *user_data;
     etcd_watcher_callback callback;
 } etcd_watcher;
 
-// etcd_client_create allocate the etcd_client and return the pointer*/
+// etcd_client_create allocate the etcd_client and return the pointer
 //
 etcd_client *etcd_client_create(dns_array *addresses);
 
-// etcd_client_init initialize a etcd_client*/
+// etcd_client_init initialize a etcd_client
 //
 void etcd_client_init(etcd_client *cli, dns_array *addresses);
 
-// etcd_client_destroy destroy the resource a client used*/
+// etcd_client_destroy destroy the resource a client used
 //
 void etcd_client_destroy(etcd_client *cli);
 
-// etcd_client_release free the etcd_client object*/
+// etcd_client_release free the etcd_client object
 //
 void etcd_client_release(etcd_client *cli);
 
-// etcd_addresses_release free the array of an etcd cluster addresses*/
+// etcd_addresses_release free the array of an etcd cluster addresses
 //
 void etcd_addresses_release(dns_array *addrs);
 
@@ -160,54 +160,54 @@ void etcd_addresses_release(dns_array *addrs);
 //
 void etcd_client_sync_cluster(etcd_client *cli);
 
-// etcd_setup_user set the auth username and password*/
+// etcd_setup_user set the auth username and password
 void etcd_setup_user(etcd_client *cli, const char *user, const char *password);
 
-// etcd_setup_tls setup the tls cert and key*/
+// etcd_setup_tls setup the tls cert and key
 void etcd_setup_tls(etcd_client *cli, const char *CA,
                     const char *cert, const char *key);
 
-// etcd_get get the value of a key*/
+// etcd_get get the value of a key
 etcd_response *etcd_get(etcd_client *cli, const char *key);
 
-// etcd_directory list the nodes under a directory*/
+// etcd_directory list the nodes under a directory
 etcd_response *etcd_directory(etcd_client *cli, const char *key, int sort, int recursive);
 
-// etcd_set set the value of a key*/
+// etcd_set set the value of a key
 etcd_response *etcd_set(etcd_client *cli, const char *key,
                         const char *value, uint64_t ttl);
 
-// etcd_make_directory create a directory, it will fail if the key has exist*/
+// etcd_make_directory create a directory, it will fail if the key has exist
 etcd_response *etcd_make_directory(etcd_client *cli, const char *key, uint64_t ttl);
 
-// etcd_make_directory create a directory whether it exist or not*/
-etcd_response *etcd_setdir(etcd_client *cli, const char *key, uint64_t ttl);
+// etcd_make_directory create a directory whether it exist or not
+etcd_response *etcd_dir_set(etcd_client *cli, const char *key, uint64_t ttl);
 
-// etcd_updatedir update the ttl of a directory*/
-etcd_response *etcd_updatedir(etcd_client *cli, const char *key, uint64_t ttl);
+// etcd_dir_update update the ttl of a directory
+etcd_response *etcd_dir_update(etcd_client *cli, const char *key, uint64_t ttl);
 
-// etcd_update update the value or ttl of a key, only refresh the ttl if refresh is set*/
+// etcd_update update the value or ttl of a key, only refresh the ttl if refresh is set
 etcd_response *etcd_update(etcd_client *cli, const char *key,
                            const char *value, uint64_t ttl, int refresh);
 
-// etcd_create create a node with value*/
+// etcd_create create a node with value
 etcd_response *etcd_create(etcd_client *cli, const char *key,
                            const char *value, uint64_t ttl);
 
-// etcd_create_in_order create in order keys*/
+// etcd_create_in_order create in order keys
 etcd_response *etcd_create_in_order(etcd_client *cli, const char *key,
                                     const char *value, uint64_t ttl);
 
-// etcd_delete delete a key*/
+// etcd_delete delete a key
 etcd_response *etcd_delete(etcd_client *cli, const char *key);
 
-// etcd_rmdir delete a directory*/
-etcd_response *etcd_rmdir(etcd_client *cli, const char *key, int recursive);
+// etcd_dir_remove delete a directory
+etcd_response *etcd_dir_remove(etcd_client *cli, const char *key, int recursive);
 
-// etcd_watch watch the changes of a key*/
+// etcd_watch watch the changes of a key
 etcd_response *etcd_watch(etcd_client *cli, const char *key, uint64_t index);
 
-// etcd_watch_recursive watch a key and all its sub keys*/
+// etcd_watch_recursive watch a key and all its sub keys
 etcd_response *etcd_watch_recursive(etcd_client *cli, const char *key, uint64_t index);
 
 etcd_response *etcd_cmp_and_swap(etcd_client *cli, const char *key, const char *value,
@@ -220,27 +220,32 @@ etcd_response *etcd_cmp_and_delete(etcd_client *cli, const char *key, const char
 
 etcd_response *etcd_cmp_and_delete_by_index(etcd_client *cli, const char *key, uint64_t prev);
 
-// etcd_watcher_create create a watcher object*/
-etcd_watcher *etcd_watcher_create(etcd_client *cli, const char *key, uint64_t index,
-                                  int recursive, int once, etcd_watcher_callback callback, void *userdata);
+// etcd_watcher_create create a watcher object
+etcd_watcher *etcd_watcher_create(etcd_client *cli,
+                                  const char *key,
+                                  uint64_t index,
+                                  bool recursive,
+                                  bool once,
+                                  etcd_watcher_callback callback,
+                                  void *user_data);
 
-// etcd_add_watcher add a watcher to the array*/
-int etcd_add_watcher(dns_array *watchers, etcd_watcher *watcher);
+// etcd_watcher_add add a watcher to the array
+int etcd_watcher_add(dns_array *watchers, etcd_watcher *watcher);
 
-// etcd_del_watcher delete a watcher from the array*/
-int etcd_del_watcher(dns_array *watchers, etcd_watcher *watcher);
+// etcd_watcher_del delete a watcher from the array
+int etcd_watcher_del(dns_array *watchers, etcd_watcher *watcher);
 
-// etcd_multi_watch setup all watchers and wait*/
-int etcd_multi_watch(etcd_client *cli, dns_array *watchers);
+// etcd_watcher_multi setup all watchers and wait
+int etcd_watcher_multi(etcd_client *cli, dns_array *watchers);
 
-// etcd_multi_watch setup all watchers in a seperate thread and return the watch id*/
-etcd_watch_id etcd_multi_watch_async(etcd_client *cli, dns_array *watchers);
+// etcd_watcher_multi_async setup all watchers in a separate thread and return the watch id
+etcd_watch_id etcd_watcher_multi_async(etcd_client *cli, dns_array *watchers);
 
-// etcd_multi_watch stop the watching thread with the watch id*/
-int etcd_multi_watch_async_stop(etcd_client *cli, etcd_watch_id wid);
+// etcd_watcher_multi_async_stop the watching thread with the watch id
+int etcd_watcher_multi_async_stop(etcd_client *cli, etcd_watch_id wid);
 
-// etcd_stop_watcher stop a watcher which has been setup*/
-int etcd_stop_watcher(etcd_client *cli, etcd_watcher *watcher);
+// etcd_watcher_stop stop a watcher which has been setup
+int etcd_watcher_stop(etcd_client *cli, etcd_watcher *watcher);
 
 void etcd_response_log(transaction_context *context, etcd_response *resp);
 

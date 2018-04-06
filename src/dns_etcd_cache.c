@@ -1,4 +1,4 @@
-/**********************************************************************
+#include <ntsid.h>/**********************************************************************
 //    Copyright (c) 2018 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -35,7 +35,8 @@
 #define DEFAULT_IP_LIST_SIZE 16
 #define DEFAULT_PORT_LIST_SIZE 16
 
-etcd_client g_cli;
+etcd_client g_etcd_client;
+etcd_watch_id g_watch_id = 0;
 
 typedef struct dns_etcd_cache_ip_t {
     dns_string *ip;
@@ -48,7 +49,7 @@ typedef struct dns_etcd_cache_record_t {
     dns_array *ips;
 } dns_etcd_cache_record;
 
-dns_etcd_cache *g_cache;
+dns_etcd_cache *g_etcd_cache;
 
 dns_etcd_cache *dns_etcd_cache_allocate() {
     dns_etcd_cache *cache = memory_alloc(sizeof(dns_etcd_cache));
@@ -229,7 +230,7 @@ void dns_etcd_record_push(transaction_context *context,
 void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
     // Start at the root.
     //
-    etcd_response *response = etcd_get(&g_cli, "/");
+    etcd_response *response = etcd_get(&g_etcd_client, "/");
 
     if (response && response->node && response->node->nodes) {
 
@@ -243,7 +244,7 @@ void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
             if (upper_node->dir) {
                 // Dig a bit deeper
                 //
-                etcd_response *service = etcd_get(&g_cli, dns_string_c_str(upper_node->key));
+                etcd_response *service = etcd_get(&g_etcd_client, dns_string_c_str(upper_node->key));
 
                 // Did we find anything?
                 //
@@ -306,7 +307,7 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
 
 bool dns_etcd_search(dns_packet *request, dns_string *request_host_name, dns_cache_entry *cache_entry) {
 
-    dns_etcd_cache *cache = dns_etcd_cache_hold(g_cache);
+    dns_etcd_cache *cache = dns_etcd_cache_hold(g_etcd_cache);
     bool found = false;
 
     if (cache) {
@@ -386,9 +387,20 @@ dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns
     return entry_found;
 }
 
+int dns_etcd_watcher_callback(void __unused *user_data, etcd_response *resp){
+
+    transaction_context context_base = create_context();
+    transaction_context *context = &context_base;
+
+    INFO_LOG(context, "DNS ETCD Watcher Callback");
+
+    return 0;
+}
+
+
 int dns_service_etcd(transaction_context *context) {
     if (dns_etcd_get() != NULL) {
-        memory_clear(&g_cli, sizeof(g_cli));
+        memory_clear(&g_etcd_client, sizeof(g_etcd_client));
 
         dns_array *addresses = dns_array_create(1);
 
@@ -406,12 +418,25 @@ int dns_service_etcd(transaction_context *context) {
 
         dns_string *etcd_url = dns_string_new_c(strlen(dns_etcd_get()), dns_etcd_get());
         dns_array_push(addresses, (void *) etcd_url);
-        etcd_client_init(&g_cli, addresses);
+        etcd_client_init(&g_etcd_client, addresses);
 
-        // Global cache used to store entries.
-        g_cache = dns_etcd_cache_allocate();
+        g_etcd_cache = dns_etcd_cache_allocate();
 
-        dns_etcd_populate(context, g_cache);
+        dns_etcd_populate(context, g_etcd_cache);
+
+        etcd_watcher *etcd_watcher = etcd_watcher_create(&g_etcd_client,
+                                                         "",
+                                                         0,
+                                                         false, true,
+                                                         dns_etcd_watcher_callback,
+                                                         NULL);
+
+        dns_array *etcd_watchers = dns_array_create(1);
+
+        etcd_watcher_add(etcd_watchers, etcd_watcher);
+
+        g_watch_id = etcd_watcher_multi_async(&g_etcd_client, etcd_watchers);
+
     } else {
         INFO_LOG(context, "ETCD service not defined, disabled etcd lookup.");
     }
@@ -420,7 +445,7 @@ int dns_service_etcd(transaction_context *context) {
 }
 
 void dns_etcd_cache_log(dns_string *response) {
-    dns_etcd_cache *cache = dns_etcd_cache_hold(g_cache);
+    dns_etcd_cache *cache = dns_etcd_cache_hold(g_etcd_cache);
 
     if (cache) {
         size_t num_records = dns_array_size(cache->dns_etcd_cache_records);
