@@ -45,6 +45,32 @@ Thus after the first *question*, all future requests/responses will be cached lo
 
 An entry will be expired from the local cache based on the DNS Records TTL.
 
+## Version 2.0 Process Flow
+
+The DNS Active Cache's general algorithm is as follows:
+
+        if etcd_enabled then
+            if check_etcd(question) then
+                return result
+            end
+        end
+
+        if !cache_bypass then
+            if check_dns_cache(question) then
+                return result
+            end
+        end
+
+        if call_upstream_resolver(question) then
+            if !cache_bypass then
+                add_answer_to_cache(result)
+            end
+
+            return result
+        end
+
+        return dns_entry_not_found();
+
 
 ## How to Build and Install
 
