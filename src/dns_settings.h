@@ -29,87 +29,87 @@
 
 #include "dns_utils.h"
 
-bool dns_set_calling_socket_options(transaction_context *context, int dns_socket);
+bool dns_calling_socket_options_set(transaction_context *context, int dns_socket);
 
-bool dns_get_debug_mode();
+bool dns_debug_mode_get();
 
-void dns_set_http_mode(bool debug_mode);
+void dns_http_mode_set(bool debug_mode);
 
-uint32_t dns_get_max_ttl();
+uint32_t dns_max_ttl_get();
 
-void dns_set_max_ttl(uint32_t max_ttl);
+void dns_max_ttl_set(uint32_t max_ttl);
 
-bool dns_get_log_mode();
+bool dns_log_mode_get();
 
-void dns_set_log_mode(bool log_mode);
+void dns_log_mode_set(bool log_mode);
 
-bool dns_get_bypass_mode();
+bool dns_bypass_cache_get();
 
-void dns_set_bypass_mode(bool bypass_mode);
+void dns_bypass_mode_set(bool bypass_mode);
 
-bool dns_get_optimize_mode();
+bool dns_optimize_mode_get();
 
-void dns_set_optimize_mode(bool optimize_mode);
+void dns_optimize_mode_set(bool optimize_mode);
 
-uint16_t dns_get_port();
+uint16_t dns_port_get();
 
-void dns_set_port(uint16_t port);
+void dns_port_set(uint16_t port);
 
-uint16_t dns_http_get_port();
+uint16_t dns_http_port_get();
 
-void dns_http_set_port(uint16_t port);
+void dns_http_port_set(uint16_t port);
 
-uint32_t dns_get_socket_timeout();
+uint32_t dns_socket_timeout_get();
 
-void dns_set_socket_timeout(uint32_t timeout_ms);
+void dns_socket_timeout_set(uint32_t timeout_ms);
 
-uint32_t dns_get_cache_entries();
+uint32_t dns_cache_size_get();
 
-void dns_set_cache_entries(uint32_t cache_entries);
+void dns_cache_size_set(uint32_t cache_entries);
 
-uint32_t dns_get_cache_polling_interval();
+uint32_t dns_cache_polling_interval_get();
 
-void dns_set_cache_polling_interval(uint32_t cache_polling_interval_seconds);
+void dns_cache_polling_interval_set(uint32_t cache_polling_interval_seconds);
 
-const char *dns_get_resolvers_file();
+const char *dns_resolvers_file_get();
 
-void dns_set_resolvers_file(char *g_resolvers_file);
+void dns_resolvers_file_set(char *g_resolvers_file);
 
-char **dns_get_resolvers();
+char **dns_resolvers_get();
 
-void dns_set_resolvers(char **resolvers);
+void dns_resolvers_set(char **resolvers);
 
-void dns_set_resolvers_count(size_t count);
+void dns_resolvers_count_set(size_t count);
 
-size_t dns_get_resolvers_count();
+size_t dns_resolvers_count_get();
 
-void dns_set_run_as_daemon(bool daemon);
+void dns_run_as_daemon_set(bool daemon);
 
-bool dns_get_run_as_daemon();
+bool dns_run_as_daemon_get();
 
-pid_t dns_get_daemon_process_id();
+pid_t dns_daemon_process_id_get();
 
-void dns_set_daemon_process_id(pid_t daemon_process_id);
+void dns_daemon_process_id_set(pid_t daemon_process_id);
 
-void dns_set_cache_timestamp_next(uint32_t count);
+void dns_cache_timestamp_next_set(uint32_t count);
 
-uint32_t dns_get_cache_timestamp_next();
+uint32_t dns_cache_timestamp_next_get();
 
-const char *get_active_cache_version();
+const char *dns_active_cache_version_get();
 
-int get_dns_resolve_retry_count();
+int dns_resolve_retry_count_get();
 
-void dns_set_etcd(const char *etcd);
+void dns_etcd_set(const char *etcd);
 
-const char *dns_get_etcd();
+const char *dns_etcd_get();
 
-void dns_set_host_name(const char *host_name);
+void dns_host_name_set(const char *host_name);
 
-const char *dns_get_host_name();
+const char *dns_host_name_get();
 
-void dns_set_host_ip(const char *host_name);
+void dns_host_ip_set(const char *host_name);
 
-const char *dns_get_host_ip();
+const char *dns_host_ip_get();
 
 #endif //DNS_CACHE_DNS_SETTINGS_H
 

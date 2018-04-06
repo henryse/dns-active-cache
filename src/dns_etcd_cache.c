@@ -54,7 +54,7 @@ dns_etcd_cache *dns_etcd_cache_allocate() {
     dns_etcd_cache *cache = memory_alloc(sizeof(dns_etcd_cache));
     cache->refcount = 1;
 
-    cache->dns_etcd_cache_records = dns_array_create(dns_get_cache_entries());
+    cache->dns_etcd_cache_records = dns_array_create(dns_cache_size_get());
 
     return cache;
 }
@@ -213,11 +213,11 @@ void dns_etcd_record_push(transaction_context *context,
     dns_string *service_name = dns_string_sprintf(dns_string_new_empty(),
                                                   "%s.%s",
                                                   dns_string_c_str(service) + 1,
-                                                  dns_get_host_name());
+                                                  dns_host_name_get());
 
     dns_string *protocol_name = dns_string_sprintf(dns_string_new_empty(),
                                                    "_http._tcp.%s",
-                                                   dns_get_host_name());
+                                                   dns_host_name_get());
 
     dns_etcd_cache_record *record = dns_etcd_cache_find_create(records, service_name, protocol_name);
 
@@ -273,7 +273,7 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
 
     // First if ip in the list matches the host_ip use that one
     //
-    dns_etcd_cache_ip *ip = dns_etcd_ip_find(records->ips, dns_get_host_ip());
+    dns_etcd_cache_ip *ip = dns_etcd_ip_find(records->ips, dns_host_ip_get());
 
     // If not then randomly select one from the list.
     //
@@ -292,12 +292,12 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
                                                                            records->service,
                                                                            ip->ip);
     } else if (qtype == RECORD_SRV) {
-        dns_string *service_name = dns_string_sprintf(dns_string_new_empty(), "_http._tcp.%s", dns_get_host_name());
+        dns_string *service_name = dns_string_sprintf(dns_string_new_empty(), "_http._tcp.%s", dns_host_name_get());
 
         cache_entry->dns_packet_response_size = dns_packet_srv_record_create(request,
                                                                              cache_entry,
                                                                              service_name,
-                                                                             dns_get_max_ttl(),
+                                                                             dns_max_ttl_get(),
                                                                              ip->ports,
                                                                              records->service);
         dns_string_free(service_name, true);
@@ -379,14 +379,6 @@ dns_cache_entry dns_etcd_find(transaction_context *context, dns_packet *request)
 dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns_packet_to_find) {
     dns_packet_log(context, dns_packet_to_find, "lookup_etcd_packet dns_packet_to_find");
 
-    if (dns_get_bypass_mode()) {
-        dns_cache_entry cache_entry;
-
-        memory_clear(&cache_entry, sizeof(cache_entry));
-        DEBUG_LOG(context, "Skipping lookup_etcd_packet");
-        return cache_entry;
-    }
-
     dns_cache_entry entry_found = dns_etcd_find(context, dns_packet_to_find);
 
     dns_packet_log(context, &entry_found.dns_packet_response, "lookup_etcd_packet packet_found");
@@ -395,24 +387,24 @@ dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns
 }
 
 int dns_service_etcd(transaction_context *context) {
-    if (dns_get_etcd() != NULL) {
+    if (dns_etcd_get() != NULL) {
         memory_clear(&g_cli, sizeof(g_cli));
 
         dns_array *addresses = dns_array_create(1);
 
-        if (dns_get_host_name() == NULL) {
-            ERROR_LOG(context, "No Host Name defined, without we can not use: %s.", dns_get_etcd());
+        if (dns_host_name_get() == NULL) {
+            ERROR_LOG(context, "No Host Name defined, without we can not use: %s.", dns_etcd_get());
             return SO_ERROR;
         }
 
-        if (dns_get_host_ip() == NULL) {
-            ERROR_LOG(context, "No Host IP defined, without we can not use: %s.", dns_get_etcd());
+        if (dns_host_ip_get() == NULL) {
+            ERROR_LOG(context, "No Host IP defined, without we can not use: %s.", dns_etcd_get());
             return SO_ERROR;
         }
 
-        INFO_LOG(context, "ETCD service defined, using: %s", dns_get_etcd());
+        INFO_LOG(context, "ETCD service defined, using: %s", dns_etcd_get());
 
-        dns_string *etcd_url = dns_string_new_c(strlen(dns_get_etcd()), dns_get_etcd());
+        dns_string *etcd_url = dns_string_new_c(strlen(dns_etcd_get()), dns_etcd_get());
         dns_array_push(addresses, (void *) etcd_url);
         etcd_client_init(&g_cli, addresses);
 

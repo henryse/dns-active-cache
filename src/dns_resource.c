@@ -466,9 +466,9 @@ void dns_resource_authority_append(transaction_context *context, dns_packet *pac
 
         dns_resource_handle resource = dns_packet_authority_get(context, packet, 0);
 
-        dns_resource_name_set(context, resource, dns_get_host_name());
+        dns_resource_name_set(context, resource, dns_host_name_get());
 
-        dns_resource_set_header(context, resource, dns_get_host_ip(), 30);
+        dns_resource_set_header(context, resource, dns_host_ip_get(), 30);
     }
 }
 

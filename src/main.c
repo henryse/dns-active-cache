@@ -74,7 +74,7 @@ void dns_process_setup() {
 }
 
 void usage(const char *program) {
-    fprintf(stdout, "Version: %s\n", get_active_cache_version());
+    fprintf(stdout, "Version: %s\n", dns_active_cache_version_get());
     fprintf(stdout, "Usage:     %s --port=PORT --resolvers=RESOLVERS --timeout_ms=TIMEOUT_IN_MS\n", program);
     fprintf(stdout, "Example:   %s --port=5300 --resolvers=/etc/resolv.dns_cache --timeout_ms=500 \n\n", program);
     fprintf(stdout, "DNS Active Cache is a high performance DNS cache intended for server environments.\n"
@@ -91,25 +91,25 @@ void usage(const char *program) {
                     "     3. A separate thread there after will keep refreshing the local DNS entries local cache.\n\n"
                     "Thus after the first request, all future requests will be cached locally.\n");
     fprintf(stdout, "     log            General logging messages. default: %s\n",
-            dns_get_log_mode() ? "true" : "false");
-    fprintf(stdout, "     port           port to listen on, the default is %d\n", dns_get_port());
+            dns_log_mode_get() ? "true" : "false");
+    fprintf(stdout, "     port           port to listen on, the default is %d\n", dns_port_get());
     fprintf(stdout, "     resolvers      resolvers file containing a list of name-servers. default: %s\n",
-            dns_get_resolvers_file());
+            dns_resolvers_file_get());
     fprintf(stdout, "     timeout        Network time out in seconds.  Default: %ds\n",
-            dns_get_socket_timeout());
+            dns_socket_timeout_get());
     fprintf(stdout,
             "     interval       How often should the service scan the cache to find timed out entries. default: %ds\n",
-            dns_get_cache_polling_interval());
-    fprintf(stdout, "     entries        Max cache entries. default: %d\n", dns_get_cache_entries());
+            dns_cache_polling_interval_get());
+    fprintf(stdout, "     entries        Max cache entries. default: %d\n", dns_cache_size_get());
     fprintf(stdout, "     etcd           ETCD path, for example: --etcd=http://192.168.1.129:2379, if this is not "
                     " set then ETCD support is not used.\n");
     fprintf(stdout, "     http           Simple HTTP port to dump diagnostics, support HTTP GET, [host]:[port], "
-                    "if zero then disabled.  default: %hu\n", dns_http_get_port());
+                    "if zero then disabled.  default: %hu\n", dns_http_port_get());
     fprintf(stdout, "     optimize       Optimize the use of ports by reusing them. default: %s\n",
-            dns_get_optimize_mode() ? "true" : "false");
+            dns_optimize_mode_get() ? "true" : "false");
     fprintf(stdout, "     maxttl         Max TTL in seconds for DNS entries, if an upstream server returns a value "
-                    "high then maxttl, the TTL will be set to maxttl.  default:  %ds\n", dns_get_max_ttl());
-    fprintf(stdout, "     daemon         Run as a daemon.  default: %s\n", dns_get_run_as_daemon() ? "true" : "false");
+                    "high then maxttl, the TTL will be set to maxttl.  default:  %ds\n", dns_max_ttl_get());
+    fprintf(stdout, "     daemon         Run as a daemon.  default: %s\n", dns_run_as_daemon_get() ? "true" : "false");
     fprintf(stdout, "     host_name      Required for ETCD: host name to used as the base name for services "
                     " and is used as the DNS authority."
                     "\n");
@@ -242,78 +242,78 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
                 break;
 
             case 'l':
-                dns_set_log_mode(strcmp(optarg, "true") == 0);
+                dns_log_mode_set(strcmp(optarg, "true") == 0);
                 INFO_LOG(context, "Enable Logging mode %s", optarg);
                 break;
 
             case 'p':
-                dns_set_port((in_port_t) strtol(optarg, NULL, 10));
+                dns_port_set((in_port_t) strtol(optarg, NULL, 10));
                 INFO_LOG(context, "Port to use %s", optarg);
                 break;
 
             case 'r': {
                 char *resolvers_file = malloc_string(strlen(optarg));
                 strncpy(resolvers_file, optarg, strlen(optarg));
-                dns_set_resolvers_file(resolvers_file);
+                dns_resolvers_file_set(resolvers_file);
 
                 INFO_LOG(context, "Resolvers file %s", optarg);
             }
                 break;
 
             case 't':
-                dns_set_socket_timeout((uint32_t) atol(optarg)); // NOLINT
+                dns_socket_timeout_set((uint32_t) atol(optarg)); // NOLINT
                 INFO_LOG(context, "Network timeout %ss", optarg);
                 break;
 
             case 'v':
-                dns_set_cache_polling_interval((uint32_t) atol(optarg)); // NOLINT
+                dns_cache_polling_interval_set((uint32_t) atol(optarg)); // NOLINT
                 INFO_LOG(context, "DNS cache polling interval %ss", optarg);
                 break;
 
             case 'e':
-                dns_set_cache_entries((uint32_t) atol(optarg)); // NOLINT
+                dns_cache_size_set((uint32_t) atol(optarg)); // NOLINT
                 INFO_LOG(context, "Max cache entries %s", optarg);
                 break;
 
             case 'E': {
                 char *etcd = malloc_string(strlen(optarg));
                 strncpy(etcd, optarg, strlen(optarg));
-                dns_set_etcd(etcd);
+                dns_etcd_set(etcd);
 
                 INFO_LOG(context, "Etcd server %s", optarg);
             }
                 break;
 
             case 'H':
-                dns_http_set_port((uint16_t) atol(optarg)); // NOLINT
-                dns_set_http_mode(dns_http_get_port() != 0);
+                dns_http_port_set((uint16_t) atol(optarg)); // NOLINT
+                dns_http_mode_set(dns_http_port_get() != 0);
                 INFO_LOG(context, "Enable debug mode at port", optarg);
                 break;
 
             case 'b':
-                dns_set_bypass_mode(strcmp(optarg, "true") == 0);
+                dns_bypass_mode_set(strcmp(optarg, "true") == 0);
                 INFO_LOG(context, "Bypass cache, useful for debugging %s", optarg);
                 break;
 
             case 'o':
-                dns_set_optimize_mode(strcmp(optarg, "true") == 0);
+                dns_optimize_mode_set(strcmp(optarg, "true") == 0);
                 INFO_LOG(context, "Optimize socket %s", optarg);
                 break;
 
             case 'm':
-                dns_set_max_ttl((uint32_t) strtol(optarg, NULL, 10));
+                dns_max_ttl_set((uint32_t) strtol(optarg, NULL, 10));
                 INFO_LOG(context, "DNS Max TTL %s", optarg);
                 break;
 
             case 'D':
-                dns_set_run_as_daemon(strcmp(optarg, "true") == 0);
+                dns_run_as_daemon_set(strcmp(optarg, "true") == 0);
                 INFO_LOG(context, "Run as a daemon %s", optarg);
                 break;
 
             case 'h': {
                 char *host_name = malloc_string(strlen(optarg));
                 strncpy(host_name, optarg, strlen(optarg));
-                dns_set_host_name(host_name);
+                dns_host_name_set(host_name);
 
                 INFO_LOG(context, "Host Name %s", optarg);
             }
@@ -321,7 +321,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
             case 'i': {
                 char *host_ip = malloc_string(strlen(optarg));
                 strncpy(host_ip, optarg, strlen(optarg));
-                dns_set_host_ip(host_ip);
+                dns_host_ip_set(host_ip);
 
                 INFO_LOG(context, "Host IP Address %s", optarg);
             }
@@ -334,8 +334,8 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
     } while (c != -1);
 
 
-    if (dns_http_get_port() == dns_get_port()) {
-        ERROR_LOG(context, "Debug Port %hu must be different from DNS port %hu", dns_http_get_port(), dns_get_port());
+    if (dns_http_port_get() == dns_port_get()) {
+        ERROR_LOG(context, "Debug Port %hu must be different from DNS port %hu", dns_http_port_get(), dns_port_get());
         return false;
     }
 
@@ -343,7 +343,7 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
 }
 
 void fork_process(transaction_context *context) {
-    if (dns_get_run_as_daemon()) {
+    if (dns_run_as_daemon_get()) {
         // Create child process
         //
         pid_t process_id = fork();
@@ -384,7 +384,7 @@ void fork_process(transaction_context *context) {
 
         // Daemon Process ID
         //
-        dns_set_daemon_process_id(sid);
+        dns_daemon_process_id_set(sid);
 
         // Change the current working directory to root.
         //
@@ -410,7 +410,7 @@ int main(int argc, char *argv[]) {
 
     // Setup base service
     //
-    dns_set_resolvers_file("/etc/resolv.dns_cache");
+    dns_resolvers_file_set("/etc/resolv.dns_cache");
 
     int return_value = -1;
 
@@ -430,16 +430,16 @@ int main(int argc, char *argv[]) {
         // Get the list of resolvers
         //
         size_t count = 0;
-        dns_set_resolvers(resolvers_parse(dns_get_resolvers_file(), &count));
-        dns_set_resolvers_count(count);
+        dns_resolvers_set(resolvers_parse(dns_resolvers_file_get(), &count));
+        dns_resolvers_count_set(count);
 
-        if (dns_get_resolvers() != NULL) {
+        if (dns_resolvers_get() != NULL) {
             // Setup the cache
             //
             if (dns_cache_init(&context) == 0) {
                 // Log the version
                 //
-                INFO_LOG(&context, "Staring DNS Active Service version: %s", get_active_cache_version());
+                INFO_LOG(&context, "Staring DNS Active Service version: %s", dns_active_cache_version_get());
 
                 // Start Etcd Service
                 //
@@ -453,7 +453,7 @@ int main(int argc, char *argv[]) {
             }
         } else {
             ERROR_LOG(&context, "Unable to find resolvers config file %s, please see --resolvers= options",
-                      dns_get_resolvers_file());
+                      dns_resolvers_file_get());
         }
     }
 

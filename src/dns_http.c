@@ -89,7 +89,7 @@ void http_output_status_page(transaction_context *context, dns_string *response)
     dns_cache_json_log(context, response_body);
 
     dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
-    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
+    dns_string_sprintf(response, "Server: %s\r\n", dns_active_cache_version_get());
     dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
     dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
@@ -110,7 +110,7 @@ void http_output_health_check(transaction_context *context, dns_string *response
     }
 
     dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
-    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
+    dns_string_sprintf(response, "Server: %s\r\n", dns_active_cache_version_get());
     dns_string_sprintf(response, "Transfer-Encoding: Identity\r\n");
     dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
@@ -127,7 +127,7 @@ void http_output_active(transaction_context  __unused *context, dns_string *resp
     dns_string_sprintf(response_body, "ACTIVE");
 
     dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
-    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
+    dns_string_sprintf(response, "Server: %s\r\n", dns_active_cache_version_get());
     dns_string_sprintf(response, "Transfer-Encoding: Identity\r\n");
     dns_string_sprintf(response, "Content-Type: text/plain;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
@@ -141,10 +141,10 @@ void http_output_build_info(dns_string *response) {
 
     dns_string *response_body = dns_string_new(1024);
 
-    dns_string_sprintf(response_body, "{\"version\":\"%s\"}", get_active_cache_version());
+    dns_string_sprintf(response_body, "{\"version\":\"%s\"}", dns_active_cache_version_get());
 
     dns_string_sprintf(response, "HTTP/1.0 200 OK\r\n");
-    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
+    dns_string_sprintf(response, "Server: %s\r\n", dns_active_cache_version_get());
     dns_string_sprintf(response, "Content-Type: application/json;charset=UTF-8\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
     dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
@@ -165,7 +165,7 @@ void http_not_found(dns_string *response) {
     dns_string_sprintf(response_body, "\r\n");
 
     dns_string_sprintf(response, "HTTP/1.0 404 NOT FOUND\r\n");
-    dns_string_sprintf(response, "Server: %s\r\n", get_active_cache_version());
+    dns_string_sprintf(response, "Server: %s\r\n", dns_active_cache_version_get());
     dns_string_sprintf(response, "Content-Type: text/html\r\n");
     dns_string_sprintf(response, "Connection: close\r\n");
     dns_string_sprintf(response, "Content-Length: %d\r\n", dns_string_length(response_body));
@@ -219,7 +219,7 @@ int debug_startup_connection(transaction_context *context) {
 
     char port_string[16];   // needs to fit a short
     memory_clear(port_string, sizeof port_string);
-    snprintf(port_string, sizeof port_string, "%d", dns_http_get_port());
+    snprintf(port_string, sizeof port_string, "%d", dns_http_port_get());
 
     struct addrinfo *response = NULL;
     getaddrinfo(NULL, port_string, &hints, &response);
@@ -228,7 +228,7 @@ int debug_startup_connection(transaction_context *context) {
 
     if (socket_fd == -1) {
         ERROR_LOG(context, "Unable to create socket, this is either a network issue where the port %"
-                           " is already in use or a bug in the service.", dns_http_get_port());
+                           " is already in use or a bug in the service.", dns_http_port_get());
     } else {
         // The setsockopt() function is used to allow the local address to
         // be reused when the server is restarted before the required wait
@@ -334,13 +334,13 @@ void *debug_thread(void __unused *arg) {
 
     transaction_context context = create_context();
 
-    INFO_LOG(&context, "Starting debug thread on port %hu", dns_http_get_port());
+    INFO_LOG(&context, "Starting debug thread on port %hu", dns_http_port_get());
 
-    if (dns_http_get_port()) {
+    if (dns_http_port_get()) {
         int socket_fd = debug_startup_connection(&context);
 
         if (-1 != socket_fd) {
-            INFO_LOG(&context, "[INFO] DNS Active Cache has taking the stage on port %d", dns_http_get_port());
+            INFO_LOG(&context, "[INFO] DNS Active Cache has taking the stage on port %d", dns_http_port_get());
 
             while (dns_service_running()) {
                 dns_string *request_buffer = dns_string_new(1024);
@@ -378,7 +378,7 @@ void *debug_thread(void __unused *arg) {
             close(socket_fd);
         } else {
             ERROR_LOG(&context, "[ERROR] DNS Active Cache was unable to take the stage on port %d",
-                      dns_http_get_port());
+                      dns_http_port_get());
         }
     }
 
@@ -388,7 +388,7 @@ void *debug_thread(void __unused *arg) {
 pthread_t g_debug_thread_id = 0;
 
 void debug_service_start() {
-    if (dns_get_debug_mode()) {
+    if (dns_debug_mode_get()) {
         pthread_create(&g_debug_thread_id, NULL, &debug_thread, NULL);
     }
 }

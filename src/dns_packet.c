@@ -223,7 +223,7 @@ void dns_string_to_host(const unsigned char *string, dns_string *host) {
 #pragma clang diagnostic pop
 
 void dns_packet_log(transaction_context *context, dns_packet *packet, const char *template, ...) {
-    if (dns_get_debug_mode() && packet != NULL) {
+    if (dns_debug_mode_get() && packet != NULL) {
         dns_header *header = &packet->header;
 
         dns_string *log_output = dns_string_new(4096);
@@ -368,7 +368,7 @@ uint32_t dns_packet_record_ttl_get(transaction_context *context,
     }
 
     if (ttl_seconds == UINT_MAX) {
-        ttl_seconds = dns_get_cache_polling_interval();
+        ttl_seconds = dns_cache_polling_interval_get();
     }
 
     return ttl_seconds;

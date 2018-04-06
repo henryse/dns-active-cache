@@ -106,7 +106,7 @@ int dns_service_get_socket(transaction_context *context) {
 
     if (!g_dns_service_socket_fd) {
         int dns_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (!dns_set_calling_socket_options(context, dns_socket_fd)) {
+        if (!dns_calling_socket_options_set(context, dns_socket_fd)) {
             exit(EXIT_FAILURE);
         }
         g_dns_service_socket_fd = dns_socket_fd;
@@ -121,7 +121,7 @@ void dns_service_stop() {
 }
 
 void log_incoming_request(transaction_context *context, struct sockaddr_storage *addr, ssize_t packet_size) {
-    if (dns_get_log_mode()) {
+    if (dns_log_mode_get()) {
         char ip_string[INET6_ADDRSTRLEN];
         memory_clear(ip_string, sizeof ip_string);
 
@@ -203,7 +203,7 @@ bool dns_resolve(transaction_context *context,
 
     if (dns_packet_response
         && dns_packet_response_size
-        && dns_get_resolvers_count() > 0) {
+        && dns_resolvers_count_get() > 0) {
 
         memory_clear(dns_packet_response, sizeof(dns_packet));
         *dns_packet_response_size = 0;
@@ -220,9 +220,9 @@ bool dns_resolve(transaction_context *context,
         destination_addr.sin_port = htons(53);
         socklen_t destination_size = sizeof(struct sockaddr_in);
 
-        for (int index = 0; index < dns_get_resolvers_count(); index++) {
+        for (int index = 0; index < dns_resolvers_count_get(); index++) {
 
-            destination_addr.sin_addr.s_addr = inet_addr(dns_get_resolvers()[index]);
+            destination_addr.sin_addr.s_addr = inet_addr(dns_resolvers_get()[index]);
 
             if (sendto(dns_socket,
                        &dns_request,
@@ -232,12 +232,12 @@ bool dns_resolve(transaction_context *context,
                        destination_size) <= 0) {
 
                 ERROR_LOG(context, "sendto() failed, this is either a networking issue or a bug in the service. "
-                                   "Trying to connect to: %s", dns_get_resolvers()[index]);
+                                   "Trying to connect to: %s", dns_resolvers_get()[index]);
             } else {
                 dns_packet_log(context,
                                &dns_request,
                                "Packet sent to server %s: (size: %d)",
-                               dns_get_resolvers()[index],
+                               dns_resolvers_get()[index],
                                packet_size);
 
                 struct sockaddr_in response_addr;
@@ -245,7 +245,7 @@ bool dns_resolve(transaction_context *context,
                 socklen_t response_addr_size = 0;
 
                 // NOTE: We maybe should make this a configurable.
-                int retry_count = get_dns_resolve_retry_count();
+                int retry_count = dns_resolve_retry_count_get();
 
                 do {
                     ssize_t response_size = recvfrom(dns_socket,
@@ -260,7 +260,7 @@ bool dns_resolve(transaction_context *context,
                         dns_packet_log(context,
                                        dns_packet_response,
                                        "Packet received from server %s: (size: %d)",
-                                       dns_get_resolvers()[index],
+                                       dns_resolvers_get()[index],
                                        response_size);
 
                         // It is only a success if we get an answer back!
@@ -272,7 +272,7 @@ bool dns_resolve(transaction_context *context,
 
                 } while (retry_count > 0 && (errno == EAGAIN || errno == EWOULDBLOCK));
 
-                ERROR_LOG(context, "recvfrom() failed connecting to %s, %d : %s.", dns_get_resolvers()[index], errno,
+                ERROR_LOG(context, "recvfrom() failed connecting to %s, %d : %s.", dns_resolvers_get()[index], errno,
                           strerror(errno));
             }
         }
@@ -284,7 +284,7 @@ bool dns_resolve(transaction_context *context,
 }
 
 dns_cache_entry lookup_dns_packet(transaction_context *context, dns_packet *dns_packet_to_find) {
-    if (dns_get_bypass_mode()) {
+    if (dns_bypass_cache_get()) {
         dns_cache_entry cache_entry;
         memory_clear(&cache_entry, sizeof(cache_entry));
 
@@ -390,18 +390,18 @@ void dns_service_loop(int socket_fd) {
 
 int dns_service_start(transaction_context *context) {
 
-    if (dns_get_resolvers() != NULL) {
+    if (dns_resolvers_get() != NULL) {
 
         debug_service_start();
 
-        int socket_fd = startup_connection(context, dns_get_port());
+        int socket_fd = startup_connection(context, dns_port_get());
         if (socket_fd != -1) {
             dns_service_loop(socket_fd);
         }
 
         close(socket_fd);
 
-        free_string_array(dns_get_resolvers(), dns_get_resolvers_count());
+        free_string_array(dns_resolvers_get(), dns_resolvers_count_get());
         dns_cache_stop();
         return 0;
     }

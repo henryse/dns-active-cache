@@ -207,13 +207,13 @@ void log_message(int log_level,
         case LOG_NOTICE:
         case LOG_INFO:
             message_type = "INFO";
-            log_message = dns_get_log_mode();
+            log_message = dns_log_mode_get();
             break;
 
         case LOG_DEBUG:
         default:
             message_type = "DEBUG";
-            log_message = dns_get_log_mode();
+            log_message = dns_log_mode_get();
             break;
     }
 

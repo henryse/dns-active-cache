@@ -148,7 +148,7 @@ dns_cache_record *dns_get_next_record(transaction_context *context, dns_cache_re
 }
 
 void dns_cache_log(transaction_context *context) {
-    if (dns_get_debug_mode()) {
+    if (dns_debug_mode_get()) {
         dns_cache_record *record = dns_get_head(context);
 
         if (record) {
@@ -272,9 +272,9 @@ bool dns_cache_health_check(transaction_context *context) {
 
                 if (question) {
 
-                    // We should "not" have a timeout longer than dns_get_max_ttl.
+                    // We should "not" have a timeout longer than dns_max_ttl_get.
                     //
-                    if (record->expired_time_stamp - dns_get_timestamp_now() >= dns_get_max_ttl()) {
+                    if (record->expired_time_stamp - dns_get_timestamp_now() >= dns_max_ttl_get()) {
                         return false;
                     }
                 }
@@ -294,9 +294,9 @@ void dns_cache_json_log(transaction_context *context, dns_string *response) {
 
     dns_string_sprintf(response, "{");
 
-    dns_string_sprintf(response, "\"cache_timestamp_next\":\"%d\",", dns_get_cache_timestamp_next());
+    dns_string_sprintf(response, "\"cache_timestamp_next\":\"%d\",", dns_cache_timestamp_next_get());
     dns_string_sprintf(response, "\"timestamp_now\":\"%d\",", timestamp_now);
-    dns_string_sprintf(response, "\"cache_timestamp_sleep\":\"%d\",", dns_get_cache_timestamp_next() - timestamp_now);
+    dns_string_sprintf(response, "\"cache_timestamp_sleep\":\"%d\",", dns_cache_timestamp_next_get() - timestamp_now);
 
     dns_string_sprintf(response, "\"records\": [");
 
@@ -351,7 +351,7 @@ int dns_cache_get_socket(transaction_context *context) {
 
     if (!g_dns_cache_socket) {
         int socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (!dns_set_calling_socket_options(context, socket_fd)) {
+        if (!dns_calling_socket_options_set(context, socket_fd)) {
             exit(EXIT_FAILURE);
         }
         g_dns_cache_socket = socket_fd;
@@ -443,8 +443,8 @@ dns_cache_entry dns_cache_find(transaction_context *context, dns_packet *dns_pac
             dns_packet *packet = &dns_cache_entry_found.dns_packet_response;
             uint32_t current_ttl = dns_packet_record_ttl_get(context, packet, RECORD_A);
 
-            if (current_ttl > dns_get_max_ttl()) {
-                dns_packet_record_ttl_set(context, packet, RECORD_A, dns_get_max_ttl());
+            if (current_ttl > dns_max_ttl_get()) {
+                dns_packet_record_ttl_set(context, packet, RECORD_A, dns_max_ttl_get());
             }
 
             // Release the record, we are done with it.
@@ -529,7 +529,7 @@ dns_cache_record *dns_cache_insert_internal(transaction_context *context, dns_pa
     if (ntohs(packet->header.answer_count) > 0) {
         // Always allocate a new record, even if there is a duplicate, the clean up thread will take care of it.
         //
-        for (size_t index = 0; index < dns_get_cache_entries(); index++) {
+        for (size_t index = 0; index < dns_cache_size_get(); index++) {
             if (__sync_bool_compare_and_swap(&g_records[index].cache_entry.entry_state,
                                              ENTRY_FREE,
                                              ENTRY_IN_PROCESS)) {
@@ -557,12 +557,12 @@ dns_cache_record *dns_cache_insert_internal(transaction_context *context, dns_pa
 
             // The TTL for the RECORD_A and cap it to the command line parameter for max ttl
             //
-            uint32_t ttl = min(dns_packet_record_ttl_get(context, packet, RECORD_A), dns_get_max_ttl());
+            uint32_t ttl = min(dns_packet_record_ttl_get(context, packet, RECORD_A), dns_max_ttl_get());
 
             // Sometimes DNS Servers return 0 for A record times, in these cases we will
             // just go with the polling time.
             //
-            ttl = ttl > 0 ? ttl : dns_get_cache_polling_interval();
+            ttl = ttl > 0 ? ttl : dns_cache_polling_interval_get();
 
             // Configure the record
             //
@@ -594,7 +594,7 @@ dns_cache_record *dns_cache_insert_internal(transaction_context *context, dns_pa
         } else {
             ERROR_LOG(context,
                       "Cache table is full, currently size is %d, please use --entries= to enlarge it.",
-                      dns_get_cache_entries());
+                      dns_cache_size_get());
             dns_packet_log(context, packet, "Cache table is full, please use --entries= to enlarge it.");
         }
     }
@@ -618,7 +618,7 @@ void *dns_cache_refresh_thread(void __unused *arg) {
     while (g_dns_refresh_cache_loop) {
 
         uint32_t timestamp_now = dns_get_timestamp_now();
-        uint32_t timestamp_next = timestamp_now + dns_get_cache_polling_interval();
+        uint32_t timestamp_next = timestamp_now + dns_cache_polling_interval_get();
 
         dns_cache_log(&context);
 
@@ -683,7 +683,7 @@ void *dns_cache_refresh_thread(void __unused *arg) {
 
         // Save the "next" time so we can show it in diagnostics page:
         //
-        dns_set_cache_timestamp_next(timestamp_next);
+        dns_cache_timestamp_next_set(timestamp_next);
 
         // OK see if we need to sleep at all...
         //
@@ -708,13 +708,13 @@ int dns_cache_init(transaction_context *context) {
 
     int result = -1;
 
-    if (dns_get_cache_entries() <= 16) {
+    if (dns_cache_size_get() <= 16) {
         ERROR_LOG(context, "Sorry we need at least 16 cache entries, you have select %d, "
-                           "please use --entries= to enlarge it.", dns_get_cache_entries());
-    } else if (dns_get_resolvers() == NULL || dns_get_resolvers_count() == 0) {
+                           "please use --entries= to enlarge it.", dns_cache_size_get());
+    } else if (dns_resolvers_get() == NULL || dns_resolvers_count_get() == 0) {
         ERROR_LOG(context, "We need someone to call, no resolvers file found.  See --resolvers= to select a file.");
     } else {
-        size_t byte_count = sizeof(dns_cache_entry) * (dns_get_cache_entries() + 1);
+        size_t byte_count = sizeof(dns_cache_entry) * (dns_cache_size_get() + 1);
         g_records = memory_alloc(byte_count);
 
         if (g_records) {
