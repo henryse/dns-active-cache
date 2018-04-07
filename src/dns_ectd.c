@@ -26,6 +26,7 @@
 **********************************************************************/
 
 #include "dns_etcd_json_parser.h"
+#include <errno.h>
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
@@ -78,6 +79,24 @@ void *etcd_cluster_request(etcd_client *cli, etcd_request *req);
 
 int etcd_curl_setopt(CURL *curl, etcd_watcher *watcher);
 
+bool etcd_curl_validate(transaction_context *context, CURLcode code){
+
+    if (code == CURLE_OK){
+        return true;
+    }
+
+    ERROR_LOG(context, "CURL Code = %d, %s", code, curl_easy_strerror(code));
+    return false;
+}
+
+int etcd_network_validate(transaction_context *context, int value){
+    if (value >= 0){
+        return value;
+    }
+    ERROR_LOG(context, "value = %d, %s", strerror(errno));
+    return value;
+}
+
 void etcd_client_init(etcd_client *cli, dns_array *addresses) {
     size_t i = 0;
     dns_array *addrs = NULL;
@@ -113,12 +132,12 @@ void etcd_client_init(etcd_client *cli, dns_array *addresses) {
 
     dns_array_init(&cli->watchers, 10);
 
-    curl_easy_setopt(cli->curl, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L);
-    curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPINTVL, 1L);
-    curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "etcd");
-    curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L);
-    curl_easy_setopt(cli->curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
+    etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_NOSIGNAL, 1L));
+    etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L));
+    etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPINTVL, 1L));
+    etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "etcd"));
+    etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L));
+    etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1));
 }
 
 etcd_client *etcd_client_create(dns_array *addresses) {
@@ -195,13 +214,13 @@ void etcd_setup_user(etcd_client *cli, const char *user, const char *password) {
 
 void etcd_setup_tls(etcd_client *cli, const char *CA, const char *cert, const char *key) {
     if (CA) {
-        curl_easy_setopt(cli->curl, CURLOPT_CAINFO, CA);
+        etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_CAINFO, CA));
     }
     if (cert) {
-        curl_easy_setopt(cli->curl, CURLOPT_SSLCERT, cert);
+        etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_SSLCERT, cert));
     }
     if (key) {
-        curl_easy_setopt(cli->curl, CURLOPT_SSLKEY, key);
+        etcd_curl_validate(NULL, curl_easy_setopt(cli->curl, CURLOPT_SSLKEY, key));
     }
 }
 
@@ -319,29 +338,29 @@ int etcd_curl_setopt(CURL *curl, etcd_watcher *watcher) {
     dns_string *url = NULL;
 
     url = etcd_watcher_build_url(watcher->cli, watcher);
-    curl_easy_setopt(curl, CURLOPT_URL, url);
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_URL, dns_string_c_str(url)));
     dns_string_free(url, true);
 
     // See above about CURLOPT_NOSIGNAL
     //
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L));
 
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, watcher->cli->settings.connect_timeout);
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, watcher->cli->settings.connect_timeout));
 #if LIBCURL_VERSION_NUM >= 0x071900
-    curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPALIVE, 1L);
-    curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPINTVL, 1L); // the same as go-etcd
+    etcd_curl_validate(NULL, curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPALIVE, 1L));
+    etcd_curl_validate(NULL, curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPINTVL, 1L)); // the same as go-etcd
 #endif
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "etcd");
-    curl_easy_setopt(curl, CURLOPT_POSTREDIR, 3L);     // post after redirecting
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, watcher->cli->settings.verbose);
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_USERAGENT, "etcd"));
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_POSTREDIR, 3L));     // post after redirecting
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_VERBOSE, watcher->cli->settings.verbose ? 1 : 0));
 
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, etcd_parse_response);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, watcher->parser);
-    curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET"));
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, etcd_parse_response));
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_WRITEDATA, watcher->parser));
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_HEADER, 1L));
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L));
 
-    curl_easy_setopt(curl, CURLOPT_PRIVATE, watcher);
+    etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_PRIVATE, watcher));
     watcher->curl = curl;
 
     return 1;
@@ -417,7 +436,7 @@ static int etcd_watchers_reap(etcd_client *cli, CURLM *mcurl) {
                 if (watcher->attempts) {
                     cli->picked = (cli->picked + 1) % (dns_array_size(cli->addresses));
                     url = etcd_watcher_build_url(cli, watcher);
-                    curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
+                    etcd_curl_validate(NULL, curl_easy_setopt(watcher->curl, CURLOPT_URL, dns_string_c_str(url)));
                     dns_string_free(url, true);
                     curl_multi_remove_handle(mcurl, curl);
                     watcher->parser->st = 0;
@@ -453,7 +472,7 @@ static int etcd_watchers_reap(etcd_client *cli, CURLM *mcurl) {
                 if (watcher->index) {
                     watcher->index = index + 1;
                     url = etcd_watcher_build_url(cli, watcher);
-                    curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
+                    etcd_curl_validate(NULL, curl_easy_setopt(watcher->curl, CURLOPT_URL, dns_string_c_str(url)));
                     dns_string_free(url, true);
                 }
                 curl_multi_add_handle(mcurl, watcher->curl);
@@ -486,7 +505,7 @@ int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
     int count = (int) dns_array_size(watchers);
     for (int i = 0; i < count; ++i) {
         watcher = dns_array_get(watchers, (size_t) i);
-        curl_easy_setopt(watcher->curl, CURLOPT_PRIVATE, watcher);
+        etcd_curl_validate(NULL, curl_easy_setopt(watcher->curl, CURLOPT_PRIVATE, watcher));
         curl_multi_add_handle(curlm, watcher->curl);
     }
     long back_off = 100;          // 100ms
@@ -512,7 +531,7 @@ int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
             curl_multi_fdset(curlm, &r, &w, &e, &maxfd);
 
             // TODO handle errors
-            select(maxfd + 1, &r, &w, &e, &tv);
+            etcd_network_validate(NULL, select(maxfd + 1, &r, &w, &e, &tv));
 
             curl_multi_perform(curlm, &left);
         }
@@ -538,7 +557,7 @@ int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
 #else
             tv.tv_usec = (back_off % 1000) * 1000;
 #endif
-            select(1, 0, 0, 0, &tv);
+            etcd_network_validate(NULL, select(1, 0, 0, 0, &tv));
         }
     }
 
@@ -1040,14 +1059,8 @@ void etcd_parse_response_log(transaction_context *context,
                              size_t nmemb) {
     dns_string *log_output = dns_string_new_empty();
 
-    dns_string_sprintf(log_output, "\nParse HTTP Response:\n");
-
-    dns_string_sprintf(log_output, "\tsize %d:\n", size);
-    dns_string_sprintf(log_output, "\tnmemb %d:\n", nmemb);
-
     dns_string *data = dns_string_new_c(size * nmemb, ptr);
-
-    dns_string_sprintf(log_output, "\tData %s:\n", dns_string_c_str(data));
+    dns_string_sprintf(log_output, "\nParse HTTP Response: size: %d, nmemb: %d, Data: %s\n", size, nmemb, dns_string_c_str(data));
 
     DEBUG_LOG(context, dns_string_c_str(log_output));
 
@@ -1284,10 +1297,10 @@ void *etcd_send_request(transaction_context *context,
     parser.buf = dns_string_new_empty();
     parser.json = NULL;
 
-    curl_easy_setopt(curl, CURLOPT_URL, dns_string_c_str(req->url));
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, http_method[req->method]);
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_URL, dns_string_c_str(req->url)));
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, http_method[req->method]));
     if (req->method == ETCD_HTTP_PUT || req->method == ETCD_HTTP_POST) {
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, dns_string_c_str(req->data));
+        etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_POSTFIELDS, dns_string_c_str(req->data)));
     } else {
         // We must clear post fields here:
         // We reuse the curl handle for all HTTP methods.
@@ -1295,32 +1308,33 @@ void *etcd_send_request(transaction_context *context,
         // The field  pointed to the freed req->data. It would be
         //reused by next request.
         //
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
+        etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_POSTFIELDS, ""));
     }
     if (req->cli->settings.user) {
-        curl_easy_setopt(curl, CURLOPT_USERNAME, dns_string_c_str(req->cli->settings.user));
+        etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_USERNAME, dns_string_c_str(req->cli->settings.user)));
     }
     if (req->cli->settings.password) {
-        curl_easy_setopt(curl, CURLOPT_PASSWORD, dns_string_c_str(req->cli->settings.password));
+        etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_PASSWORD, dns_string_c_str(req->cli->settings.password)));
     }
-    curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &parser);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, etcd_parse_response);
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, req->cli->settings.verbose);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, req->cli->settings.connect_timeout);
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_HEADER, 1L));
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L));
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_WRITEDATA, &parser));
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, etcd_parse_response));
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_VERBOSE, req->cli->settings.verbose));
+    etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, req->cli->settings.connect_timeout));
 
     struct curl_slist *chunk = NULL;
     chunk = curl_slist_append(chunk, "Expect:");
 
-    CURLcode curl_response = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+    CURLcode curl_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
-    if (curl_response != CURLE_OK) {
+
+    if (!etcd_curl_validate(context, curl_code)) {
         // TODO: Need Do something here..
         ERROR_LOG(NULL, "CURL Failed!");
     }
 
-    curl_response = curl_easy_perform(curl);
+    curl_code = curl_easy_perform(curl);
 
     curl_slist_free_all(chunk);
     //release the parser resource
@@ -1331,14 +1345,14 @@ void *etcd_send_request(transaction_context *context,
         dns_string_array_destroy(&parser.ctx.node_stack);
     }
 
-    if (curl_response != CURLE_OK) {
+    if (!etcd_curl_validate(context, curl_code)) {
         if (req->api_type == ETCD_MEMBERS) {
             return addrs;
         }
         if (resp->err == NULL) {
             resp->err = memory_alloc(sizeof(etcd_error));
             resp->err->etcd_code = error_send_request_failed;
-            resp->err->message = dns_string_new_c(64, curl_easy_strerror(curl_response));
+            resp->err->message = dns_string_new_c(64, curl_easy_strerror(curl_code));
             resp->err->cause = dns_string_new_str(req->url);
         }
         return resp;

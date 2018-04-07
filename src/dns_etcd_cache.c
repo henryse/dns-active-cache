@@ -1,4 +1,4 @@
-#include <ntsid.h>/**********************************************************************
+/**********************************************************************
 //    Copyright (c) 2018 Henry Seurer
 //
 //    Permission is hereby granted, free of charge, to any person
@@ -388,11 +388,10 @@ dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns
 }
 
 int dns_etcd_watcher_callback(void __unused *user_data, etcd_response *resp){
-
     transaction_context context_base = create_context();
     transaction_context *context = &context_base;
 
-    INFO_LOG(context, "DNS ETCD Watcher Callback");
+    etcd_response_log(context, resp);
 
     return 0;
 }
@@ -420,20 +419,16 @@ int dns_service_etcd(transaction_context *context) {
         dns_array_push(addresses, (void *) etcd_url);
         etcd_client_init(&g_etcd_client, addresses);
 
+        g_etcd_client.settings.verbose = dns_debug_mode_get();
+
         g_etcd_cache = dns_etcd_cache_allocate();
 
         dns_etcd_populate(context, g_etcd_cache);
-
-        etcd_watcher *etcd_watcher = etcd_watcher_create(&g_etcd_client,
-                                                         "",
-                                                         0,
-                                                         false, true,
-                                                         dns_etcd_watcher_callback,
-                                                         NULL);
-
         dns_array *etcd_watchers = dns_array_create(1);
 
-        etcd_watcher_add(etcd_watchers, etcd_watcher);
+        etcd_watcher_add(etcd_watchers, etcd_watcher_create(&g_etcd_client, "", 0, true, true,
+                                                            dns_etcd_watcher_callback,
+                                                            NULL));
 
         g_watch_id = etcd_watcher_multi_async(&g_etcd_client, etcd_watchers);
 

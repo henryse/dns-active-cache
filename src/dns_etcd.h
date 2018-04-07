@@ -83,7 +83,7 @@ typedef struct etcd_client_t {
     const char *member_space;
     size_t picked;
     struct {
-        int verbose;
+        bool verbose;
         uint64_t ttl;
         uint64_t connect_timeout;
         uint64_t read_timeout;
