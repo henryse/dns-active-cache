@@ -387,7 +387,7 @@ dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns
     return entry_found;
 }
 
-int dns_etcd_watcher_callback(void __unused *user_data, etcd_response *resp){
+int dns_etcd_watcher_callback(void __unused *user_data, etcd_response *resp) {
     transaction_context context_base = create_context();
     transaction_context *context = &context_base;
 
@@ -395,7 +395,6 @@ int dns_etcd_watcher_callback(void __unused *user_data, etcd_response *resp){
 
     return 0;
 }
-
 
 int dns_service_etcd(transaction_context *context) {
     if (dns_etcd_get() != NULL) {
@@ -427,8 +426,7 @@ int dns_service_etcd(transaction_context *context) {
         dns_array *etcd_watchers = dns_array_create(1);
 
         etcd_watcher_add(etcd_watchers, etcd_watcher_create(&g_etcd_client, "", 0, true, true,
-                                                            dns_etcd_watcher_callback,
-                                                            NULL));
+                                                            dns_etcd_watcher_callback, NULL));
 
         g_watch_id = etcd_watcher_multi_async(&g_etcd_client, etcd_watchers);
 

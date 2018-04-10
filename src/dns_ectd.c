@@ -79,9 +79,9 @@ void *etcd_cluster_request(etcd_client *cli, etcd_request *req);
 
 int etcd_curl_setopt(CURL *curl, etcd_watcher *watcher);
 
-bool etcd_curl_validate(transaction_context *context, CURLcode code){
+bool etcd_curl_validate(transaction_context *context, CURLcode code) {
 
-    if (code == CURLE_OK){
+    if (code == CURLE_OK) {
         return true;
     }
 
@@ -89,8 +89,40 @@ bool etcd_curl_validate(transaction_context *context, CURLcode code){
     return false;
 }
 
-int etcd_network_validate(transaction_context *context, int value){
-    if (value >= 0){
+bool etcd_curl_multi_validate(transaction_context *context, CURLMcode code) {
+
+    switch (code) {
+        case CURLM_OK:
+            return true;
+            break;
+        case CURLM_CALL_MULTI_PERFORM:
+            ERROR_LOG(context, "Please call curl_multi_perform() or curl_multi_socket*() soon");
+            break;
+        case CURLM_BAD_HANDLE:
+            ERROR_LOG(context, "the passed-in handle is not a valid CURLM handle");
+            break;
+        case CURLM_OUT_OF_MEMORY:
+            ERROR_LOG(context, "if you ever get this, you're in deep sh*t");
+            break;
+        case CURLM_INTERNAL_ERROR:
+            ERROR_LOG(context, "this is a libcurl bug");
+            break;
+        case CURLM_BAD_SOCKET:
+            ERROR_LOG(context, "the passed in socket argument did not match ");
+            break;
+        case CURLM_ADDED_ALREADY:
+            ERROR_LOG(context, "an easy handle already added to a multi handle was\n"
+                               "attempted to get added - again ");
+            break;
+        default:
+            break;
+    }
+
+    return false;
+}
+
+int etcd_network_validate(transaction_context *context, int value) {
+    if (value >= 0) {
         return value;
     }
     ERROR_LOG(context, "value = %d, %s", strerror(errno));
@@ -426,7 +458,7 @@ static int etcd_watchers_reap(etcd_client *cli, CURLM *mcurl) {
     while ((msg = curl_multi_info_read(mcurl, &ignore)) != NULL) {
         if (msg->msg == CURLMSG_DONE) {
             curl = msg->easy_handle;
-            curl_easy_getinfo(curl, CURLINFO_PRIVATE, &watcher);
+            etcd_curl_validate(NULL, curl_easy_getinfo(curl, CURLINFO_PRIVATE, &watcher));
 
             resp = watcher->parser->resp;
             index = watcher->index;
@@ -442,7 +474,7 @@ static int etcd_watchers_reap(etcd_client *cli, CURLM *mcurl) {
                     watcher->parser->st = 0;
                     curl_easy_reset(curl);
                     etcd_curl_setopt(curl, watcher);
-                    curl_multi_add_handle(mcurl, curl);
+                    etcd_curl_multi_validate(NULL, curl_multi_add_handle(mcurl, curl));
                     continue;
                 } else {
                     resp->err = memory_alloc(sizeof(etcd_error));
@@ -488,15 +520,28 @@ static int etcd_watchers_reap(etcd_client *cli, CURLM *mcurl) {
 
 bool g_etcd_multi_watch_continue = true;
 
+struct timeval etcd_timeout(long timeout) {
+    struct timeval tv;
+    memory_clear(&tv, sizeof(tv));
+
+#ifdef __MACH__
+    tv.tv_usec = (__darwin_suseconds_t) ((timeout % 1000) * 1000);
+#else
+    tv.tv_usec = (timeout % 1000) * 1000;
+#endif
+
+    return tv;
+}
+
 int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
     int maxfd = 0, left = 0, added = 0;
     long timeout = 0;
     etcd_watcher *watcher = NULL;
 
-    fd_set r, w, e;
-    FD_ZERO(&r);
-    FD_ZERO(&w);
-    FD_ZERO(&e);
+    fd_set fdread, fdwrite, fdexcep;
+    FD_ZERO(&fdread);
+    FD_ZERO(&fdwrite);
+    FD_ZERO(&fdexcep);
 
     struct timeval tv;
     memory_clear(&tv, sizeof(tv));
@@ -506,34 +551,31 @@ int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
     for (int i = 0; i < count; ++i) {
         watcher = dns_array_get(watchers, (size_t) i);
         etcd_curl_validate(NULL, curl_easy_setopt(watcher->curl, CURLOPT_PRIVATE, watcher));
-        curl_multi_add_handle(curlm, watcher->curl);
+        etcd_curl_multi_validate(NULL, curl_multi_add_handle(curlm, watcher->curl));
     }
     long back_off = 100;          // 100ms
     long back_off_max = 1000;     // 1 sec
 
     while (g_etcd_multi_watch_continue) {
-        curl_multi_perform(curlm, &left);
+        etcd_curl_multi_validate(NULL, curl_multi_perform(curlm, &left));
         if (left) {
-            FD_ZERO(&r);
-            FD_ZERO(&w);
-            FD_ZERO(&e);
+            FD_ZERO(&fdread);
+            FD_ZERO(&fdwrite);
+            FD_ZERO(&fdexcep);
 
-            curl_multi_timeout(curlm, &timeout);
-            if (timeout == -1) {
+            etcd_curl_multi_validate(NULL, curl_multi_timeout(curlm, &timeout));
+            if (timeout < 0) {
                 timeout = 100; // wait for 0.1 seconds
             }
-            tv.tv_sec = timeout / 1000;
-#ifdef __MACH__
-            tv.tv_usec = (__darwin_suseconds_t) ((timeout % 1000) * 1000);
-#else
-            tv.tv_usec = (timeout % 1000) * 1000;
-#endif
-            curl_multi_fdset(curlm, &r, &w, &e, &maxfd);
+
+            tv = etcd_timeout(timeout);
+
+            etcd_curl_multi_validate(NULL, curl_multi_fdset(curlm, &fdread, &fdwrite, &fdexcep, &maxfd));
 
             // TODO handle errors
-            etcd_network_validate(NULL, select(maxfd + 1, &r, &w, &e, &tv));
+            etcd_network_validate(NULL, select(maxfd + 1, &fdread, &fdwrite, &fdexcep, &tv));
 
-            curl_multi_perform(curlm, &left);
+            etcd_curl_multi_validate(NULL, curl_multi_perform(curlm, &left));
         }
         added = etcd_watchers_reap(cli, curlm);
         if (added == 0 && left == 0) {
@@ -551,17 +593,14 @@ int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
             } else {
                 back_off = back_off_max;
             }
-            tv.tv_sec = back_off / 1000;
-#ifdef __MACH__
-            tv.tv_usec = (__darwin_suseconds_t) ((timeout % 1000) * 1000);
-#else
-            tv.tv_usec = (back_off % 1000) * 1000;
-#endif
+
+            tv = etcd_timeout(timeout);
+
             etcd_network_validate(NULL, select(1, 0, 0, 0, &tv));
         }
     }
 
-    curl_multi_cleanup(curlm);
+    etcd_curl_multi_validate(NULL, curl_multi_cleanup(curlm));
     pthread_exit(NULL);
 
     return count;
@@ -837,7 +876,9 @@ etcd_response *etcd_watch_recursive(etcd_client *cli, const char *key, uint64_t 
 
     req.method = ETCD_HTTP_GET;
     req.api_type = ETCD_KEYS;
-    req.uri = dns_string_sprintf(dns_string_new_empty(), "%s%s?wait=true&recursive=true&waitIndex=%lu", cli->keys_space,
+    req.uri = dns_string_sprintf(dns_string_new_empty(),
+                                 "%s%s?wait=true&recursive=true&waitIndex=%lu",
+                                 cli->keys_space,
                                  key,
                                  index);
 
@@ -1060,7 +1101,8 @@ void etcd_parse_response_log(transaction_context *context,
     dns_string *log_output = dns_string_new_empty();
 
     dns_string *data = dns_string_new_c(size * nmemb, ptr);
-    dns_string_sprintf(log_output, "\nParse HTTP Response: size: %d, nmemb: %d, Data: %s\n", size, nmemb, dns_string_c_str(data));
+    dns_string_sprintf(log_output, "\nParse HTTP Response: size: %d, nmemb: %d, Data: %s\n", size, nmemb,
+                       dns_string_c_str(data));
 
     DEBUG_LOG(context, dns_string_c_str(log_output));
 
@@ -1314,7 +1356,8 @@ void *etcd_send_request(transaction_context *context,
         etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_USERNAME, dns_string_c_str(req->cli->settings.user)));
     }
     if (req->cli->settings.password) {
-        etcd_curl_validate(NULL, curl_easy_setopt(curl, CURLOPT_PASSWORD, dns_string_c_str(req->cli->settings.password)));
+        etcd_curl_validate(NULL,
+                           curl_easy_setopt(curl, CURLOPT_PASSWORD, dns_string_c_str(req->cli->settings.password)));
     }
     etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_HEADER, 1L));
     etcd_curl_validate(context, curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L));
@@ -1327,7 +1370,6 @@ void *etcd_send_request(transaction_context *context,
     chunk = curl_slist_append(chunk, "Expect:");
 
     CURLcode curl_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
 
     if (!etcd_curl_validate(context, curl_code)) {
         // TODO: Need Do something here..
