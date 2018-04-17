@@ -611,7 +611,7 @@ bool dns_cache_insert(transaction_context *context, dns_packet *packet, size_t s
 //
 void *dns_cache_refresh_thread(void __unused *arg) {
 
-    transaction_context context = create_context();
+    transaction_context context = context_create();
 
     INFO_LOG(&context, "Starting dns_cache_refresh_thread()");
 
@@ -696,7 +696,7 @@ void *dns_cache_refresh_thread(void __unused *arg) {
         // Reset the context "after" the sleep, so we a better idea of performance
         // between log calls.
         //
-        context = create_context();
+        context = context_create();
     }
 
     ERROR_LOG(&context, "Exiting dns_cache_refresh_thread()!");

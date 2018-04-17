@@ -332,7 +332,7 @@ dns_string *http_parse_path(dns_string *request_buffer) {
 
 void *debug_thread(void __unused *arg) {
 
-    transaction_context context = create_context();
+    transaction_context context = context_create();
 
     INFO_LOG(&context, "Starting debug thread on port %hu", dns_http_port_get());
 

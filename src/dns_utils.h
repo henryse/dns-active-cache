@@ -54,7 +54,7 @@ typedef struct context_t {
     long long start_time;
 } transaction_context;
 
-transaction_context create_context();
+transaction_context context_create();
 
 #if !defined(NDEBUG)
 #define ASSERT(context, x)  {if (!(x)){log_message(LOG_ALERT, __FUNCTION__, __FILE__, __LINE__, context, "Assert Fired" );}}

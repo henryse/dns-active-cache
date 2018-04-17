@@ -388,12 +388,30 @@ dns_cache_entry lookup_etcd_packet(transaction_context *context, dns_packet *dns
 }
 
 int dns_etcd_watcher_callback(void __unused *user_data, etcd_response *resp) {
-    transaction_context context_base = create_context();
+    transaction_context context_base = context_create();
     transaction_context *context = &context_base;
 
     etcd_response_log(context, resp);
 
-    // TODO: Something changed... time to reload...
+    // Something changed... time to reload...
+    //
+
+    // Create a new cache:
+    //
+    dns_etcd_cache *new_etcd_cache = dns_etcd_cache_allocate();
+    dns_etcd_populate(context, new_etcd_cache);
+
+    // Save the old one
+    //
+    dns_etcd_cache *old_etcd_cache = g_etcd_cache;
+
+    // Swap
+    //
+    g_etcd_cache = new_etcd_cache;
+
+    // Release the old one.
+    //
+    dns_etcd_cache_release(old_etcd_cache);
 
     return 0;
 }

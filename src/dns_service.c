@@ -166,7 +166,7 @@ bool read_incoming_request(transaction_context *context, int socket_fd, dns_inco
 
     // We Reset the context here because of the "wait" in recvfrom, we really don't want to measure that.
     //
-    *context = create_context();
+    *context = context_create();
 
     log_incoming_request(context, &incoming_request->addr, incoming_request->addr_length);
 
@@ -382,7 +382,7 @@ void process_request(transaction_context *context, int socket_fd) {
 void dns_service_loop(int socket_fd) {
 
     while (dns_service_running()) {
-        transaction_context context = create_context();
+        transaction_context context = context_create();
         process_request(&context, socket_fd);
     }
 }

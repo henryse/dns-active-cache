@@ -43,21 +43,21 @@
 #include "dns_etcd_cache.h"
 
 void shutdown_service() {
-    transaction_context context = create_context();
+    transaction_context context = context_create();
     ERROR_LOG(&context, "Service is shutting down!");
     dns_service_stop();
     dns_cache_stop();
 }
 
 void signal_shutdown(int value) {
-    transaction_context context = create_context();
+    transaction_context context = context_create();
     ERROR_LOG(&context, "Shutting down the service, signal: %d", value);
     shutdown_service();
     exit(value);
 }
 
 void signal_SIGPIPE(int value) {
-    transaction_context context = create_context();
+    transaction_context context = context_create();
     ERROR_LOG(&context, "SIGPIPE failure: %d", value);
     shutdown_service();
     exit(value);
@@ -368,7 +368,7 @@ void fork_process(transaction_context *context) {
 
         // We need to reload the context... we are in the forked process.
         //
-        *context = create_context();
+        *context = context_create();
 
         // Unmask the file mode
         //
@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) {
 
     // Context for the transaction
     //
-    transaction_context context = create_context();
+    transaction_context context = context_create();
 
     // Setup base service
     //

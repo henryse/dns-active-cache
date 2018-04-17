@@ -142,7 +142,7 @@ long long timer_end(struct timespec start_time) {
     return timespec_to_ns(&end_time) - timespec_to_ns(&start_time);
 }
 
-transaction_context create_context() {
+transaction_context context_create() {
     transaction_context context;
     memory_clear(&context, sizeof context);
 
