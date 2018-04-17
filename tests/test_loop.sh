@@ -70,5 +70,7 @@ until [ ${COUNTER} -lt 0 ]; do
 #    dig any @::1 -p 5300 www.united.com
 #    dig any @::1 -p 5300 winefolly.com
 #    dig any @::1 -p 5300 news.bbc.co.uk
+#    dig @localhost -p 5300 "_http._tcp.applegate.farm" SRV
+#   dig @localhost -p 5300 "etcd.applegate.farm"
     let COUNTER-=1
 done
