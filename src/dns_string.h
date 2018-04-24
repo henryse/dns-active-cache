@@ -52,15 +52,15 @@ dns_string *dns_string_new_str(dns_string *source);
 
 void dns_string_free(dns_string *target, bool free_string);
 
-void dns_string_reset(dns_string *target);
+dns_string *dns_string_reset(dns_string *target);
 
 void dns_string_trim(dns_string *target, size_t length);
 
 void dns_string_append_char(dns_string *target, char ch);
 
-void dns_string_append_str_length(dns_string *target, const char *source, size_t length);
+dns_string *dns_string_append_str_length(dns_string *target, const char *source, size_t length);
 
-void dns_string_append_str(dns_string *target, const char *source);
+dns_string *dns_string_append_str(dns_string *target, const char *source);
 
 dns_string *dns_string_sprintf(dns_string *target, const char *fmt, ...);
 

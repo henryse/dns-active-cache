@@ -75,11 +75,13 @@ dns_string *dns_string_new_str(dns_string *source) {
     return new_string;
 }
 
-void dns_string_reset(dns_string *target) {
+dns_string *dns_string_reset(dns_string *target) {
     if (NULL != target) {
         target->position = 0;
         memory_clear(target->c_string, target->size);
     }
+
+    return target;
 }
 
 void dns_string_free(dns_string *target, bool free_string) {
@@ -143,10 +145,10 @@ void dns_string_append_char(dns_string *target, char ch) {
     target->c_string[target->position++] = ch;
 }
 
-void dns_string_append_str_length(dns_string *target, const char *source, size_t length) {
+dns_string *dns_string_append_str_length(dns_string *target, const char *source, size_t length) {
 
     if (NULL == target || NULL == source) {
-        return;
+        return target;
     }
 
     size_t chars_remaining;
@@ -166,10 +168,14 @@ void dns_string_append_str_length(dns_string *target, const char *source, size_t
 
     memcpy(target->c_string + target->position, source, length);
     target->position += length;
+
+    return target;
 }
 
-void dns_string_append_str(dns_string *target, const char *source) {
+dns_string *dns_string_append_str(dns_string *target, const char *source) {
     dns_string_append_str_length(target, source, strlen(source));
+
+    return target;
 }
 
 dns_string *dns_string_sprintf(dns_string *target, const char *template, ...) {
