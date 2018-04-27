@@ -205,10 +205,10 @@ dns_etcd_cache_record *dns_etcd_cache_find_create(dns_array *records, dns_string
     return NULL;
 }
 
-dns_string *dns_etcd_port_type(dns_string *protocol, etcd_response_node *response_node) {
+dns_string *dns_etcd_port_type(dns_string *protocol, etcd_response_node *server) {
     dns_string *path = dns_string_sprintf(dns_string_new_empty(),
                                           "%s/port_type",
-                                          dns_string_c_str(response_node->key));
+                                          dns_string_c_str(server->key));
 
     etcd_response *port_type_node = etcd_get(&g_etcd_client, dns_string_c_str(path));
 
@@ -223,10 +223,10 @@ dns_string *dns_etcd_port_type(dns_string *protocol, etcd_response_node *respons
     return dns_string_sprintf(dns_string_reset(protocol), "_tcp");
 }
 
-dns_string *dns_etcd_transport(dns_string *transport, etcd_response_node *response_node) {
+dns_string *dns_etcd_transport(dns_string *transport, etcd_response_node *server) {
     dns_string *path = dns_string_sprintf(dns_string_new_empty(),
                                           "%s/attrs/protocol",
-                                          dns_string_c_str(response_node->key));
+                                          dns_string_c_str(server->key));
 
     etcd_response *protocol_node = etcd_get(&g_etcd_client, dns_string_c_str(path));
 
@@ -242,106 +242,131 @@ dns_string *dns_etcd_transport(dns_string *transport, etcd_response_node *respon
 }
 
 
+etcd_response_node *dns_etcd_find_host_ip(transaction_context *context, etcd_response *servers) {
+    etcd_response_node *server = NULL;
+    etcd_response *host_ip = NULL;
+
+    dns_string *path = dns_string_new_empty();
+    for (size_t j = 0; j < dns_array_size(servers->node->nodes); j++) {
+        server = dns_array_get(servers->node->nodes, j);
+
+        dns_string_sprintf(path, "%s/host_ip", dns_string_c_str(server->key));
+        host_ip = etcd_get(&g_etcd_client, dns_string_c_str(path));
+
+        // Did we find server that matches our host_ip,  if we have then use that one.
+        //
+        if (0 == strcmp(dns_string_c_str(host_ip->node->value), dns_host_ip_get())) {
+            INFO_LOG(context, "Found Host IP Address %s", dns_host_ip_get());
+            break;
+        }
+
+        dns_string_reset(path);
+    }
+
+    // TODO: Need to add Not found... Select a random one.
+    dns_string_free(path, true);
+
+    return server;
+}
+
+dns_string *dns_etcd_protocol_name(etcd_response_node *server) {
+    dns_string *protocol = dns_etcd_port_type(dns_string_new_empty(), server);
+    dns_string *transport = dns_etcd_transport(dns_string_new_empty(), server);
+
+    dns_string *protocol_name = dns_string_sprintf(dns_string_new_empty(),
+                                                   "%s.%s.%s",
+                                                   dns_string_c_str(protocol),
+                                                   dns_string_c_str(transport),
+                                                   dns_host_name_get());
+    dns_string_free(transport, true);
+    dns_string_free(protocol, true);
+
+    return protocol_name;
+}
+
+dns_string *dns_etcd_service_name(etcd_response_node *service, etcd_response_node *server) {
+
+    dns_string *path = dns_string_sprintf(dns_string_new_empty(),
+                                          "%s/attrs/host_name",
+                                          dns_string_c_str(server->key));
+
+    etcd_response *host_name_node = etcd_get(&g_etcd_client, dns_string_c_str(path));
+
+    dns_string_free(path, true);
+
+    dns_string *service_name = dns_string_new_empty();
+
+    if (host_name_node && host_name_node->node && host_name_node->node->value){
+        service_name = dns_string_sprintf(service_name,
+                                          "%s.%s",
+                                          dns_string_c_str(host_name_node->node->value),
+                                          dns_host_name_get());
+    } else {
+        if (service->key && dns_string_length(service->key)){
+            service_name = dns_string_sprintf(service_name,
+                                              "%s.%s",
+                                              dns_string_c_str(service->key) + 1,
+                                              dns_host_name_get());
+        }
+
+    }
+
+    return service_name;
+}
+
 void dns_etcd_record_push(transaction_context *context,
                           dns_array *records,
-                          dns_string *service,
-                          etcd_response_node *node) {
-    INFO_LOG(context, "Pushing node: %s : %s", dns_string_c_str(node->key), dns_string_c_str(node->value));
+                          etcd_response_node *service) {
+    INFO_LOG(context, "Pushing service: %s : %s", dns_string_c_str(service->key), dns_string_c_str(service->value));
 
     // Loop through and see if there is a matching local host ip address,
 
-    etcd_response *base_node = etcd_get(&g_etcd_client, dns_string_c_str(node->key));
+    etcd_response *servers = etcd_get(&g_etcd_client, dns_string_c_str(service->key));
 
-    if (base_node
-        && base_node->node
-        && base_node->node->nodes)
+    if (servers
+        && servers->node
+        && servers->node->nodes)
     {
-        dns_string *path = dns_string_new_empty();
+        etcd_response_node *server = dns_etcd_find_host_ip(context, servers);
 
-        etcd_response_node *host_ip_response = NULL;
-        etcd_response *host_ip_node = NULL;
-        for (size_t j = 0; j < dns_array_size(base_node->node->nodes); j++) {
-            host_ip_response = dns_array_get(base_node->node->nodes, j);
-            dns_string_sprintf(path, "%s/host_ip", dns_string_c_str(host_ip_response->key));
-            host_ip_node = etcd_get(&g_etcd_client, dns_string_c_str(path));
+        dns_string *protocol_name = dns_etcd_protocol_name(server);
 
-            // Did we find server that matches our host_ip,  if we have then use that one.
-            //
-            if (0 == strcmp(dns_string_c_str(host_ip_node->node->value), dns_host_ip_get())) {
-                INFO_LOG(context, "Found Host IP Address %s", dns_host_ip_get());
-                break;
-            }
-
-            dns_string_reset(path);
-        }
-
-        dns_string_free(path, true);
-
-        dns_string *protocol = dns_etcd_port_type(dns_string_new_empty(), host_ip_response);
-        dns_string *transport = dns_etcd_transport(dns_string_new_empty(), host_ip_response);
-
-        dns_string *protocol_name = dns_string_sprintf(dns_string_new_empty(),
-                                                       "%s.%s.%s",
-                                                       dns_string_c_str(protocol),
-                                                       dns_string_c_str(transport),
-                                                       dns_host_name_get());
-        dns_string_free(transport, true);
-        dns_string_free(protocol, true);
-
-        dns_string *service_name = dns_string_sprintf(dns_string_new_empty(),
-                                                      "%s.%s",
-                                                      dns_string_c_str(service) + 1,
-                                                      dns_host_name_get());
+        dns_string *service_name = dns_etcd_service_name(service, server);
 
         dns_etcd_cache_record *record = dns_etcd_cache_find_create(records, service_name, protocol_name);
 
         dns_string_free(protocol_name, true);
         dns_string_free(service_name, true);
 
-        dns_etcd_ip_push(record, node->value);
+        dns_etcd_ip_push(record, service->value);
     }
 }
 
 void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
     // Start at the root.
     //
-    etcd_response *response = etcd_get(&g_etcd_client, "/");
+    etcd_response *services = etcd_get(&g_etcd_client, "/");
 
-    if (response && response->node && response->node->nodes) {
+    if (services && services->node && services->node->nodes) {
 
         // Loop through the nodes looking for directories.
         //
-        for (size_t i = 0; i < dns_array_size(response->node->nodes); i++) {
-            etcd_response_node *upper_node = dns_array_get(response->node->nodes, i);
+        for (size_t i = 0; i < dns_array_size(services->node->nodes); i++) {
+            etcd_response_node *service = dns_array_get(services->node->nodes, i);
 
-            // If it is a directory, we need to stop down adn see if it is one of ours.
+            // Did we find anything?
             //
-            if (upper_node->dir) {
-                // Dig a bit deeper
-                //
-                etcd_response *service = etcd_get(&g_etcd_client, dns_string_c_str(upper_node->key));
-
-                // Did we find anything?
-                //
-                if (service && service->node && service->node->nodes) {
-                    for (size_t j = 0; j < dns_array_size(service->node->nodes); j++) {
-
-                        etcd_response_node *base_node = dns_array_get(service->node->nodes, j);
-
-                        dns_etcd_record_push(context, cache->dns_etcd_cache_records, service->node->key, base_node);
-                    }
-                } else {
-                    INFO_LOG(context, "Skipping key %s, no sub nodes.", dns_string_c_str(upper_node->key));
-                }
-
-                etcd_response_free(service);
+            if (service) {
+                    dns_etcd_record_push(context, cache->dns_etcd_cache_records, service);
+            } else {
+                INFO_LOG(context, "Skipping key %s, no sub nodes.", dns_string_c_str(service->key));
             }
         }
     } else {
         ERROR_LOG(context, "ETCD service: no nodes found");
     }
 
-    etcd_response_free(response);
+    etcd_response_free(services);
 }
 
 void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dns_etcd_cache_record *records) {
