@@ -263,7 +263,11 @@ etcd_response_node *dns_etcd_find_host_ip(transaction_context *context, etcd_res
         dns_string_reset(path);
     }
 
-    // TODO: Need to add Not found... Select a random one.
+    if (dns_string_length(path) == 0){
+        size_t offset = (size_t)rand() % dns_array_size(servers->node->nodes); // NOLINT
+        server = dns_array_get(servers->node->nodes, offset);
+    }
+
     dns_string_free(path, true);
 
     return server;
