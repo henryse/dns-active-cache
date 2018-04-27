@@ -155,27 +155,12 @@ dns_etcd_cache_ip *dns_etcd_ip_find_create(dns_array *ips, dns_string *ip_addres
     return ip;
 }
 
-void dns_etcd_ip_push(dns_etcd_cache_record *record, dns_string *value) {
-    ASSERT(NULL, record && value);
+void dns_etcd_ip_port_push(dns_etcd_cache_record *record, dns_string *host_ip, dns_string *host_port) {
+    ASSERT(NULL, record && host_ip && host_port);
 
-    if (record && value) {
-        size_t count = 0;
-        dns_string_array *elements = dns_string_split_length(value, ":", &count);
-
-        if (count > 0) {
-            ASSERT(NULL, count == 2);
-
-            dns_string *ip_address = dns_array_get(elements, 0);
-
-            dns_etcd_cache_ip *ip = dns_etcd_ip_find_create(record->ips, ip_address);
-
-            dns_array_push(ip->ports, (void *) strtol(dns_string_c_str(dns_array_get(elements, 1)), NULL, 10));
-
-            dns_string_free(dns_array_get(elements, 0), true);
-            dns_string_free(dns_array_get(elements, 1), true);
-
-            dns_array_free(elements);
-        }
+    if (record && host_ip && host_port) {
+        dns_etcd_cache_ip *ip = dns_etcd_ip_find_create(record->ips, host_ip);
+        dns_array_push(ip->ports, (void *) strtol(dns_string_c_str(host_port), NULL, 10));
     }
 }
 
@@ -279,8 +264,8 @@ dns_string *dns_etcd_protocol_name(etcd_response_node *server) {
 
     dns_string *protocol_name = dns_string_sprintf(dns_string_new_empty(),
                                                    "%s.%s.%s",
-                                                   dns_string_c_str(protocol),
                                                    dns_string_c_str(transport),
+                                                   dns_string_c_str(protocol),
                                                    dns_host_name_get());
     dns_string_free(transport, true);
     dns_string_free(protocol, true);
@@ -318,6 +303,26 @@ dns_string *dns_etcd_service_name(etcd_response_node *service, etcd_response_nod
     return service_name;
 }
 
+dns_string *dns_etcd_host_ip(etcd_response_node *server) {
+    dns_string *path = dns_string_sprintf(dns_string_new_empty(),
+                                          "%s/host_ip",
+                                          dns_string_c_str(server->key));
+
+    etcd_response *host_ip = etcd_get(&g_etcd_client, dns_string_c_str(path));
+
+    return dns_string_new_str(host_ip->node->value);
+}
+
+dns_string *dns_etcd_port(etcd_response_node *server) {
+    dns_string *path = dns_string_sprintf(dns_string_new_empty(),
+                                          "%s/host_port",
+                                          dns_string_c_str(server->key));
+
+    etcd_response *host_port = etcd_get(&g_etcd_client, dns_string_c_str(path));
+
+    return dns_string_new_str(host_port->node->value);
+}
+
 void dns_etcd_record_push(transaction_context *context,
                           dns_array *records,
                           etcd_response_node *service) {
@@ -342,11 +347,18 @@ void dns_etcd_record_push(transaction_context *context,
         dns_string_free(protocol_name, true);
         dns_string_free(service_name, true);
 
-        dns_etcd_ip_push(record, service->value);
+        dns_string *host_ip = dns_etcd_host_ip(server);
+        dns_string *host_port = dns_etcd_port(server);
+
+        dns_etcd_ip_port_push(record, host_ip, host_port);
+
+        dns_string_free(host_ip, true);
+        dns_string_free(host_port, true);
     }
 }
 
 void dns_etcd_populate(transaction_context *context, dns_etcd_cache *cache) {
+
     // Start at the root.
     //
     etcd_response *services = etcd_get(&g_etcd_client, "/");
@@ -387,6 +399,11 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
         ip = dns_array_top(records->ips);
     }
 
+    if (ip == NULL ){
+        ERROR_LOG(NULL, "YIKES: Internal error");
+        return;
+    }
+
     dns_question_handle question = dns_packet_question_index(request, 0);
 
     record_type_t qtype = dns_question_type(question);
@@ -397,15 +414,12 @@ void dns_cache_entry_setup(dns_packet *request, dns_cache_entry *cache_entry, dn
                                                                            records->service,
                                                                            ip->ip);
     } else if (qtype == RECORD_SRV) {
-        dns_string *service_name = dns_string_sprintf(dns_string_new_empty(), "_http._tcp.%s", dns_host_name_get());
-
         cache_entry->dns_packet_response_size = dns_packet_srv_record_create(request,
                                                                              cache_entry,
-                                                                             service_name,
+                                                                             records->protocol,
                                                                              dns_max_ttl_get(),
                                                                              ip->ports,
                                                                              records->service);
-        dns_string_free(service_name, true);
     }
 }
 
