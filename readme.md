@@ -3,21 +3,24 @@ DNS Active Cache
 
 ## NOTE
 Currently working on adding etcd support.  Old Caching functionality still works.  If you enable ETCD support
-A and SRV Records are currently supported.  **Warning**: ETCD support is not complete, still working on the following:
+A and SRV Records are currently supported.
+
+An invaluable guide in learning about DNS communications can be found at [zytrax](http://www.zytrax.com/books/dns/).
+I could not have done this project without it.
+
+### Work Items
     
     1. Check question type in cache if it does not match, forward request again
     2. Document how to use with Registerator and make Dockerfile example
 
 ## Introduction
 
-An invaluable guide in learning about DNS communications can be found at [zytrax](http://www.zytrax.com/books/dns/).  I could not have done this project without it.
-
 This is a simple active local [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) caching service, 
 it **NOT** intended to be used as a desktop [DNS](https://en.wikipedia.org/wiki/Domain_Name_System) cache.
   
 The purpose of this service is meant to address any of the following:
 
-* The issue we are trying to address has to do with [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) and
+* The issue we are trying to address has to do with [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/)
 for services that are sensitive to DNS lookup times.   Specifically this is aimed at using [NGINX](https://www.nginx.com) as reverse proxy.
 
 Because ELBs are rebalanced using IP Addresses, services under heavy load can get backed up waiting for a timed out
@@ -44,16 +47,18 @@ An entry will be expired from the local cache based on the DNS Records TTL.
 
 ## Version 2.0 Process Flow
 
+The product now supports ETCD as a service discovery backend.  It will also cache upstream DNS entries described above.
+
 The DNS Active Cache's general algorithm is as follows:
 
         if etcd_enabled then
-            if check_etcd(question) then
+            if find_etcd_entry(question) then
                 return result
             end
         end
 
         if !cache_bypass then
-            if check_dns_cache(question) then
+            if find_dns_cache(question) then
                 return result
             end
         end
@@ -68,6 +73,18 @@ The DNS Active Cache's general algorithm is as follows:
 
         return dns_entry_not_found();
 
+This service expects the entries in ETCD to have to following layout:
+
+	<prefix>/<service-name>/<service-id>/<host_ip> = <ip>   - Hosts IP Address
+	<prefix>/<service-name>/<service-id>/<host_port> = <host_port> - host port
+	<prefix>/<service-name>/<service-id>/<exposed_port> = <exposed_port> - Docker Exposed Port
+	<prefix>/<service-name>/<service-id>/<exposed_ip> = <exposed_ip> - Docker Exposed IP
+	<prefix>/<service-name>/<service-id>/<tags> = <tags> - Directory of Tags, see above.
+	<prefix>/<service-name>/<service-id>/<attrs> = <attrs> - Directory of Attributes
+	<prefix>/<service-name>/<service-id>/<address> = <ip>:<port>
+	<prefix>/<service-name>/<service-id>/<port_type> = <port_type> - tcp, udp etc...
+
+We have a special version of [registrator](https://www.github.com/henryse/registrator) that supports this format.
 
 ## How to Build and Install
 
