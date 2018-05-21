@@ -29,9 +29,7 @@
 #define __unused
 #include <strings.h>
 #else
-
 #include <ntsid.h>
-
 #endif
 
 #include <pthread.h>

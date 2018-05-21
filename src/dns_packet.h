@@ -29,7 +29,13 @@
 #ifndef DNS_PACKET_H
 #define DNS_PACKET_H
 
+#ifndef __MACH__
+#include <sys/cdefs.h>
+#define _POSIX_C_SOURCE 200809L
+#define __unused
+#else
 #include <ntsid.h>
+#endif
 #include <stdio.h>
 #include <stdbool.h>
 #include "dns_string.h"

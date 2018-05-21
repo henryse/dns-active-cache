@@ -23,7 +23,13 @@
 //    OTHER DEALINGS IN THE SOFTWARE.
 //
 **********************************************************************/
+#ifndef __MACH__
+#include <sys/cdefs.h>
+#define _POSIX_C_SOURCE 200809L
+#define __unused
+#else
 #include <ntsid.h>
+#endif
 #include <memory.h>
 #include "dns_etcd_cache.h"
 #include "dns_etcd.h"
