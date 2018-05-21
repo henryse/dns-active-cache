@@ -27,6 +27,14 @@
 #ifndef DNS_CACHE_DNS_SETTINGS_H
 #define DNS_CACHE_DNS_SETTINGS_H
 
+#ifndef __MACH__
+#define _POSIX_C_SOURCE 200809L
+#define __unused
+#include <strings.h>
+#include <inttypes.h>
+#else
+#include <ntsid.h>
+#endif
 #include "dns_utils.h"
 
 bool dns_calling_socket_options_set(transaction_context *context, int dns_socket);

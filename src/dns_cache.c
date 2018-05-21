@@ -24,16 +24,6 @@
 //
 **********************************************************************/
 
-#ifndef __MACH__
-#include <sys/cdefs.h>
-#define _POSIX_C_SOURCE 200809L
-#define __unused
-#include <strings.h>
-#include <inttypes.h>
-#else
-#include <ntsid.h>
-#endif
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
