@@ -27,7 +27,14 @@
 
 #include <stdlib.h>
 #include <time.h>
-
+#ifndef __MACH__
+#define _POSIX_C_SOURCE 200809L
+#define __unused
+#include <strings.h>
+#include <stdint.h>
+#else
+#include <ntsid.h>
+#endif
 #include "dns_array.h"
 #include "dns_utils.h"
 
