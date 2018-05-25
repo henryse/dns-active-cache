@@ -36,8 +36,11 @@
 #include <strings.h>
 #include <inttypes.h>
 #else
+
 #include <ntsid.h>
+
 #endif
+
 #include <stdio.h>
 #include <stdbool.h>
 #include "dns_string.h"

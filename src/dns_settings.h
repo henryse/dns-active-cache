@@ -33,8 +33,11 @@
 #include <strings.h>
 #include <stdint.h>
 #else
+
 #include <ntsid.h>
+
 #endif
+
 #include "dns_utils.h"
 
 bool dns_calling_socket_options_set(transaction_context *context, int dns_socket);

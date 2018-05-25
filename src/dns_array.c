@@ -27,14 +27,18 @@
 
 #include <stdlib.h>
 #include <time.h>
+
 #ifndef __MACH__
 #define _POSIX_C_SOURCE 200809L
 #define __unused
 #include <strings.h>
 #include <stdint.h>
 #else
+
 #include <ntsid.h>
+
 #endif
+
 #include "dns_array.h"
 #include "dns_utils.h"
 
@@ -52,9 +56,9 @@ void dns_array_free(dns_array *array) {
 }
 
 int dns_array_elements_free(dns_array *array) {
-    if (array->elem != NULL && array->cap != 0) {
-        free(array->elem);
-        array->elem = NULL;
+    if (array->entries != NULL && array->cap != 0) {
+        free(array->entries);
+        array->entries = NULL;
     }
     array->count = 0;
     array->cap = 0;
@@ -64,47 +68,47 @@ int dns_array_elements_free(dns_array *array) {
 int dns_array_init(dns_array *array, size_t cap) {
     array->count = 0;
     array->cap = cap;
-    array->elem = NULL;
+    array->entries = NULL;
 
-    array->elem = memory_alloc(sizeof(void *) * array->cap);
-    if (array->elem == NULL) {
+    array->entries = memory_alloc(sizeof(uintptr_t) * array->cap);
+    if (array->entries == NULL) {
         return -1;
     }
     return 0;
 }
 
-int dns_array_set(dns_array *array, size_t index, void *p) {
+int dns_array_set(dns_array *array, size_t index, uintptr_t entry) {
     if (index > array->count) {
         return -1;
     }
-    array->elem[index] = p;
+    array->entries[index] = entry;
     return 0;
 }
 
-int dns_array_push(dns_array *array, void *p) {
+int dns_array_push(dns_array *array, uintptr_t entry) {
     size_t left;
 
     left = array->cap - array->count;
     /* The array is full, resize it by power 2*/
     if (left == 0) {
         array->cap = array->cap * 2;
-        array->elem = realloc(array->elem, sizeof(void *) * array->cap);
-        if (array->elem == NULL) {
+        array->entries = realloc(array->entries, sizeof(uintptr_t) * array->cap);
+        if (array->entries == NULL) {
             return -1;
         }
     }
 
-    array->elem[array->count] = p;
+    array->entries[array->count] = entry;
     array->count++;
     return 0;
 }
 
-void *dns_array_top(dns_array *array) {
+uintptr_t dns_array_top(dns_array *array) {
     return dns_array_get(array, dns_array_size(array) - 1);
 }
 
-void *dns_array_pop(dns_array *array) {
-    void *e = NULL;
+uintptr_t dns_array_pop(dns_array *array) {
+    uintptr_t e = 0;
     if (dns_array_size(array) > 0) {
         e = dns_array_get(array, dns_array_size(array) - 1);
         --array->count;
@@ -112,11 +116,11 @@ void *dns_array_pop(dns_array *array) {
     return e;
 }
 
-void *dns_array_get(dns_array *array, size_t index) {
+uintptr_t dns_array_get(dns_array *array, size_t index) {
     if (index > array->count) {
-        return NULL;
+        return 0;
     }
-    return array->elem[index];
+    return array->entries[index];
 }
 
 size_t dns_array_size(dns_array *array) {
@@ -129,7 +133,7 @@ size_t dns_array_size(dns_array *array) {
 
 dns_array *dns_array_shuffle(dns_array *cards) {
     size_t i, j, count;
-    void *src, *dst;
+    uintptr_t source, destination;
 
     srand((uint32_t) time(0));
     count = dns_array_size(cards);
@@ -139,10 +143,10 @@ dns_array *dns_array_shuffle(dns_array *cards) {
     for (i = count - 1; i > 0; --i) {
         j = rand() % (i + 1); // NOLINT
         if (i != j) {
-            src = dns_array_get(cards, i);
-            dst = dns_array_get(cards, j);
-            dns_array_set(cards, i, dst);
-            dns_array_set(cards, j, src);
+            source = dns_array_get(cards, i);
+            destination = dns_array_get(cards, j);
+            dns_array_set(cards, i, destination);
+            dns_array_set(cards, j, source);
         }
     }
 

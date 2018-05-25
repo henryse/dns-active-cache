@@ -80,9 +80,9 @@ static int yajl_parse_bool_cb(void *ctx, int val) {
     etcd_response_node *node;
     dns_string *key;
 
-    key = dns_array_pop(&c->key_stack);
+    key = (dns_string *) dns_array_pop(&c->key_stack);
     if (etcd_string_eq(key, "dir")) {
-        node = dns_array_top(&c->node_stack);
+        node = (etcd_response_node *) dns_array_top(&c->node_stack);
         node->dir = val;
     }
     dns_string_free(key, true);
@@ -94,8 +94,8 @@ static int yajl_parse_integer_cb(void *ctx, long long val) {
     etcd_response_node *node;
     dns_string *key;
 
-    key = dns_array_pop(&c->key_stack);
-    node = dns_array_top(&c->node_stack);
+    key = (dns_string *) dns_array_pop(&c->key_stack);
+    node = (etcd_response_node *) dns_array_top(&c->node_stack);
     if (etcd_string_eq(key, "ttl")) {
         node->ttl = (int64_t) val;
     } else if (etcd_string_eq(key, "modifiedindex")) {
@@ -116,12 +116,12 @@ static int yajl_parse_string_cb(void *ctx, const unsigned char *val, size_t len)
     etcd_response *resp;
     dns_string *key, *value;
 
-    key = dns_array_pop(&c->key_stack);
+    key = (dns_string *) dns_array_pop(&c->key_stack);
     if (etcd_string_eq(key, "key")) {
-        node = dns_array_top(&c->node_stack);
+        node = (etcd_response_node *) dns_array_top(&c->node_stack);
         node->key = dns_string_new_fixed(len, (const char *) val);
     } else if (etcd_string_eq(key, "value")) {
-        node = dns_array_top(&c->node_stack);
+        node = (etcd_response_node *) dns_array_top(&c->node_stack);
         node->value = dns_string_new_fixed(len, (const char *) val);
     } else if (etcd_string_eq(key, "action")) {
         resp = c->user_data;
@@ -140,13 +140,13 @@ static int yajl_parse_start_map_cb(void *ctx) {
 
     /*this is key of nodes*/
     if (dns_array_size(&c->key_stack) > 0) {
-        key = dns_array_top(&c->key_stack);
-        node = dns_array_top(&c->node_stack);
+        key = (dns_string *) dns_array_top(&c->key_stack);
+        node = (etcd_response_node *) dns_array_top(&c->node_stack);
         if (etcd_string_eq(key, "nodes")) {
             child = memory_alloc(sizeof(etcd_response_node));
-            dns_array_push(node->nodes, child);
-            dns_array_push(&c->node_stack, child);
-            dns_array_push(&c->key_stack, dns_string_new_c(sizeof("noname"), "noname"));
+            dns_array_push(node->nodes, (uintptr_t) child);
+            dns_array_push(&c->node_stack, (uintptr_t) child);
+            dns_array_push(&c->key_stack, (uintptr_t) dns_string_new_c(sizeof("noname"), "noname"));
         }
         return 1;
     }
@@ -164,21 +164,21 @@ static int yajl_parse_map_key_cb(void *ctx, const unsigned char *key, size_t len
 
     dns_string *name = dns_string_new_fixed(len, (const char *) key);
     dns_string_tolower(name);
-    dns_array_push(&c->key_stack, name);
+    dns_array_push(&c->key_stack, (uintptr_t) name);
 
     if (etcd_string_eq(name, "node")) {
         resp->node = memory_alloc(sizeof(etcd_response_node));
-        dns_array_push(&c->node_stack, resp->node);
+        dns_array_push(&c->node_stack, (uintptr_t) resp->node);
     } else if (etcd_string_eq(name, "prevnode")) {
         resp->prev_node = memory_alloc(sizeof(etcd_response_node));
-        dns_array_push(&c->node_stack, resp->prev_node);
+        dns_array_push(&c->node_stack, (uintptr_t) resp->prev_node);
     }
     return 1;
 }
 
 static int yajl_parse_end_map_cb(void *ctx) {
     yajl_parser_context *c = ctx;
-    dns_string *key = dns_array_pop(&c->key_stack);
+    dns_string *key = (dns_string *) dns_array_pop(&c->key_stack);
     if (key) {
         dns_string_free(key, true);
     }
@@ -191,7 +191,7 @@ static int yajl_parse_start_array_cb(void *ctx) {
     etcd_response_node *node;
     dns_string *key;
 
-    key = dns_array_top(&c->key_stack);
+    key = (dns_string *) dns_array_top(&c->key_stack);
     node = (etcd_response_node *) dns_array_top(&c->node_stack);
     if (etcd_string_eq(key, "nodes")) {
         if (node) {
@@ -207,14 +207,14 @@ static int yajl_parse_end_array_cb(void *ctx) {
 
     key = (dns_string *) dns_array_top(&c->key_stack);
     if (key != NULL && etcd_string_eq(key, "nodes")) {
-        dns_string_free(dns_array_pop(&c->key_stack), true);
+        dns_string_free((dns_string *) dns_array_pop(&c->key_stack), true);
     }
     return 1;
 }
 
 static int yajl_parse_null_ignore_cb(void *ctx) {
     yajl_parser_context *c = ctx;
-    dns_string_free(dns_array_pop(&c->key_stack), true);
+    dns_string_free((dns_string *) dns_array_pop(&c->key_stack), true);
     /*just ignore*/
     return 1;
 }
@@ -251,7 +251,7 @@ static yajl_callbacks callbacks = {
 static int yajl_err_parse_integer_cb(void *ctx, long long val) {
     yajl_parser_context *c = ctx;
     etcd_error *err = c->user_data;
-    dns_string *key = dns_array_pop(&c->key_stack);
+    dns_string *key = (dns_string *) dns_array_pop(&c->key_stack);
     if (etcd_string_eq(key, "errorcode")) {
         err->etcd_code = (int) val;
     }
@@ -262,7 +262,7 @@ static int yajl_err_parse_integer_cb(void *ctx, long long val) {
 static int yajl_err_parse_string_cb(void *ctx, const unsigned char *val, size_t len) {
     yajl_parser_context *c = ctx;
     etcd_error *err = c->user_data;
-    dns_string *key = dns_array_pop(&c->key_stack);
+    dns_string *key = (dns_string *) dns_array_pop(&c->key_stack);
     if (etcd_string_eq(key, "message")) {
         err->message = dns_string_new_c(len, (const char *) val);
     } else if (etcd_string_eq(key, "cause")) {
@@ -285,7 +285,7 @@ static int yajl_err_parse_map_key_cb(void *ctx, const unsigned char *key, size_t
     yajl_parser_context *c = ctx;
     dns_string *name = dns_string_new_c(len, (const char *) key);
     dns_string_tolower(name);
-    dns_array_push(&c->key_stack, name);
+    dns_array_push(&c->key_stack, (uintptr_t) name);
     return 1;
 }
 
@@ -311,9 +311,9 @@ static yajl_callbacks error_callbacks = {
 static int yajl_sync_parse_string_cb(void *ctx, const unsigned char *val, size_t len) {
     yajl_parser_context *c = ctx;
     dns_array *array = c->user_data;
-    dns_string *key = dns_array_top(&c->key_stack);
+    dns_string *key = (dns_string *) dns_array_top(&c->key_stack);
     if (key && etcd_string_eq(key, "clientURLs")) {
-        dns_array_push(array, dns_string_new_c(len, (const char *) val));
+        dns_array_push(array, (uintptr_t) dns_string_new_c(len, (const char *) val));
     }
     return 1;
 }
@@ -330,7 +330,7 @@ static int yajl_sync_parse_map_key_cb(void *ctx, const unsigned char *key, size_
     yajl_parser_context *c = ctx;
     dns_string *name = dns_string_new_c(len, (const char *) key);
     if (etcd_string_eq(name, "clientURLs")) {
-        dns_array_push(&c->key_stack, name);
+        dns_array_push(&c->key_stack, (uintptr_t) name);
     } else {
         dns_string_free(name, true);
     }
@@ -339,7 +339,7 @@ static int yajl_sync_parse_map_key_cb(void *ctx, const unsigned char *key, size_
 
 static int yajl_sync_parse_end_map_cb(void *ctx) {
     yajl_parser_context *c = ctx;
-    dns_string *key = dns_array_pop(&c->key_stack);
+    dns_string *key = (dns_string *) dns_array_pop(&c->key_stack);
     if (key) {
         dns_string_free(key, true);
     }
@@ -349,9 +349,9 @@ static int yajl_sync_parse_end_map_cb(void *ctx) {
 static int yajl_sync_parse_end_array_cb(void *ctx) {
     yajl_parser_context *c = ctx;
     dns_string *key;
-    key = dns_array_top(&c->key_stack);
+    key = (dns_string *) dns_array_top(&c->key_stack);
     if (key && etcd_string_eq(key, "clientURLs")) {
-        dns_string_free(dns_array_pop(&c->key_stack), true);
+        dns_string_free((dns_string *) dns_array_pop(&c->key_stack), true);
     }
     return 1;
 }

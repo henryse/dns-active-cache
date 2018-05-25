@@ -24,6 +24,7 @@
 //
 **********************************************************************/
 
+#include <arpa/inet.h>
 #include "dns_question.h"
 
 typedef struct __attribute__((packed)) question_header_t {

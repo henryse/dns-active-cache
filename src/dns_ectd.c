@@ -143,12 +143,12 @@ void etcd_client_init(etcd_client *cli, dns_array *addresses) {
 
     addrs = dns_array_create(dns_array_size(addresses));
     for (i = 0; i < dns_array_size(addresses); ++i) {
-        addr = dns_array_get(addresses, i);
+        addr = (dns_string *) dns_array_get(addresses, i);
         if (strncmp(dns_string_c_str(addr), "http", 4) != 0) {
             dns_array_push(addrs,
-                           dns_string_sprintf(dns_string_new_empty(), "http://%s", dns_string_c_str(addr)));
+                           (uintptr_t) dns_string_sprintf(dns_string_new_empty(), "http://%s", dns_string_c_str(addr)));
         } else {
-            dns_array_push(addrs, dns_string_new_str(addr));
+            dns_array_push(addrs, (uintptr_t) dns_string_new_str(addr));
         }
     }
 
@@ -210,7 +210,7 @@ void etcd_addresses_release(dns_array *addrs) {
     if (addrs) {
         size_t count = dns_array_size(addrs);
         for (size_t i = 0; i < count; ++i) {
-            string = dns_array_get(addrs, i);
+            string = (dns_string *) dns_array_get(addrs, i);
             dns_string_free(string, 0);
         }
     }
@@ -408,14 +408,14 @@ int etcd_watcher_add(dns_array *watchers, etcd_watcher *watcher) {
     // watcher->array_index is used to reset to the original hole if the watcher was deleted before.
     //
     if (watcher->array_index == -1) {
-        dns_array_push(watchers, watcher);
+        dns_array_push(watchers, (uintptr_t) watcher);
         watcher->array_index = (int) (dns_array_size(watchers) - 1);
     } else {
-        w = dns_array_get(watchers, (size_t) watcher->array_index);
+        w = (etcd_watcher *) dns_array_get(watchers, (size_t) watcher->array_index);
         if (w) {
             etcd_watcher_release(w);
         }
-        dns_array_set(watchers, (size_t) watcher->array_index, watcher);
+        dns_array_set(watchers, (size_t) watcher->array_index, (uintptr_t) watcher);
     }
     return 1;
 }
@@ -424,7 +424,7 @@ int etcd_watcher_del(dns_array *watchers, etcd_watcher *watcher) {
     if (watcher) {
         int index = watcher->array_index;
         if (index >= 0) {
-            dns_array_set(watchers, (size_t) index, NULL);
+            dns_array_set(watchers, (size_t) index, 0);
             etcd_watcher_release(watcher);
         }
     }
@@ -549,7 +549,7 @@ int etcd_watcher_multi(etcd_client *cli, dns_array *watchers) {
     CURLM *curlm = curl_multi_init();
     int count = (int) dns_array_size(watchers);
     for (int i = 0; i < count; ++i) {
-        watcher = dns_array_get(watchers, (size_t) i);
+        watcher = (etcd_watcher *) dns_array_get(watchers, (size_t) i);
         etcd_curl_validate(NULL, curl_easy_setopt(watcher->curl, CURLOPT_PRIVATE, watcher));
         etcd_curl_multi_validate(NULL, curl_multi_add_handle(curlm, watcher->curl));
     }
@@ -968,7 +968,7 @@ void etcd_node_release(etcd_response_node *node) {
     if (node->nodes) {
         size_t count = dns_array_size(node->nodes);
         for (size_t i = 0; i < count; ++i) {
-            etcd_response_node *n = dns_array_get(node->nodes, i);
+            etcd_response_node *n = (etcd_response_node *) dns_array_get(node->nodes, i);
             etcd_node_release(n);
         }
         dns_array_free(node->nodes);
@@ -1035,7 +1035,7 @@ static void etcd_node_log(dns_string *log_output, etcd_response_node *node) {
         if (node->nodes) {
             int count = (int) dns_array_size(node->nodes);
             for (int i = 0; i < count; ++i) {
-                etcd_response_node *n = dns_array_get(node->nodes, (size_t) i);
+                etcd_response_node *n = (etcd_response_node *) dns_array_get(node->nodes, (size_t) i);
                 etcd_node_log(log_output, n);
             }
         }
@@ -1244,8 +1244,8 @@ size_t etcd_parse_response(char *ptr,
                 continue;
             }
 
-            dns_string *key = dns_array_get(kvs, 0);
-            dns_string *val = dns_array_get(kvs, 1);
+            dns_string *key = (dns_string *) dns_array_get(kvs, 0);
+            dns_string *val = (dns_string *) dns_array_get(kvs, 1);
             if (strncmp(dns_string_c_str(key), "X-Etcd-Index", sizeof("X-Etcd-Index") - 1) == 0) {
                 resp->etcd_index = (uint64_t) atoi(dns_string_c_str(val)); // NOLINT
             } else if (strncmp(dns_string_c_str(key), "X-Raft-Index", sizeof("X-Raft-Index") - 1) == 0) {

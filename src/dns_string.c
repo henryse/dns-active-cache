@@ -266,8 +266,8 @@ void dns_string_array_destroy(dns_string_array *string_array) {
     size_t count = dns_array_size(string_array);
 
     for (size_t index = 0; index < count; index++) {
-        dns_string_free(dns_array_get(string_array, index), true);
-        dns_array_set(string_array, index, NULL);
+        dns_string_free((dns_string *) dns_array_get(string_array, index), true);
+        dns_array_set(string_array, index, 0);
     }
     dns_array_elements_free(string_array);
 }
@@ -306,7 +306,7 @@ dns_string_array *dns_string_split_length(dns_string *target, const char *separa
     //
     size_t item_count = 0;
     while (pch != NULL && item_count < token_count) {
-        dns_array_push(string_array, dns_string_new_c(strlen(pch), pch));
+        dns_array_push(string_array, (uintptr_t) dns_string_new_c(strlen(pch), pch));
         pch = strtok(NULL, separator);
         item_count++;
     }

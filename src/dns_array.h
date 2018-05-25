@@ -32,7 +32,7 @@
 #include <stdbool.h>
 
 typedef struct dns_array_t {
-    void **elem;
+    uintptr_t *entries;
     size_t count;
     size_t cap;
 } dns_array;
@@ -48,15 +48,15 @@ int dns_array_init(dns_array *array, size_t cap);
 
 int dns_array_elements_free(dns_array *array);
 
-int dns_array_push(dns_array *array, void *p);
+int dns_array_push(dns_array *array, uintptr_t entry);
 
-void *dns_array_get(dns_array *array, size_t index);
+uintptr_t dns_array_get(dns_array *array, size_t index);
 
-int dns_array_set(dns_array *array, size_t index, void *p);
+int dns_array_set(dns_array *array, size_t index, uintptr_t entry);
 
-void *dns_array_top(dns_array *array);
+uintptr_t dns_array_top(dns_array *array);
 
-void *dns_array_pop(dns_array *array);
+uintptr_t dns_array_pop(dns_array *array);
 
 dns_array *dns_array_shuffle(dns_array *cards);
 
