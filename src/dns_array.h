@@ -29,6 +29,7 @@
 #define DNS_ACTIVE_CACHE_DNS_ARRAY_H
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 typedef struct dns_array_t {
