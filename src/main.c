@@ -408,7 +408,6 @@ void fork_process(transaction_context *context) {
 }
 
 int main(int argc, char *argv[]) {
-
     // Context for the transaction
     //
     transaction_context context = context_create();

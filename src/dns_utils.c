@@ -229,13 +229,15 @@ void log_message(int log_level,
         vasprintf(&str, template, arg_list);
         va_end(arg_list);
 
+        printf("[%s] %s\n", message_type, str);
+
         if (str) {
             dns_string_append_str(output, str);
             memory_clear(str, strlen(str));
             free(str);
         }
 
-        syslog(log_level, "%s", dns_string_c_str(output));
+        syslog(log_level, dns_string_c_str(output));
 
         dns_string_free(output, true);
     }
