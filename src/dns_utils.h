@@ -73,9 +73,9 @@ struct timespec timer_start();
 
 long long timer_end(struct timespec start_time);
 
-void create_logs();
+void create_logs(transaction_context *context);
 
-void close_logs();
+void close_logs(transaction_context *context);
 
 #define min(a, b) \
        ({ \

@@ -241,12 +241,14 @@ void log_message(int log_level,
     }
 }
 
-void create_logs() {
+void create_logs(transaction_context *context) {
+    INFO_LOG(context, "Creating log dns_active_cache");
     setlogmask(LOG_UPTO (LOG_DEBUG));
     openlog("dns_active_cache", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL0);
 }
 
-void close_logs() {
+void close_logs(transaction_context *context) {
+    INFO_LOG(context, "Closing log dns_active_cache");
     closelog();
 }
 

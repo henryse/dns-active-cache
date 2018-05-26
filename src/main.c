@@ -344,6 +344,9 @@ bool parse_arguments(transaction_context *context, int argc, char *argv[]) {
 
 void fork_process(transaction_context *context) {
     if (dns_run_as_daemon_get()) {
+
+        INFO_LOG(context, "Starting as Daemon");
+
         // Create child process
         //
         pid_t process_id = fork();
@@ -399,6 +402,8 @@ void fork_process(transaction_context *context) {
         // Setup base service
         //
         dns_process_setup();
+    } else {
+        INFO_LOG(context, "Not starting as Daemon");
     }
 }
 
@@ -425,7 +430,7 @@ int main(int argc, char *argv[]) {
 
         // Create the log files...
         //
-        create_logs();
+        create_logs(&context);
 
         // Get the list of resolvers
         //
@@ -455,9 +460,11 @@ int main(int argc, char *argv[]) {
             ERROR_LOG(&context, "Unable to find resolvers config file %s, please see --resolvers= options",
                       dns_resolvers_file_get());
         }
+    } else {
+        ERROR_LOG(&context, "Failed paring command line arguments");
     }
 
-    close_logs();
+    close_logs(&context);
 
     return return_value;
 }
