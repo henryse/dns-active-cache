@@ -430,7 +430,8 @@ bool dns_etcd_search(dns_packet *request, dns_string *request_host_name, dns_cac
         size_t size = dns_array_size(cache->dns_etcd_cache_records);
 
         for (size_t index = 0; index < size; index++) {
-            dns_etcd_cache_record *record = (dns_etcd_cache_record *) dns_array_get(cache->dns_etcd_cache_records, index);
+            dns_etcd_cache_record *record = (dns_etcd_cache_record *) dns_array_get(cache->dns_etcd_cache_records,
+                                                                                    index);
 
             dns_question_handle question = dns_packet_question_index(request, 0);
 
@@ -581,7 +582,8 @@ void dns_etcd_cache_log(dns_string *response) {
         dns_string_sprintf(response, "\"etcd\" : [");
 
         for (size_t record_index = 0; record_index < num_records; record_index++) {
-            dns_etcd_cache_record *record = (dns_etcd_cache_record *) dns_array_get(cache->dns_etcd_cache_records, record_index);
+            dns_etcd_cache_record *record = (dns_etcd_cache_record *) dns_array_get(cache->dns_etcd_cache_records,
+                                                                                    record_index);
             if (record) {
                 dns_string_sprintf(response, "{\"protocol\": \"%s\",", dns_string_c_str(record->protocol));
                 dns_string_sprintf(response, "\"service\": \"%s\",", dns_string_c_str(record->service));

@@ -237,7 +237,7 @@ void log_message(int log_level,
             free(str);
         }
 
-        syslog(log_level, dns_string_c_str(output));
+        syslog(log_level, "%s", dns_string_c_str(output));
 
         dns_string_free(output, true);
     }
