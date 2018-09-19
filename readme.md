@@ -1,3 +1,5 @@
+**Status:** Production Version: v2.0.8, ETCD support underdevelopment
+
 DNS Active Cache
 ====
 
