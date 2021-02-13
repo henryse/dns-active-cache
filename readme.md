@@ -1,4 +1,4 @@
-**Status:** Production Version: v2.0.8, Working on Redis Support
+**Status:** Production Version: v2.0.8
 
 DNS Active Cache
 ====
