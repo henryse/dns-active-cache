@@ -1,4 +1,4 @@
-**Status:** Production Version: v2.0.8, ETCD support underdevelopment
+**Status:** Production Version: v2.0.8, Working on Redis Support
 
 DNS Active Cache
 ====
