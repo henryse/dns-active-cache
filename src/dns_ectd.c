@@ -619,7 +619,7 @@ etcd_watch_id etcd_watcher_multi_async(etcd_client *cli, dns_array *watchers) {
     args = calloc(2, sizeof(void *));
     args[0] = cli;
     args[1] = watchers;
-    pthread_t thread = NULL;
+    pthread_t thread = 0;
     pthread_create(&thread, NULL, (void *(*)(void *)) etcd_multi_watch_wrapper, args);
     return thread;
 }
