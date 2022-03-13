@@ -34,9 +34,7 @@
 #include <strings.h>
 #include <stdint.h>
 #else
-
 #include <ntsid.h>
-
 #endif
 
 #include "dns_array.h"

@@ -24,10 +24,6 @@
 //
 **********************************************************************/
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedMacroInspection"
-#define _GNU_SOURCE
-
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -153,9 +149,6 @@ transaction_context context_create() {
     return context;
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wuninitialized"
-
 void create_output_header(dns_string *output, const char *status, const char *function, const char *file,
                           int line, transaction_context *context) {
 
@@ -182,8 +175,6 @@ void create_output_header(dns_string *output, const char *status, const char *fu
                        line,
                        function);
 }
-
-#pragma clang diagnostic pop
 
 void log_message(int log_level,
                  const char *function,
@@ -253,5 +244,3 @@ void close_logs(transaction_context *context) {
     INFO_LOG(context, "Closing log dns_active_cache");
     closelog();
 }
-
-#pragma clang diagnostic pop
